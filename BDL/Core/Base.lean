@@ -2,9 +2,9 @@
 # Base — object language
 
 A tiny simply typed language, extended (Phase 1) with references to design
-holes by *identity*: `Expr.holeRef h`.  Nothing about a hole's specification
-or realization lives in the syntax; a reference is a name, resolved against a
-`HoleEnv` (see `Hole.lean`) at typing time.
+declarations by *identity*: `Expr.declRef d`.  Nothing about a declaration's
+interface or realization lives in the syntax; a reference is a name, resolved
+against a `DeclEnv` (see `Decl.lean`) at typing time.
 -/
 
 namespace BDL
@@ -15,9 +15,11 @@ inductive Ty where
   | arr (dom cod : Ty)
   deriving DecidableEq, Repr
 
-/-- Persistent identity of a design hole.  A wrapper rather than a bare `Nat`
-    so ids cannot be confused with de Bruijn indices or numerals. -/
-structure HoleId where
+/-- Stable identity of a design declaration — an ordinary declaration name,
+    not a novel abstraction (Phase 1, REPORT §1.5).  A wrapper rather than a
+    bare `Nat` so ids cannot be confused with de Bruijn indices or numerals.
+    Display names are a surface concern and are not modelled. -/
+structure DeclId where
   n : Nat
   deriving DecidableEq, Repr
 
@@ -27,28 +29,29 @@ inductive Expr where
   | natLit (n : Nat)
   | lam (dom : Ty) (body : Expr)  -- binder annotated with its domain
   | app (f a : Expr)
-  | holeRef (h : HoleId)          -- Phase 1: reference to a design entity by id
+  | declRef (d : DeclId)          -- Phase 1: reference to a declaration by id
   deriving DecidableEq, Repr
 
 /-- Typing context: the type of de Bruijn index `i` is `Γ[i]?`. -/
 abbrev Ctx := List Ty
 
-/-- The hole identifiers a term refers to (with multiplicity; order irrelevant). -/
-def Expr.refs : Expr → List HoleId
+/-- The declarations a term refers to (with multiplicity; order irrelevant). -/
+def Expr.refs : Expr → List DeclId
   | .var _ | .boolLit _ | .natLit _ => []
   | .lam _ b => b.refs
   | .app f a => f.refs ++ a.refs
-  | .holeRef h => [h]
+  | .declRef d => [d]
 
-/-- A term that mentions no hole: an ordinary closed-over-the-environment program. -/
-def Expr.HoleFree (e : Expr) : Prop := e.refs = []
+/-- A term that refers to no declaration: an ordinary program whose typing is
+    independent of any environment. -/
+def Expr.RefFree (e : Expr) : Prop := e.refs = []
 
-instance (e : Expr) : Decidable e.HoleFree := inferInstanceAs (Decidable (e.refs = []))
+instance (e : Expr) : Decidable e.RefFree := inferInstanceAs (Decidable (e.refs = []))
 
-theorem Expr.HoleFree.app_left {f a : Expr} (h : (Expr.app f a).HoleFree) : f.HoleFree :=
+theorem Expr.RefFree.app_left {f a : Expr} (h : (Expr.app f a).RefFree) : f.RefFree :=
   (List.append_eq_nil_iff.mp h).1
 
-theorem Expr.HoleFree.app_right {f a : Expr} (h : (Expr.app f a).HoleFree) : a.HoleFree :=
+theorem Expr.RefFree.app_right {f a : Expr} (h : (Expr.app f a).RefFree) : a.RefFree :=
   (List.append_eq_nil_iff.mp h).2
 
 end BDL

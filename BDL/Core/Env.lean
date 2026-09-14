@@ -11,7 +11,7 @@ The Phase-1 research question:
 Answered in two halves, under deliberately different hypotheses:
 
 * **Typing** (`local_refinement_preserves_global_typing`): needs only the
-  *structural* step `HoleLeq B B'` — no evidence, no well-formedness, no
+  *structural* step `DeclLeq B B'` — no evidence, no well-formedness, no
   monotonicity.  Strictly, it needs even less: only that `B'` keeps `B`'s
   expected type (`HasType.mono_env`).
 * **Commitments** (`local_refinement_preserves_global_wf`): needs the step's
@@ -25,41 +25,41 @@ Both are consequences of one structural fact: the environment order
 
 namespace BDL
 
-/-- Every declared hole is stored under its own id, and its realization (if
-    any) satisfies its spec *in this environment*, at top level. -/
-def GlobalWF (ev : Evidence) (Δ : HoleEnv) : Prop :=
-  ∀ id h, Δ id = some h → h.id = id ∧ WellFormedHole ev Δ [] h
+/-- Every declaration is stored under its own id, and its realization (if
+    any) satisfies its interface *in this environment*, at top level. -/
+def GlobalWF (ev : Evidence) (Δ : DeclEnv) : Prop :=
+  ∀ id h, Δ id = some h → h.id = id ∧ WellFormedDecl ev Δ [] h
 
 theorem GlobalWF.empty (ev : Evidence) : GlobalWF ev .empty :=
   fun _ _ h => nomatch h
 
 /-- For finite environments, global well-formedness reduces to a decidable
     check over the list. -/
-theorem GlobalWF.ofList {ev : Evidence} {l : List DesignHole}
-    (h : ∀ dh ∈ l, WellFormedHole ev (.ofList l) [] dh) : GlobalWF ev (.ofList l) := by
+theorem GlobalWF.ofList {ev : Evidence} {l : List DesignDecl}
+    (h : ∀ dh ∈ l, WellFormedDecl ev (.ofList l) [] dh) : GlobalWF ev (.ofList l) := by
   intro id dh hh
-  obtain ⟨hmem, hid⟩ := HoleEnv.ofList_some hh
-  exact ⟨hid, h dh hmem⟩
+  obtain ⟨hmem, dId⟩ := DeclEnv.ofList_some hh
+  exact ⟨dId, h dh hmem⟩
 
-theorem GlobalWF.stored_id {ev : Evidence} {Δ : HoleEnv} (g : GlobalWF ev Δ) {id : HoleId} {h : DesignHole}
+theorem GlobalWF.stored_id {ev : Evidence} {Δ : DeclEnv} (g : GlobalWF ev Δ) {id : DeclId} {h : DesignDecl}
     (hh : Δ id = some h) : h.id = id := (g id h hh).1
 
-theorem GlobalWF.wellFormed {ev : Evidence} {Δ : HoleEnv} (g : GlobalWF ev Δ) {id : HoleId} {h : DesignHole}
-    (hh : Δ id = some h) : WellFormedHole ev Δ [] h := (g id h hh).2
+theorem GlobalWF.wellFormed {ev : Evidence} {Δ : DeclEnv} (g : GlobalWF ev Δ) {id : DeclId} {h : DesignDecl}
+    (hh : Δ id = some h) : WellFormedDecl ev Δ [] h := (g id h hh).2
 
 /-! ## Phase-1 main theorems -/
 
 /-- **Local refinement preserves global typing.**
 
-Stepping the declared hole `B` to any structurally later state `B'` and
+Stepping the declaration `B` to any structurally later state `B'` and
 writing it back preserves *every* typing judgment in the design — every
 client of `B`, and every non-client, unchanged.
 
-Hypotheses: `B` is declared, and `HoleLeq B B'`.  Nothing about evidence,
-obligations being satisfied, or well-formedness of anything.  In fact only
-`B'.spec.expectedType = B.spec.expectedType` is used (via `EnvRefines.tyView`). -/
-theorem local_refinement_preserves_global_typing {Δ : HoleEnv} {B B' : DesignHole}
-    (hB : Δ B.id = some B) (le : HoleLeq B B') :
+Hypotheses: `B` is declared, and `DeclLeq B B'`.  Nothing about evidence,
+commitments being satisfied, or well-formedness of anything.  In fact only
+`B'.interface.expectedType = B.interface.expectedType` is used (via `EnvRefines.tyView`). -/
+theorem local_refinement_preserves_global_typing {Δ : DeclEnv} {B B' : DesignDecl}
+    (hB : Δ B.id = some B) (le : DeclLeq B B') :
     ∀ {Γ : Ctx} {e : Expr} {τ : Ty}, HasType Δ Γ e τ → HasType (Δ.update B') Γ e τ :=
   fun h => h.of_envRefines (EnvRefines_update hB le)
 
@@ -69,31 +69,31 @@ If the design is globally well formed and `B` takes one lifecycle step
 (side conditions checked in the current environment), the updated design is
 globally well formed — provided evidence is monotone. -/
 theorem local_refinement_preserves_global_wf {ev : Evidence} (mono : ev.Monotone)
-    {Δ : HoleEnv} (g : GlobalWF ev Δ) {B B' : DesignHole}
-    (hB : Δ B.id = some B) (step : HoleRefines ev Δ [] B B') :
+    {Δ : DeclEnv} (g : GlobalWF ev Δ) {B B' : DesignDecl}
+    (hB : Δ B.id = some B) (step : DeclRefines ev Δ [] B B') :
     GlobalWF ev (Δ.update B') := by
   have er : EnvRefines Δ (Δ.update B') := EnvRefines_update hB step.toLeq
   intro id h hh
-  by_cases hid : id = B'.id
-  · subst hid
+  by_cases dId : id = B'.id
+  · subst dId
     rw [Δ.update_self] at hh
     cases hh
     exact ⟨rfl, step.wellFormed_target.of_envRefines mono er⟩
-  · rw [Δ.update_other B' hid] at hh
+  · rw [Δ.update_other B' dId] at hh
     exact ⟨g.stored_id hh, (g.wellFormed hh).of_envRefines mono er⟩
 
 /-- Updating twice at the same id is updating once (needs `funext`). -/
-theorem HoleEnv.update_update_same {Δ : HoleEnv} {h₁ h₂ : DesignHole} (hid : h₁.id = h₂.id) :
+theorem DeclEnv.update_update_same {Δ : DeclEnv} {h₁ h₂ : DesignDecl} (dId : h₁.id = h₂.id) :
     (Δ.update h₁).update h₂ = Δ.update h₂ := by
   funext id
-  unfold HoleEnv.update
-  by_cases h : id = h₂.id <;> simp [h, hid]
+  unfold DeclEnv.update
+  by_cases h : id = h₂.id <;> simp [h, dId]
 
 /-- Multi-step version: a whole lifecycle of `B`, all side conditions checked
     against the *original* environment, preserves global well-formedness. -/
 theorem local_lifecycle_preserves_global_wf {ev : Evidence} (mono : ev.Monotone)
-    {Δ : HoleEnv} (g : GlobalWF ev Δ) {B B' : DesignHole}
-    (hB : Δ B.id = some B) (steps : HoleRefinesStar ev Δ [] B B') :
+    {Δ : DeclEnv} (g : GlobalWF ev Δ) {B B' : DesignDecl}
+    (hB : Δ B.id = some B) (steps : DeclRefinesStar ev Δ [] B B') :
     GlobalWF ev (Δ.update B') := by
   -- generalize over the environment the steps are replayed in
   suffices key : ∀ Δ', EnvRefines Δ Δ' → GlobalWF ev Δ' → Δ' B.id = some B →
@@ -103,20 +103,20 @@ theorem local_lifecycle_preserves_global_wf {ev : Evidence} (mono : ev.Monotone)
   induction steps with
   | refl B =>
     intro Δ' _ g' hB' id h hh
-    have er' : EnvRefines Δ' (Δ'.update B) := EnvRefines_update hB' (HoleLeq.refl _)
-    by_cases hid : id = B.id
-    · subst hid; rw [Δ'.update_self] at hh; cases hh
+    have er' : EnvRefines Δ' (Δ'.update B) := EnvRefines_update hB' (DeclLeq.refl _)
+    by_cases dId : id = B.id
+    · subst dId; rw [Δ'.update_self] at hh; cases hh
       exact ⟨rfl, (g'.wellFormed hB').of_envRefines mono er'⟩
-    · rw [Δ'.update_other B hid] at hh
+    · rw [Δ'.update_other B dId] at hh
       exact ⟨g'.stored_id hh, (g'.wellFormed hh).of_envRefines mono er'⟩
   | step s rest ih =>
     rename_i B B₁ B'
     intro Δ' er g' hB'
-    have s' : HoleRefines ev Δ' [] B B₁ := s.of_envRefines mono er
+    have s' : DeclRefines ev Δ' [] B B₁ := s.of_envRefines mono er
     have g₁ := local_refinement_preserves_global_wf mono g' hB' s'
     have er₁ : EnvRefines Δ (Δ'.update B₁) := er.trans (EnvRefines_update hB' s.toLeq)
     have hB₁ : (Δ'.update B₁) B₁.id = some B₁ := Δ'.update_self B₁
     have := ih (Δ'.update B₁) er₁ g₁ hB₁
-    rwa [HoleEnv.update_update_same (HoleRefinesStar.toLeq rest).id_eq] at this
+    rwa [DeclEnv.update_update_same (DeclRefinesStar.toLeq rest).id_eq] at this
 
 end BDL
