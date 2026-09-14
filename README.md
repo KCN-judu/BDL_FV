@@ -8,6 +8,7 @@ actually needs.  No dependencies beyond core Lean.
 lake build
 ```
 
+* `paper/` — the BDL paper (Typst source, `paper/build.sh` compiles it)
 * `REPORT.md` — formal results per phase
 * `DESIGN_DECISIONS.md` — every model choice and rejected alternative
 * `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table

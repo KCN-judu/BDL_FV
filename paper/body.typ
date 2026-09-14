@@ -804,7 +804,7 @@ pointwise evaluation.
 
 The typing judgment is
 
-$ Delta , Gamma tack.r e : tau gt.tri Phi , $
+$ Delta , Gamma tack.r e : tau gt.closed Phi , $
 
 where $Delta$ is the device and primitive environment, $Gamma$ is the
 value environment, and $Phi$ is a set of non-core validation
@@ -846,8 +846,8 @@ $  & (forall i . #h(0em) s_i : upright("Signal") [d] tau_i) and (x_1 : tau_1 , d
 
 Its denotation is pointwise:
 
-$  & bracket.l.double upright("map") (f) (s_1 , dots.h , s_n) bracket.r.double (i)\
- & #h(2em) = bracket.l.double f bracket.r.double (bracket.l.double s_1 bracket.r.double (i) , dots.h , bracket.l.double s_n bracket.r.double (i)) . $
+$  & bracket.l.stroked upright("map") (f) (s_1 , dots.h , s_n) bracket.r.stroked (i)\
+ & #h(2em) = bracket.l.stroked f bracket.r.stroked (bracket.l.stroked s_1 bracket.r.stroked (i) , dots.h , bracket.l.stroked s_n bracket.r.stroked (i)) . $
 
 This is the formal basis of the surface-level `Tilt -> Brightness`
 Mapping Block.
@@ -1253,7 +1253,7 @@ $ F_g = "Fire" (g) $
 be the set of domains whose local clocks tick at physical time
 $kappa_G (g)$. A runtime configuration is
 
-$ cal(M)_g = angle.l I_g , Sigma_g , A_g angle.r , $
+$ cal(M)_g = chevron.l I_g , Sigma_g , A_g chevron.r , $
 
 where $I_g$ contains sampled inputs and synchronized event deliveries
 for the firing domains, $Sigma_g$ contains temporal state, synchronizer

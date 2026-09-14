@@ -8,21 +8,21 @@
   numbering: "1",
   number-align: center,
 )
-#set text(font: "Linux Libertine O", size: 9pt, lang: "en")
+#set text(font: "Libertinus Serif", size: 9pt, lang: "en")
 #set par(justify: true, leading: 0.52em)
 #set heading(numbering: "1.1")
 #set enum(indent: 1.15em, body-indent: 0.45em)
 #set list(indent: 1.05em, body-indent: 0.45em)
-#set raw(font: "DejaVu Sans Mono", size: 7.8pt)
+#show raw: set text(font: "DejaVu Sans Mono", size: 7.8pt)
 
-#show heading.where(level: 1): set text(font: "Linux Biolinum O", size: 10.2pt, weight: "bold")
-#show heading.where(level: 2): set text(font: "Linux Biolinum O", size: 9.2pt, weight: "bold")
-#show heading.where(level: 3): set text(font: "Linux Biolinum O", size: 9pt, weight: "bold", style: "italic")
+#show heading.where(level: 1): set text(font: "Libertinus Serif", size: 10.2pt, weight: "bold")
+#show heading.where(level: 2): set text(font: "Libertinus Serif", size: 9.2pt, weight: "bold")
+#show heading.where(level: 3): set text(font: "Libertinus Serif", size: 9pt, weight: "bold", style: "italic")
 
-#let smallcaps(body) = text(font: "Linux Biolinum O", weight: "bold", size: 8.2pt, body)
+#let smallcaps(body) = text(font: "Libertinus Serif", weight: "bold", size: 8.2pt, body)
 
 #align(center)[
-  #text(font: "Linux Biolinum O", size: 17pt, weight: "bold")[
+  #text(font: "Libertinus Serif", size: 17pt, weight: "bold")[
     Executable Behavioral Design for Industrial Designers
   ]
   #v(3pt)
@@ -30,7 +30,7 @@
     Signature-First Mappings, Progressive Formalization, and a Typed Kernel for Product Logic
   ]
   #v(7pt)
-  #text(size: 9.2pt)[Anonymous Author]
+  #text(size: 9.2pt)[ZHU ZHEHAO]
   #linebreak()
   #text(size: 8.3pt, style: "italic")[Research Design Draft]
 ]
