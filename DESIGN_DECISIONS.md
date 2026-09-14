@@ -132,3 +132,49 @@ Documentation correction.  Monotonicity is required of evidence intended to
 that is rechecked on every change is a legitimate future category and is
 not excluded by the kernel; it is simply not covered by
 `local_refinement_preserves_global_wf`.
+
+## Phase 2
+
+**D-19. Semantic identity lives in the type: `Ty.sem : SemanticId → Ty`.**
+Rejected: (B) a `semanticRole` field in `DeclInterface` with a separate
+checker; (C) concepts as `DesignDecl`s with identity = `DeclId`.
+Reason: B-weak is evaded by η-expansion (`bweak_evaded_by_eta`); B-strong is
+`HasType` over `Ty`-with-`sem` run a second time; a role change is an edit
+that flips unchanged clients (`role_change_flips_unchanged_clients`), so the
+field would have to be frozen exactly like the type.  C admits category
+errors (`conceptC_usable_as_value`, `conceptC_realizable_by_a_number`).
+Consequence: `Ty` gains one constructor; `DeclInterface` and `tyView` are
+unchanged; all Phase 0/1 theorems hold verbatim.
+
+**D-20. `SemanticId` is independent of `DeclId` and of display names.**
+Rejected: deriving concept identity from a declaration id (Model C) or from
+the surface name (Counterexample C, `rename_under_name_identity_breaks_client`).
+Reason: a concept is a type, a declaration is a value; names are renameable.
+Consequence: three distinct things — internal identity (`SemanticId`),
+display name (surface `Concept.name`), representation (`ρ : SemanticId → Ty`,
+used only by erasure in Phase 2).
+
+**D-21. No introduction/elimination forms for semantic types in Phase 2.**
+Rejected: adding `mk`/`rep` now.
+Reason: distinctness needs only the nominal constructor.  Without `mk`/`rep`,
+`no_semantic_value_without_declaration` shows semantic values flow only
+through declarations — the intended discipline.  `mk`/`rep` are a
+representation binding, needed to realize mappings by formulas, and belong
+with Phase 3 where the representation is `Q[d]`.
+
+**D-22. Explicit cross-concept mappings are ordinary declarations.**
+Rejected: a kernel conversion relation, coercion, or subtyping.
+Reason: `tiltToMotor : sem tilt → sem motor` as a declaration is already
+signature-first, may remain unresolved, and makes the conversion visible in
+every term that uses it (`explicit_mapping_allows_cross_semantic_conversion`).
+
+**D-23. Semantic identity change is an edit.**
+In every model tried.  Formally in A it is a type change
+(`semantic_identity_change_is_not_refinement`); the Phase-1 edit/refinement
+split (D-16) covers it without extension.
+
+**D-24. Canonical closed inhabitants replaced by unresolved declarations.**
+`Ty.canon` removed; `InterfaceRefines_iff_semantic` now inhabits a type by
+`declRef` in a one-declaration environment (`DeclEnv.single_hasType`).
+Reason: opaque semantic types have no closed inhabitants, and
+signature-first typing never needed them.

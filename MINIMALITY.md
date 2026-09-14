@@ -30,7 +30,15 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | Phase-0 `Artifact` ref list | — | — | — | **yes** | subsumed by `declRef` (D-13) |
 | several candidate definitions, one `active` (§3.2) | ? | likely | — | ? | pending: probably surface over write-once realization; detaching is an edit (D-16) |
 | interface-level references (commitments mentioning declarations) | ? | — | ? | — | pending; needed for a full dependency graph |
-| semantic types `Sem[n,d]` | ? | ? | ? | ? | Phase 2 |
+| `SemanticId` (internal concept identity) | yes | — | — | no | Phase 2: distinct from `DeclId` (Model C) and from names (Counterexample C) |
+| nominal `Ty.sem SemanticId` | yes | — | — | no | Phase 2: `semantic_identity_mismatch_rejected`; both alternatives fail or reduce to it (D-19) |
+| interface `semanticRole` field | no | no | no | **yes** | Phase 2 Model B: must be frozen like the type; η-evaded checker (D-19) |
+| separate semantic-compatibility judgment | no | no | no | **yes** | Phase 2: weak form unsound, strong form is `HasType` verbatim |
+| explicit conversion relation | no | yes → declared arrow `sem a → sem b` | — | no | Phase 2 (D-22); `mk`/`rep` pending Phase 3 |
+| semantic concept declaration `decl Tilt` | no | yes → allocates a `SemanticId` | — | no | Phase 2; representation binding pending Phase 3 |
+| concept display-name table | no | yes | no | — | rename is a surface refactoring (`semantic_rename_preserves_identity`) |
+| representation binding / `mk`, `rep` | ? | — | ? | — | pending Phase 3; `no_semantic_value_without_declaration` shows exactly what it buys |
+| `Sem[n,d]` dimension component `d` | ? | ? | ? | ? | Phase 3 |
 | dimensions `Q[d]` | ? | ? | ? | ? | Phase 3 |
 | units | ? | ? | ? | ? | Phase 3 |
 | `Event` vs `Signal (Option τ)` | ? | ? | no | ? | Phase 4 |
@@ -107,3 +115,23 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - CAN IT BE DESUGARED: no
 - OBSERVABLE DIFFERENCE: `S := S` types but never unfolds
 - LEAN THEOREM / COUNTEREXAMPLE: `Unfolds.not_of_cyclic`, `Unfolds.exists_of_acyclic`; `self_no_unfolding`, `mut_no_unfolding`
+
+### FEATURE: nominal semantic type (`Ty.sem SemanticId`)
+- KERNEL STATUS: keep (one constructor; no intro/elim in the pure fragment)
+- SURFACE STATUS: shown by display name; `decl Tilt` allocates the id
+- VALIDATION STATUS: n/a — semantic mismatch is a type error, not an obligation
+- WHY IT EXISTS: representation-compatible concepts must be non-interchangeable by default
+- WHAT BREAKS WITHOUT IT: Counterexample A — the baseline accepts `motorTarget := tiltSensor`
+- CAN IT BE DESUGARED: no (Model B and Model C both fail)
+- OBSERVABLE DIFFERENCE: the direct wire is rejected; the declared mapping is accepted
+- LEAN THEOREM / COUNTEREXAMPLE: `semantic_identity_mismatch_rejected`, `explicit_mapping_allows_cross_semantic_conversion`, `HasType.erase`, `baseline_is_erased_modelA`
+
+### FEATURE: internal semantic identity (`SemanticId`)
+- KERNEL STATUS: keep
+- SURFACE STATUS: never shown; the name table maps it to a display name
+- VALIDATION STATUS: n/a
+- WHY IT EXISTS: identity must survive renaming and must not be a declaration id
+- WHAT BREAKS WITHOUT IT: Counterexample C (rename destroys clients); Model C (concept usable as a value)
+- CAN IT BE DESUGARED: no
+- OBSERVABLE DIFFERENCE: renaming `Tilt → DeviceTilt` changes nothing in the kernel
+- LEAN THEOREM / COUNTEREXAMPLE: `semantic_rename_preserves_identity`, `rename_under_name_identity_breaks_client`, `conceptC_usable_as_value`

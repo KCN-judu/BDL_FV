@@ -77,12 +77,13 @@ theorem InterfaceRefines_iff_semantic (S₀ S₁ : DeclInterface) :
     exact hs.of_refines h
   · intro h
     constructor
-    · have hs := h (fun _ _ _ => True) .empty [] S₁.expectedType.canon
-        ⟨S₁.expectedType.canon_hasType _ [], fun _ _ => trivial⟩
-      exact hs.1.unique (S₁.expectedType.canon_hasType _ [])
+    · -- realize `S₁` by an unresolved declaration of its type, trivial evidence
+      have hs := h (fun _ _ _ => True) (.single ⟨0⟩ S₁.expectedType) [] (.declRef ⟨0⟩)
+        ⟨DeclEnv.single_hasType _ _ [], fun _ _ => trivial⟩
+      exact hs.1.unique (DeclEnv.single_hasType _ _ [])
     · intro p hp
-      have hs := h (fun _ _ q => q ∈ S₁.commitments) .empty [] S₁.expectedType.canon
-        ⟨S₁.expectedType.canon_hasType _ [], fun _ hq => hq⟩
+      have hs := h (fun _ _ q => q ∈ S₁.commitments) (.single ⟨0⟩ S₁.expectedType) [] (.declRef ⟨0⟩)
+        ⟨DeclEnv.single_hasType _ _ [], fun _ hq => hq⟩
       exact hs.2 p hp
 
 /-! ## Well-formed declarations -/

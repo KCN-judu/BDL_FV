@@ -9,10 +9,23 @@ against a `DeclEnv` (see `Decl.lean`) at typing time.
 
 namespace BDL
 
+/-- Stable identity of a semantic concept (Phase 2).  Distinct from `DeclId`:
+    a concept is a *type*, a declaration is a *value*; conflating them admits
+    category errors (see `Experiments.SemanticTypeAlternatives`, Model C).
+    Display names are surface data and are not part of identity. -/
+structure SemanticId where
+  n : Nat
+  deriving DecidableEq, Repr
+
 inductive Ty where
   | bool
   | nat
   | arr (dom cod : Ty)
+  /-- Phase 2: a nominal semantic type.  Two distinct ids are distinct types
+      regardless of any eventual representation.  There are no introduction
+      or elimination forms in the pure fragment: values of semantic type
+      originate only from declarations (sensors, explicit mappings). -/
+  | sem (s : SemanticId)
   deriving DecidableEq, Repr
 
 /-- Stable identity of a design declaration — an ordinary declaration name,

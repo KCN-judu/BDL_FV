@@ -1,7 +1,7 @@
 # REPORT — formal results so far
 
-Project state: **Phase 1 complete; kernel ontology migrated from holes to
-declarations** (see §M below).  Phases 2–13 not started.  Everything builds
+Project state: **Phase 2 complete** (semantic identity).  Phases 3–13 not
+started.  Everything builds
 with `lake build`; no `sorry`; axioms used are `propext` and `Quot.sound`
 (the latter only through `funext` in `DeclEnv.update_update_same` and
 standard `simp` lemmas).  No `Classical.choice` anywhere.
@@ -12,6 +12,7 @@ standard `simp` lemmas).  No `Classical.choice` anywhere.
 DeclEnv         maps DeclId ↦ DesignDecl
 DesignDecl      = id : DeclId  ×  interface : DeclInterface  ×  realization : Option Expr
 DeclInterface   = expectedType : Ty  ×  commitments : List PropertyId      (monotone, public)
+Ty              = bool | nat | arr Ty Ty | sem SemanticId                   (Phase 2: nominal concepts)
 declRef d       refers to a declaration by stable identity
 typing          sees only  Δ.tyView d = (Δ d).map (·.interface.expectedType)
 validation      may rely on commitments and evidence (Satisfies, GlobalWF)
@@ -28,7 +29,7 @@ Layout:
 
 | File | Contents |
 |---|---|
-| `BDL/Core/Base.lean` | `Ty`, `DeclId`, `Expr` (with `declRef`), `refs`, `RefFree` |
+| `BDL/Core/Base.lean` | `Ty` (with `sem`), `SemanticId`, `DeclId`, `Expr` (with `declRef`), `refs`, `RefFree` |
 | `BDL/Core/Interface.lean` | `DeclInterface` (expected type + commitments), `InterfaceRefines` preorder |
 | `BDL/Core/Decl.lean` | `DesignDecl`, `DeclEnv`, `tyView`, structural order `DeclLeq` / `EnvRefines`, `EnvRefines_update` |
 | `BDL/Core/Typing.lean` | `HasType Δ Γ e τ`, decidable `infer`, weakening, **factoring lemma** `HasType.mono_env` |
@@ -36,6 +37,7 @@ Layout:
 | `BDL/Core/Env.lean` | `GlobalWF`, **`local_refinement_preserves_global_typing`**, **`local_refinement_preserves_global_wf`**, multi-step version |
 | `BDL/Core/Dependency.lean` | `DependsOn`, `Reaches`, `Cyclic`/`Acyclic`, unfolding semantics `Unfolds`, determinism, type preservation, cycle theorems |
 | `BDL/Experiments/DeclCounterexamples.lean` | Phase-0 examples; Phase-1 probes 1–6; cycle examples |
+| `BDL/Experiments/SemanticTypeAlternatives.lean` | Phase 2: baseline, Models A/B/C, erasure, denotation, counterexamples A–D |
 
 ---
 
@@ -329,6 +331,139 @@ documents except where "hole" is named explicitly as a surface metaphor.
 
 ---
 
+## Phase 2 — where does semantic identity live?
+
+### 2.1 The baseline failure (Counterexample A)
+
+With concepts represented only by representation types (`Tilt ↦ nat`,
+`MotorAngle ↦ nat`), the direct wire `motorTarget := declRef tiltSensor` is
+well typed and the design is globally well formed
+(`counterexampleA_baseline_accepts_invalid_wire`).  Nothing in the model can
+reject it because nothing in the model records the distinction.
+
+### 2.2 Models tried
+
+**Model A — nominal semantic types.**  `SemanticId` (internal, distinct from
+`DeclId` and from display names) and one constructor `Ty.sem : SemanticId → Ty`
+with *no* introduction or elimination forms in the pure fragment.
+
+| Result | Lean |
+|---|---|
+| mismatch rejected statically | `semantic_identity_mismatch_rejected` |
+| like-to-like sharing of a concept by several declarations | example after it |
+| explicit mapping `tiltToMotor : Tilt → MotorAngle` (itself unresolved) makes the connection well typed; the conversion is visible in the term | `explicit_mapping_allows_cross_semantic_conversion` |
+| identity established before realization | example: every declaration in `ΔA_good` except the wire is unresolved |
+| **erasure soundness**: semantic typing ⇒ representation typing | `HasType.erase` |
+| erasure is not injective, and **the baseline is erased Model A** | `erase_not_injective`, `baseline_is_erased_modelA` |
+| conservativity: sem-free programs get only sem-free types | `semantic_extension_preserves_structural_typing` |
+| refinement preservation inherited unchanged from Phase 1 | `semantic_check_preserved_under_interface_refinement` |
+| identity change is not a refinement and breaks clients (**Counterexample B**) | `semantic_identity_change_is_not_refinement`, `semantic_identity_change_breaks_client` |
+| rename preserves identity; name-as-identity makes rename destructive (**Counterexample C**) | `semantic_rename_preserves_identity`, `rename_under_name_identity_breaks_client` |
+| semantic values originate only from declarations (denotational proof, `sem ↦ Empty`) | `no_semantic_value_without_declaration` |
+
+**Model B — semantic role as interface data, typing unchanged.**
+`InterfaceB = expectedType × semanticRole : Option SemanticId × commitments`;
+typing sees the representation type; a separate judgment checks roles.
+
+| Result | Lean |
+|---|---|
+| **Counterexample D**: typing accepts the invalid wire; only the second judgment rejects it | `counterexampleD_typing_accepts_semantic_check_rejects` |
+| the direct-wire checker is **evaded by η-expansion** `(λx. x) tilt` — same flow, no direct wire, both checkers silent | `bweak_evaded_by_eta` |
+| role change keeps every type but flips the verdict on *unchanged* clients — an edit, exactly like a type change | `role_change_flips_unchanged_clients` |
+| a compositional checker must assign roles to every subterm, so needs role arrows, so *is* `HasType` over `Ty`-with-`sem`; B-strong = A + a redundant erased pass (`HasType.erase`) | argued in §B.2; no new definition needed because it would be `HasType` verbatim |
+
+Model B is rejected: the weak form is unsound, the strong form is Model A
+plus duplication, and its one distinctive feature — a "type-correct but
+semantically pending" state — is bought by making structural typing no
+longer a guarantee of connectability.
+
+**Model C — concepts as `DesignDecl`s, identity = `DeclId`.**
+
+| Result | Lean |
+|---|---|
+| category error 1: the concept is usable as a *value* (`declRef Tilt : nat`) | `conceptC_usable_as_value` |
+| category error 2: the concept can be realized by a number, as a legal refinement step | `conceptC_realizable_by_a_number` |
+
+Model C is rejected as stated.  Its repair — a *separate sort* of
+declaration `ConceptDecl = id × name × Option representation` — is Model A's
+`SemanticId` plus a deferred representation binding, i.e. the Phase-1
+declaration pattern lifted to types.  The representation binding is not
+needed for distinctness (§2.3) and is deferred to Phase 3.
+
+### 2.3 The surviving model and the answer to §18
+
+> **The smallest mechanism is one nominal type constructor,
+> `Ty.sem : SemanticId → Ty`, over an internal identity distinct from
+> declaration identity and from display names, with no introduction or
+> elimination forms.**
+
+Why this is minimal and sufficient:
+
+* *Non-interchangeable by default:* `sem s₁ = sem s₂ ↔ s₁ = s₂`
+  (`sem_injective`), so two concepts with the same representation are
+  distinct types, and the ordinary STLC rules reject the wire.
+* *Explicit mappings still allowed:* a mapping is an ordinary declaration of
+  arrow type `sem a → sem b`.  No conversion relation, coercion, or
+  subtyping is needed in the kernel; the mapping is visible in the term and
+  is itself a signature-first declaration that may remain unresolved.
+* *Nothing else changed:* `DeclInterface` unchanged, `tyView` unchanged, all
+  Phase 0/1 theorems unchanged.  The only proof that had to change was
+  `InterfaceRefines_iff_semantic`, which used a canonical closed inhabitant
+  of every type; opaque semantic types have none, and the replacement —
+  inhabit any type by an *unresolved declaration* (`DeclEnv.single_hasType`)
+  — is itself a signature-first observation.
+* *Erasure:* `HasType.erase` shows Model A is conservative over the
+  representation language (generated code is well typed after erasing
+  concepts), and `baseline_is_erased_modelA` shows the baseline is exactly
+  what erasure leaves behind.
+
+What was deliberately *not* added: representation binding (`mk`/`rep`).
+`no_semantic_value_without_declaration` proves that without it a semantic
+value can only come from a declaration of semantic type.  That is the
+correct Phase-2 state: it separates *distinctness* (needs only the nominal
+constructor) from *realizing a mapping by a formula* (needs a representation
+binding, which is Phase-3 material where the representation is `Q[d]`).
+
+### 2.4 Answers to §15
+
+| Question | Answer |
+|---|---|
+| Did `Ty` change? | Yes: one constructor `sem SemanticId`.  This was the only acceptable kernel change; §2.2 shows both alternatives fail or reduce to it. |
+| Did `DeclInterface` change? | No. |
+| Did `tyView` change? | No.  Semantic identity rides inside `expectedType`; typing still consults `tyView` only. |
+| Is semantic identity change refinement or edit? | **Edit**, in every model.  In A it is a type change (`InterfaceRefines` fails, clients break); in B a role change flips verdicts on unchanged clients while keeping every type.  So a semantic role field would have to be frozen exactly like the type — which is the argument for putting it *in* the type. |
+| How are explicit mappings represented? | As declarations of type `sem a → sem b`.  No kernel relation. |
+| What does this mean for the paper's `Sem[n, d]`? | The nominal half is right and is the whole of the Phase-2 result, with one correction: `n` must be an internal identity, not the display name (Counterexample C).  The `d` component is Phase 3.  `mk_n`/`rep` are representation binding: needed to attach formulas, not for distinctness.  The paper's "no global `Real → Brightness` coercion" is exactly `erase_not_injective` + nominal typing. |
+
+### 2.5 Classification (§13)
+
+| Candidate construct | Verdict | Reason |
+|---|---|---|
+| `SemanticId` | KEEP_IN_KERNEL | the identity `Ty.sem` refers to; distinct from `DeclId` (Model C) and from names (Counterexample C) |
+| nominal `Ty.sem` constructor | KEEP_IN_KERNEL | the whole mechanism |
+| interface semantic field (`semanticRole`) | REMOVE | Model B: would have to be frozen like the type; strictly dominated by putting it in the type |
+| separate semantic-compatibility judgment | REMOVE | weak: η-evaded; strong: `HasType` verbatim |
+| explicit conversion relation | KEEP_IN_SURFACE_AND_DESUGAR | desugars to a declared arrow `sem a → sem b`; `mk`/`rep` at the representation level pending Phase 3 |
+| semantic concept declaration (`decl Tilt`) | KEEP_IN_SURFACE_AND_DESUGAR | allocates a `SemanticId`; the name table is surface; the representation binding is pending Phase 3 and may enter the kernel then |
+
+### 2.6 Critical remarks
+
+* Model A is, once again, a standard construction: `Ty.sem` is a nominal
+  abstract type (a `newtype` with no unwrapping in the pure fragment).  The
+  Phase-2 contribution is the *negative* result — that the two plausible
+  ways to keep semantic identity out of the type system (interface metadata,
+  concept-as-declaration) each fail for a concrete, mechanized reason — not
+  the positive one.
+* `no_semantic_value_without_declaration` is the sharpest statement of what
+  the pure kernel now is: a language in which semantic quantities are
+  *opaque* and flow only through declared relationships.  That matches the
+  paper's intent, but it also means Phase 3 cannot avoid a representation
+  binding if formulas are to realize mappings — and that binding will be the
+  first place where the kernel's "typing sees only `tyView`" invariant is
+  tested by something other than a rename.
+
+---
+
 ## Open items carried to later phases
 
 * Interface-level references (commitments that mention other declarations)
@@ -337,3 +472,6 @@ documents except where "hole" is named explicitly as a surface metaphor.
 * Whether "several candidate definitions with one active" (§3.2) is a
   surface convenience over a write-once kernel realization.
 * Environment-sensitive evidence and invalidation tracking for edits.
+* Representation binding for concepts (`ConceptDecl.representation`,
+  `mk`/`rep`) — Phase 3, together with dimensions.
+* Display-name table for concepts — surface; not modelled in core.

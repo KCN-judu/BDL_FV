@@ -67,6 +67,7 @@ theorem infer_sound {Δ : DeclEnv} :
         cases τf with
         | bool => simp [infer, hf, ha] at h
         | nat => simp [infer, hf, ha] at h
+        | sem _ => simp [infer, hf, ha] at h
         | arr dom cod =>
           simp [infer, hf, ha] at h
           obtain ⟨rfl, rfl⟩ := h
@@ -111,16 +112,16 @@ theorem HasType.of_closed {Δ : DeclEnv} {e : Expr} {τ : Ty}
     (h : HasType Δ [] e τ) (Γ : Ctx) : HasType Δ Γ e τ :=
   h.weaken_append Γ
 
-/-- Every type is inhabited by a reference-free, variable-free term. -/
-def Ty.canon : Ty → Expr
-  | .bool => .boolLit true
-  | .nat => .natLit 0
-  | .arr a b => .lam a b.canon
+/-- Every type is inhabited in some environment — by an *unresolved
+    declaration* of that type.  (Phase 2 replaced the Phase-0 canonical
+    closed inhabitant: opaque semantic types have none.  Signature-first
+    typing never needs closed inhabitants; it needs declarations.) -/
+def DeclEnv.single (d : DeclId) (τ : Ty) : DeclEnv :=
+  fun id => if id = d then some ⟨d, ⟨τ, []⟩, none⟩ else none
 
-theorem Ty.canon_hasType (Δ : DeclEnv) : ∀ (τ : Ty) (Γ : Ctx), HasType Δ Γ τ.canon τ
-  | .bool, _ => .boolLit
-  | .nat, _ => .natLit
-  | .arr a b, Γ => .lam (b.canon_hasType Δ (a :: Γ))
+theorem DeclEnv.single_hasType (d : DeclId) (τ : Ty) (Γ : Ctx) :
+    HasType (DeclEnv.single d τ) Γ (.declRef d) τ :=
+  .declRef (by simp [DeclEnv.tyView, DeclEnv.single])
 
 /-! ## Typing depends on the environment only through its type view -/
 

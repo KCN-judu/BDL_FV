@@ -6,3 +6,4 @@ import BDL.Core.Satisfaction
 import BDL.Core.Env
 import BDL.Core.Dependency
 import BDL.Experiments.DeclCounterexamples
+import BDL.Experiments.SemanticTypeAlternatives
