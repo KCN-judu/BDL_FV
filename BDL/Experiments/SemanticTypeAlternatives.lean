@@ -19,9 +19,19 @@ Sections:
   inherited from Phase 1; semantic values originate only from declarations.
 * §B Model B — semantic role as interface data, separate checker.
   Results: **Counterexample D** (typing accepts what the checker must later
-  reject); the direct-wire checker is evaded by η-expansion; a compositional
-  checker is Model A's judgment run a second time; role change is an edit.
-* §C Model C — concepts as `DesignDecl`s.  Results: two category errors.
+  reject); the tested direct-wire checker is evaded by η-expansion (formal
+  rejection); role change is an edit.  §B.2 argues — it does not prove —
+  that a checker enforcing identity through arbitrary term structure needs a
+  compositional discipline of type-system strength, and that the tested
+  strong formulation duplicates nominal typing.  The broader family of
+  compositional semantic analyses is *not* universally ruled out.
+* §C Model C — concepts as ordinary `DesignDecl`s in the value sort.
+  Results: two category errors (formal rejection of *that* encoding).  A
+  stratified concept-declaration sort is not rejected; it reintroduces an
+  independent `SemanticId`, which is the Phase-2 kernel requirement anyway.
+
+Claim strength is labelled per result: *formally rejected by counterexample*,
+*tested formulation redundant*, *not rejected*, or *engineering preference*.
 
 `nat` stands in for `Real` throughout; nothing depends on which
 representation type is shared.
@@ -90,15 +100,18 @@ theorem semantic_identity_mismatch_rejected : ¬ WellFormedDecl trivEv ΔA_bad [
 def aTiltDisplay : DesignDecl := ⟨tiltDisplay, ⟨Tilt, []⟩, some (.declRef tiltSensor₂)⟩
 example : GlobalWF trivEv (.ofList [aTilt, aTilt₂, aTiltDisplay]) := GlobalWF.ofList (by decide)
 
-/-- **Result 2 — explicit mappings are allowed.**  A *declared* relationship
-    `tiltToMotor : Tilt → MotorAngle` (itself still unresolved) makes the
-    connection well typed.  The conversion is visible in the term. -/
+/-- **Result 2 — explicit semantic mappings are accepted.**  A *declared*
+    design relationship `tiltToMotor : Tilt → MotorAngle` (itself still
+    unresolved) makes the connection well typed.  The mapping is visible in
+    the term.  This is a behavioural relationship between concepts, not a
+    coercion, cast, or representation-level conversion — no such mechanism
+    exists in the Phase-2 kernel. -/
 def aMap        : DesignDecl := ⟨tiltToMotor, ⟨.arr Tilt MotorAngle, []⟩, none⟩
 def aMotorMapped : DesignDecl :=
   ⟨motorTarget, ⟨MotorAngle, []⟩, some (.app (.declRef tiltToMotor) (.declRef tiltSensor))⟩
 def ΔA_good : DeclEnv := .ofList [aTilt, aMap, aMotorMapped]
 
-theorem explicit_mapping_allows_cross_semantic_conversion : GlobalWF trivEv ΔA_good :=
+theorem explicit_semantic_mapping_accepted : GlobalWF trivEv ΔA_good :=
   GlobalWF.ofList (by decide)
 
 /-- Semantic identity is established before any realization exists: every
@@ -428,24 +441,36 @@ theorem role_change_flips_unchanged_clients :
     (bTilt.toDecl.interface = bTiltAsMotor.toDecl.interface) := by
   decide
 
-/-! ### §B.2 A compositional role checker is Model A's judgment
+/-! ### §B.2 What a sound Model-B checker would need (argued, not proved)
 
-To close the η-gap, the role judgment must assign roles to *every* subterm:
-variables, lambdas (so roles need arrows `ρ₁ ⇒ ρ₂`), applications, and
-references.  Its rules are then exactly those of `HasType` with `Ty`
-replaced by "roles with arrows" — i.e. `Ty` with `sem`.  So
+The η-gap shows that any checker enforcing semantic identity through
+*arbitrary* term structure must reason compositionally about semantic flow:
+it must say something about variables, lambdas, applications, and
+references — i.e. it needs a discipline comparable in strength to a type
+system.  The obvious such formulation — assign a role to every subterm, with
+role arrows for lambdas — has the same rule shapes as `HasType` over
+`Ty`-with-`sem`, and would then run *alongside* representation typing:
 
-    Model B-strong  =  HasType over erased types  ×  HasType over sem types
+    Model B-strong (tested formulation)
+      = HasType over erased types  ×  role judgment of the same shape
 
-and the first component is implied by the second (`HasType.erase`).  The
-second checker is Model A's checker; the first is a redundant copy of it.
-Model B-strong is therefore not smaller than Model A: it is Model A plus a
-duplicate pass.  No further formalization is needed to see this — the
-inductive definition would be `HasType` verbatim. -/
+where the first component is implied by the second (`HasType.erase`).  In
+that formulation the second judgment carries all the information and the
+first is redundant, so B-strong offers no observed benefit over Model A.
 
-/-! ## §C Model C — concepts as declarations
+What this does **not** establish: that every compositional semantic
+analysis is literally `HasType`.  Flow-sensitive, indexed/effect-like,
+abstract-interpretation, or relational analyses were not formalized and are
+not ruled out in general.  The claim strength is: *tested formulation
+redundant with nominal typing; broader family not universally excluded*. -/
 
-Try: a concept *is* a `DesignDecl`, and semantic identity is its `DeclId`. -/
+/-! ## §C Model C — concepts as ordinary `DesignDecl`s
+
+Try the *unstratified* encoding: a concept *is* a `DesignDecl` in the same
+sort as value declarations, and semantic identity is its `DeclId`.  The two
+category errors below formally reject **this encoding**; they do not reject
+declaration-based concept architectures in general (see the sketch after
+them). -/
 
 def cTiltDecl : DeclId := ⟨40⟩
 /-- "decl Tilt, represented by nat" as an ordinary declaration. -/
@@ -463,11 +488,13 @@ theorem conceptC_realizable_by_a_number :
     DeclRefines trivEv ΔC [] conceptTiltAsDecl ⟨cTiltDecl, ⟨.nat, []⟩, some (.natLit 3)⟩ :=
   .realize (by decide)
 
-/-- The repair is a *separate sort*: a concept declaration has an identity,
-    a display name, and an optional (deferred, write-once) representation —
-    the Phase-1 declaration pattern at the level of types.  That is Model A's
-    `SemanticId` plus a representation binding, which Phase 3 will need for
-    `mk`/`rep` and Phase 2 does not.  Sketched here, not used. -/
+/-- A *stratified* concept-declaration sort is not rejected: a concept
+    declaration has its own identity, a display name, and an optional
+    (deferred, write-once) representation — the Phase-1 declaration pattern
+    at the level of types.  Once concepts inhabit a distinct sort with
+    independent identity, the Phase-2 kernel requirement is again an
+    independent `SemanticId` — Model A's core — and the remaining fields are
+    representation metadata deferred to Phase 3.  Sketched here, not used. -/
 structure ConceptDecl where
   id             : SemanticId
   name           : SurfaceName

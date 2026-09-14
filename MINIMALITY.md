@@ -31,13 +31,16 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | several candidate definitions, one `active` (§3.2) | ? | likely | — | ? | pending: probably surface over write-once realization; detaching is an edit (D-16) |
 | interface-level references (commitments mentioning declarations) | ? | — | ? | — | pending; needed for a full dependency graph |
 | `SemanticId` (internal concept identity) | yes | — | — | no | Phase 2: distinct from `DeclId` (Model C) and from names (Counterexample C) |
-| nominal `Ty.sem SemanticId` | yes | — | — | no | Phase 2: `semantic_identity_mismatch_rejected`; both alternatives fail or reduce to it (D-19) |
-| interface `semanticRole` field | no | no | no | **yes** | Phase 2 Model B: must be frozen like the type; η-evaded checker (D-19) |
-| separate semantic-compatibility judgment | no | no | no | **yes** | Phase 2: weak form unsound, strong form is `HasType` verbatim |
-| explicit conversion relation | no | yes → declared arrow `sem a → sem b` | — | no | Phase 2 (D-22); `mk`/`rep` pending Phase 3 |
+| nominal `Ty.sem SemanticId` | yes | — | — | no | Phase 2: `semantic_identity_mismatch_rejected`; smallest among tested designs (D-19) |
+| interface `semanticRole` field | no | no | no | **yes** (for the tested design) | Phase 2 Model B: must be frozen like the type; direct-wire checker η-evaded (D-19) |
+| separate semantic-compatibility judgment — tested weak form | no | no | no | **yes** | formally rejected: `bweak_evaded_by_eta`, Counterexample D |
+| separate semantic-compatibility judgment — general compositional-analysis family | — | — | — | **not universally ruled out** | tested strong formulation redundant with nominal typing (argued, not proved) |
+| explicit semantic mapping | no | yes; represented as an ordinary declared arrow `sem a → sem b` | — | no | a design relationship, not a conversion (D-22) |
+| concept as ordinary `DesignDecl` | no | no | no | **yes** | formally rejected: two category errors |
+| stratified `ConceptDecl` (distinct sort, own identity) | not required in Phase 2 | may reappear in Phase 3 | may carry representation metadata | no | not rejected; reduces the Phase-2 requirement to an independent `SemanticId` |
 | semantic concept declaration `decl Tilt` | no | yes → allocates a `SemanticId` | — | no | Phase 2; representation binding pending Phase 3 |
 | concept display-name table | no | yes | no | — | rename is a surface refactoring (`semantic_rename_preserves_identity`) |
-| representation binding / `mk`, `rep` | ? | — | ? | — | pending Phase 3; `no_semantic_value_without_declaration` shows exactly what it buys |
+| representation binding / `mk`, `rep` | ? | — | ? | — | **pending Phase 3 with a constraint (D-25)**: must not let `mkMotor (repTilt x)` bypass semantic typing; first Phase-3 test is to attempt that counterexample |
 | `Sem[n,d]` dimension component `d` | ? | ? | ? | ? | Phase 3 |
 | dimensions `Q[d]` | ? | ? | ? | ? | Phase 3 |
 | units | ? | ? | ? | ? | Phase 3 |
@@ -122,16 +125,16 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - VALIDATION STATUS: n/a — semantic mismatch is a type error, not an obligation
 - WHY IT EXISTS: representation-compatible concepts must be non-interchangeable by default
 - WHAT BREAKS WITHOUT IT: Counterexample A — the baseline accepts `motorTarget := tiltSensor`
-- CAN IT BE DESUGARED: no (Model B and Model C both fail)
-- OBSERVABLE DIFFERENCE: the direct wire is rejected; the declared mapping is accepted
-- LEAN THEOREM / COUNTEREXAMPLE: `semantic_identity_mismatch_rejected`, `explicit_mapping_allows_cross_semantic_conversion`, `HasType.erase`, `baseline_is_erased_modelA`
+- CAN IT BE DESUGARED: not by any tested alternative (B-weak and C-unstratified fail formally; B-strong tested formulation is redundant; broader analyses not ruled out)
+- OBSERVABLE DIFFERENCE: the direct wire is rejected; the declared semantic mapping is accepted
+- LEAN THEOREM / COUNTEREXAMPLE: `semantic_identity_mismatch_rejected`, `explicit_semantic_mapping_accepted`, `HasType.erase`, `baseline_is_erased_modelA`
 
 ### FEATURE: internal semantic identity (`SemanticId`)
 - KERNEL STATUS: keep
 - SURFACE STATUS: never shown; the name table maps it to a display name
 - VALIDATION STATUS: n/a
 - WHY IT EXISTS: identity must survive renaming and must not be a declaration id
-- WHAT BREAKS WITHOUT IT: Counterexample C (rename destroys clients); Model C (concept usable as a value)
+- WHAT BREAKS WITHOUT IT: Counterexample C (rename destroys clients); Model C as ordinary `DesignDecl` (concept usable as a value)
 - CAN IT BE DESUGARED: no
 - OBSERVABLE DIFFERENCE: renaming `Tilt → DeviceTilt` changes nothing in the kernel
 - LEAN THEOREM / COUNTEREXAMPLE: `semantic_rename_preserves_identity`, `rename_under_name_identity_breaks_client`, `conceptC_usable_as_value`

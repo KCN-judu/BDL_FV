@@ -351,7 +351,7 @@ with *no* introduction or elimination forms in the pure fragment.
 |---|---|
 | mismatch rejected statically | `semantic_identity_mismatch_rejected` |
 | like-to-like sharing of a concept by several declarations | example after it |
-| explicit mapping `tiltToMotor : Tilt → MotorAngle` (itself unresolved) makes the connection well typed; the conversion is visible in the term | `explicit_mapping_allows_cross_semantic_conversion` |
+| explicit semantic mapping `tiltToMotor : Tilt → MotorAngle` (a declared design relationship, itself unresolved) makes the connection well typed; the mapping is visible in the term | `explicit_semantic_mapping_accepted` |
 | identity established before realization | example: every declaration in `ΔA_good` except the wire is unresolved |
 | **erasure soundness**: semantic typing ⇒ representation typing | `HasType.erase` |
 | erasure is not injective, and **the baseline is erased Model A** | `erase_not_injective`, `baseline_is_erased_modelA` |
@@ -370,42 +370,62 @@ typing sees the representation type; a separate judgment checks roles.
 | **Counterexample D**: typing accepts the invalid wire; only the second judgment rejects it | `counterexampleD_typing_accepts_semantic_check_rejects` |
 | the direct-wire checker is **evaded by η-expansion** `(λx. x) tilt` — same flow, no direct wire, both checkers silent | `bweak_evaded_by_eta` |
 | role change keeps every type but flips the verdict on *unchanged* clients — an edit, exactly like a type change | `role_change_flips_unchanged_clients` |
-| a compositional checker must assign roles to every subterm, so needs role arrows, so *is* `HasType` over `Ty`-with-`sem`; B-strong = A + a redundant erased pass (`HasType.erase`) | argued in §B.2; no new definition needed because it would be `HasType` verbatim |
+| a checker that enforces identity through arbitrary term structure must reason compositionally about semantic flow (variables, lambdas, applications, references); the tested strong formulation — a role per subterm with role arrows — has the rule shapes of `HasType` over `Ty`-with-`sem` and runs alongside representation typing, which it implies (`HasType.erase`); in that formulation it duplicates nominal typing with no observed benefit | argued in §B.2, **not proved**; no definition was written because the tested formulation would coincide with `HasType` |
 
-Model B is rejected: the weak form is unsound, the strong form is Model A
-plus duplication, and its one distinctive feature — a "type-correct but
-semantically pending" state — is bought by making structural typing no
-longer a guarantee of connectability.
+Conclusion for Model B, with claim strength:
 
-**Model C — concepts as `DesignDecl`s, identity = `DeclId`.**
+* *B-weak (direct-wire metadata checker)*: **formally rejected by
+  counterexample** (`bweak_evaded_by_eta`, Counterexample D).
+* *B-strong (compositional role judgment)*: **tested formulation redundant
+  with nominal typing; the broader family not universally ruled out.**
+  Flow-sensitive, indexed/effect-like, abstract-interpretation, or
+  relational semantic analyses were not formalized and no theorem here
+  excludes them.  What the mechanized evidence does establish is that any
+  sound checker must be compositional over terms, i.e. of type-system
+  strength, and that the one tested has no benefit over putting identity in
+  the type.  Its one distinctive feature — a "type-correct but semantically
+  pending" state — costs the guarantee that structural typing implies
+  connectability.
+
+**Model C — concepts as *ordinary* `DesignDecl`s, identity = `DeclId`.**
 
 | Result | Lean |
 |---|---|
 | category error 1: the concept is usable as a *value* (`declRef Tilt : nat`) | `conceptC_usable_as_value` |
 | category error 2: the concept can be realized by a number, as a legal refinement step | `conceptC_realizable_by_a_number` |
 
-Model C is rejected as stated.  Its repair — a *separate sort* of
-declaration `ConceptDecl = id × name × Option representation` — is Model A's
-`SemanticId` plus a deferred representation binding, i.e. the Phase-1
-declaration pattern lifted to types.  The representation binding is not
-needed for distinctness (§2.3) and is deferred to Phase 3.
+Conclusion for Model C, with claim strength:
+
+* *Concept = ordinary `DesignDecl` in the value sort*: **formally rejected by
+  the two category-error counterexamples.**
+* *Stratified concept-declaration family* (`ConceptDecl = id × displayName ×
+  Option representation` in a distinct sort): **not rejected.**  But once
+  concepts inhabit a distinct category with independent identity, the
+  Phase-2 kernel requirement is again an independent `SemanticId` — Model
+  A's core — and the remaining fields are representation metadata, deferred
+  to Phase 3.  So this family does not offer a *smaller* Phase-2 kernel; it
+  offers a home for Phase-3 data.
 
 ### 2.3 The surviving model and the answer to §18
 
-> **The smallest mechanism is one nominal type constructor,
-> `Ty.sem : SemanticId → Ty`, over an internal identity distinct from
-> declaration identity and from display names, with no introduction or
-> elimination forms.**
+> **Among the tested designs, the smallest mechanism that enforces semantic
+> non-interchangeability compositionally, without a second semantic
+> analysis, is one nominal type constructor `Ty.sem : SemanticId → Ty`,
+> over an internal identity distinct from declaration identity and from
+> display names, with no introduction or elimination forms.**
 
-Why this is minimal and sufficient:
+This is a claim about the tested designs, not a proof that nominal typing is
+the only possible mechanism in principle (see §2.7).  Why it is minimal
+among them and sufficient:
 
 * *Non-interchangeable by default:* `sem s₁ = sem s₂ ↔ s₁ = s₂`
   (`sem_injective`), so two concepts with the same representation are
   distinct types, and the ordinary STLC rules reject the wire.
-* *Explicit mappings still allowed:* a mapping is an ordinary declaration of
-  arrow type `sem a → sem b`.  No conversion relation, coercion, or
-  subtyping is needed in the kernel; the mapping is visible in the term and
-  is itself a signature-first declaration that may remain unresolved.
+* *Explicit semantic mappings still allowed:* a mapping is an ordinary
+  declaration of arrow type `sem a → sem b` — a design relationship between
+  concepts, not a coercion, cast, or representation conversion.  No such
+  mechanism exists in the kernel; the mapping is visible in the term and is
+  itself a signature-first declaration that may remain unresolved.
 * *Nothing else changed:* `DeclInterface` unchanged, `tyView` unchanged, all
   Phase 0/1 theorems unchanged.  The only proof that had to change was
   `InterfaceRefines_iff_semantic`, which used a canonical closed inhabitant
@@ -432,7 +452,7 @@ binding, which is Phase-3 material where the representation is `Q[d]`).
 | Did `DeclInterface` change? | No. |
 | Did `tyView` change? | No.  Semantic identity rides inside `expectedType`; typing still consults `tyView` only. |
 | Is semantic identity change refinement or edit? | **Edit**, in every model.  In A it is a type change (`InterfaceRefines` fails, clients break); in B a role change flips verdicts on unchanged clients while keeping every type.  So a semantic role field would have to be frozen exactly like the type — which is the argument for putting it *in* the type. |
-| How are explicit mappings represented? | As declarations of type `sem a → sem b`.  No kernel relation. |
+| How are explicit semantic mappings represented? | As ordinary declarations of type `sem a → sem b`.  No kernel relation, coercion, or cast. |
 | What does this mean for the paper's `Sem[n, d]`? | The nominal half is right and is the whole of the Phase-2 result, with one correction: `n` must be an internal identity, not the display name (Counterexample C).  The `d` component is Phase 3.  `mk_n`/`rep` are representation binding: needed to attach formulas, not for distinctness.  The paper's "no global `Real → Brightness` coercion" is exactly `erase_not_injective` + nominal typing. |
 
 ### 2.5 Classification (§13)
@@ -441,19 +461,20 @@ binding, which is Phase-3 material where the representation is `Q[d]`).
 |---|---|---|
 | `SemanticId` | KEEP_IN_KERNEL | the identity `Ty.sem` refers to; distinct from `DeclId` (Model C) and from names (Counterexample C) |
 | nominal `Ty.sem` constructor | KEEP_IN_KERNEL | the whole mechanism |
-| interface semantic field (`semanticRole`) | REMOVE | Model B: would have to be frozen like the type; strictly dominated by putting it in the type |
-| separate semantic-compatibility judgment | REMOVE | weak: η-evaded; strong: `HasType` verbatim |
-| explicit conversion relation | KEEP_IN_SURFACE_AND_DESUGAR | desugars to a declared arrow `sem a → sem b`; `mk`/`rep` at the representation level pending Phase 3 |
-| semantic concept declaration (`decl Tilt`) | KEEP_IN_SURFACE_AND_DESUGAR | allocates a `SemanticId`; the name table is surface; the representation binding is pending Phase 3 and may enter the kernel then |
+| interface semantic field (`semanticRole`) | REMOVE (for the tested design) | Model B: would have to be frozen like the type; the tested design is dominated by putting identity in the type |
+| separate semantic-compatibility judgment | tested weak form: REMOVE; general compositional-analysis family: NOT universally ruled out | weak: η-evaded (formal); strong: tested formulation redundant (argued) |
+| explicit semantic mapping | KEEP_IN_SURFACE; represented as an ordinary declared arrow `sem a → sem b` | a design relationship, not a conversion; representation-level `mk`/`rep` pending Phase 3 |
+| concept as ordinary `DesignDecl` | REMOVE | two category errors (formal) |
+| stratified `ConceptDecl` | NOT REQUIRED IN PHASE 2; may reappear as surface/representation metadata in Phase 3 | not rejected; reduces the Phase-2 identity requirement to an independent `SemanticId` |
 
 ### 2.6 Critical remarks
 
 * Model A is, once again, a standard construction: `Ty.sem` is a nominal
   abstract type (a `newtype` with no unwrapping in the pure fragment).  The
-  Phase-2 contribution is the *negative* result — that the two plausible
-  ways to keep semantic identity out of the type system (interface metadata,
-  concept-as-declaration) each fail for a concrete, mechanized reason — not
-  the positive one.
+  Phase-2 contribution is the *negative* result — that the two tested ways
+  to keep semantic identity out of the type system (a metadata field with a
+  direct-wire checker; concept as ordinary value declaration) each fail for
+  a concrete, mechanized reason — not the positive one.
 * `no_semantic_value_without_declaration` is the sharpest statement of what
   the pure kernel now is: a language in which semantic quantities are
   *opaque* and flow only through declared relationships.  That matches the
@@ -461,6 +482,72 @@ binding, which is Phase-3 material where the representation is `Q[d]`).
   binding if formulas are to realize mappings — and that binding will be the
   first place where the kernel's "typing sees only `tyView`" invariant is
   tested by something other than a rename.
+
+### 2.7 Claim strength (methodological note)
+
+Formal counterexamples reject the *specific tested design*, not every
+conceivable design in the same informal family.  This project distinguishes
+four strengths of conclusion and labels each rejected model with one:
+
+| Strength | Meaning |
+|---|---|
+| **proven impossibility** | a theorem excludes the whole family |
+| **tested design failure** | a mechanized counterexample breaks the specific formulation |
+| **reduction/equivalence by proof** | a theorem shows one design is a special case of another |
+| **engineering preference** | argued, not proved |
+
+Phase-2 labels:
+
+| Rejected design | Strength |
+|---|---|
+| Model B weak (direct-wire metadata checker) | tested design failure (`bweak_evaded_by_eta`, `counterexampleD_*`) |
+| Model B strong (compositional role judgment) | engineering preference: tested formulation redundant with nominal typing; broader class of compositional analyses **not** universally ruled out |
+| Model C as ordinary `DesignDecl` | tested design failure (`conceptC_usable_as_value`, `conceptC_realizable_by_a_number`) |
+| Model C stratified declaration family | **not rejected**; reduces the Phase-2 identity requirement to an independent `SemanticId` |
+| baseline = erased Model A | reduction by proof (`HasType.erase`, `baseline_is_erased_modelA`) |
+
+Nothing in Phase 2 is a proven impossibility.  The same discipline applies
+to later phases.
+
+### 2.8 Phase 2 claim audit
+
+1. **Which claims were too strong?**  (a) That a compositional Model-B
+   checker "is `HasType` verbatim", hence that Model B "collapses exactly"
+   to Model A.  (b) That Model C — "semantic concepts as declarations" — is
+   rejected as a family.  (c) The word "conversion" for `Tilt → MotorAngle`,
+   which suggested a coercion the kernel does not have.  (d) The §18 answer
+   as originally phrased read as "the smallest mechanism" simpliciter.
+2. **What was formally established instead?**  (a) The weak checker is
+   unsound (η-evasion); semantic-role changes invalidate unchanged clients;
+   any sound checker must be compositional over terms; the one strong
+   formulation tested duplicates nominal typing.  (b) Concepts cannot be
+   ordinary `DesignDecl`s in the value sort (two category errors).  (c) The
+   only cross-concept path in the kernel is a declared arrow; there is no
+   conversion mechanism at all.  (d) `Ty.sem` is the smallest mechanism
+   *among the tested designs*.
+3. **Which model families remain logically possible?**  Compositional
+   semantic analyses other than the role-per-subterm formulation
+   (flow-sensitive, indexed/effect-like, abstract-interpretation,
+   relational); stratified concept-declaration sorts with independent
+   identity.  Neither has a mechanized argument for or against it here.
+4. **Why does `Ty.sem` still survive as the minimal tested solution?**  It is
+   one constructor, changes neither `DeclInterface` nor `tyView`, leaves
+   every Phase 0/1 theorem untouched, rejects the invalid wire by ordinary
+   STLC rules, admits explicit mappings as ordinary declarations, and is
+   conservative over the baseline by `HasType.erase`.  Every tested
+   alternative either fails formally or contains an independent
+   `SemanticId` anyway.
+5. **What new obligation does Phase 2 impose on Phase 3?**  Representation
+   binding must not destroy the nominal distinction.  See "Open items" below
+   and D-25.
+6. **How could representation binding accidentally defeat semantic
+   identity?**  With unrestricted `rep : sem s → R` and `mk : R → sem s`
+   available to every term, `mkMotor (repTilt x)` is a well-typed
+   `Tilt → MotorAngle` path with no declared semantic mapping.
+   `no_semantic_value_without_declaration` would become false and the
+   nominal distinction ceremonial: the type checker would enforce only that
+   the two words `mk`/`rep` appear, not that a design relationship was
+   declared.
 
 ---
 
@@ -472,6 +559,20 @@ binding, which is Phase-3 material where the representation is `Q[d]`).
 * Whether "several candidate definitions with one active" (§3.2) is a
   surface convenience over a write-once kernel realization.
 * Environment-sensitive evidence and invalidation tracking for edits.
-* Representation binding for concepts (`ConceptDecl.representation`,
-  `mk`/`rep`) — Phase 3, together with dimensions.
+* **Representation binding for concepts — Phase 3, with a warning.**
+  Representation binding must not destroy the nominal distinction
+  established in Phase 2.  Unrestricted `rep : sem s → R` / `mk : R → sem s`
+  lets `mkMotor (repTilt x)` rebuild an implicit `Tilt → MotorAngle` path
+  without a declared semantic mapping, making `Ty.sem` ceremonial.  Phase 3
+  must therefore not merely add representation binding; it must determine
+  which representation *observations* are safe, which semantic
+  *constructions* are safe, and when crossing semantic identities must
+  require an explicit declared mapping.  Phase 3 must test at least:
+  (A) symmetric unrestricted `mk`/`rep`; (B) restricted or
+  capability-controlled construction; (C) representation binding available
+  only inside realization/elaboration; (D) an explicit representation
+  witness `RepresentationBinding s r`; (E) semantic mappings as the only
+  user-visible path across distinct `SemanticId`s.  **The first Phase-3
+  test must be an attempt to construct a counterexample where
+  representation binding bypasses semantic typing.**
 * Display-name table for concepts — surface; not modelled in core.
