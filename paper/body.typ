@@ -65,7 +65,7 @@ The mapping may exist before its body. A formula, curve, examples, or a
 fitted function can later be attached as a definition of the same block.
 Once a formula is supplied, for example
 
-$ f (theta) = "clamp" #h(-1em) (0.2 + 0.8 theta / 60^circle.stroked.tiny , 0 , 1) , $
+$ f (theta) = op("clamp")(0.2 + 0.8 theta / 60^circle.stroked.tiny , 0 , 1) , $
 
 it inhabits the previously declared signature. This
 #strong[signature-first authoring] model is not merely a user-interface
@@ -1617,7 +1617,7 @@ statement.
 
 Later, the mapping is refined:
 
-$ f (theta) = upright("mk")_(B r i g h t n e s s) #h(-1em) ("clamp" (0.2 + 0.8 frac(upright("rep") (theta), 60^circle.stroked.tiny) , 0 , 1)) . $
+$ f (theta) = upright("mk")_(upright("Brightness"))(op("clamp") (0.2 + 0.8 frac(upright("rep") (theta), 60^circle.stroked.tiny) , 0 , 1)) . $
 
 The surface editor may display only the scalar formula and infer the
 nominal constructor from the signature. The kernel records the
