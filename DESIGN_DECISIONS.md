@@ -205,3 +205,73 @@ construct the bypass counterexample.  Not solved here.
 `declRef` in a one-declaration environment (`DeclEnv.single_hasType`).
 Reason: opaque semantic types have no closed inhabitants, and
 signature-first typing never needed them.
+
+## Phase 3
+
+**D-26. Unrestricted symmetric `mk`/`rep` rejected.**
+Rejected: global `rep_s : sem s → R` and `mk_s : R → sem s` (Model A).
+Reason: *formally rejected by counterexample* —
+`unrestricted_representation_binding_bypasses_semantic_identity` gives a
+closed `Tilt → MotorAngle` in the empty environment;
+`hidden_crossing_inside_unrelated_body` hides it inside an unrelated
+signature; Phase-2 provenance becomes false.
+
+**D-27. Representation types are sem-free (`ConceptEnv.WF`).**
+Rejected: allowing `Θ s = some (sem s')`.
+Reason: `rep` would then be a hidden mapping under every policy
+(`binding_to_semantic_type_is_hidden_mapping`).  A constraint the brief did
+not anticipate; discovered while building Model A.
+
+**D-28. Observation is unrestricted; construction is licensed by the realized declaration's signature.**
+Rejected: (B) observation only — safe (`provenance`) but *formally unable*
+to realize any mapping by a formula (`modelB_cannot_realize_mapping`);
+(D-alone) a witness with no policy — it is a component, not a model.
+Chosen: `rep` everywhere; `mk s` iff the grant permits `s`; client code at
+`Grant.none`; a realization at `Grant.of` its own signature.
+Reason: `constructs_granted` (a `sem s` value is built only inside a
+declaration announcing `sem s`), `grant_provenance`,
+`hidden_crossing_rejected_under_grant`, and the positive
+`explicit_semantic_mapping_can_use_representation_formula`.  The signature is
+the smallest authority that makes every crossing visible at the design level
+and needs no new annotation.  Claim strength: smallest among tested designs.
+
+**D-29. Representation binding is a separate, write-once concept environment `Θ`.**
+Rejected: storing the binding in `DeclInterface`; indexing `Ty.sem` by the
+representation (`Sem[n,d]`).
+Reason: a concept is a type, not a declaration (Phase 2, Model C); the
+binding is deferred like a realization (`unbound_concept_still_wires`),
+monotone to bind (`HasType.mono_concept`, `GlobalWF.of_conceptRefines`), and
+an edit to change (`representation_change_is_edit_not_refinement`, both
+forms).  Typing reads `Θ` only through `Θ s = some R`.
+**Consequence (major):** typing now consults two environments — `Δ.tyView`
+and `Θ` — plus a grant.  `tyView` itself is unchanged.  The brief's
+`HasType` / `Realizes` split is realized as one judgment family indexed by
+the grant.
+
+**D-30. Unfolding preserves typing under `Grant.all`, not under the client grant.**
+Rejected: pretending the flattened executable is semantically isolated.
+Reason: each inlined `mk` was authorized at its own declaration
+(`constructs_granted` per body); the executable is where isolation has been
+discharged.  Recorded honestly in `Unfolds.preserves_typing`.
+
+**D-31. Dimensions in `Ty` as `q d`; algebra in `Prim.ty`; no dimension rule.**
+Rejected: dimensions as metadata or validation obligations (not formalized;
+engineering preference — `mul`/`div` *produce* dimensions, so any checker
+recomputes inference); a dimension-specific typing rule (unnecessary —
+registered operators carry their types).
+Reason: `dimension_mismatch_rejected`; the numeric baseline is erased
+dimensional typing (`HasType.eraseDim`,
+`counterexampleB_baseline_accepts_length_plus_time`).  `Dim` is an exponent
+vector over three bases, chosen to keep proofs decidable.
+
+**D-32. Units are surface: elaborated to scaled dimensioned literals.**
+Rejected: units in `Ty`.
+Reason: `unit_scaling_preserves_dimension`, `unit_change_is_value_not_type`;
+mixed-unit addition works after elaboration.  Affine units not modelled.
+
+**D-33. Semantic identity is not indexed by dimension.**
+Rejected: `SemanticId d`, `Ty.sem s d`.
+Reason: `same_dimension_does_not_imply_same_semantic_identity` — Tilt and
+MotorAngle share `q Angle` and stay distinct with the direct wire rejected;
+the association lives in `Θ` (D-29).  This is what Phase 2 + Phase 3 yield
+*instead of* the paper's `Sem[name, dimension]`.

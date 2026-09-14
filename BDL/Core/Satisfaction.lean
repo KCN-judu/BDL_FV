@@ -46,43 +46,52 @@ theorem Evidence.Monotone.of_const (f : Expr → PropertyId → Prop) :
     Evidence.Monotone (fun _ e p => f e p) :=
   fun _ _ _ _ _ h => h
 
-/-- `e` is a valid realization of `S` in environment `Δ` and context `Γ`. -/
-def Satisfies (ev : Evidence) (Δ : DeclEnv) (Γ : Ctx) (e : Expr) (S : DeclInterface) : Prop :=
-  HasType Δ Γ e S.expectedType ∧ ∀ p ∈ S.commitments, ev Δ e p
+/-- `e` is a valid realization of `S` in environments `Θ`, `Δ` and context `Γ`.
+    The body is typed under the grant of its *own* signature
+    (`Grant.of S.expectedType`): it may construct exactly the semantic
+    concepts its interface announces. -/
+def Satisfies (ev : Evidence) (Θ : ConceptEnv) (Δ : DeclEnv) (Γ : Ctx) (e : Expr) (S : DeclInterface) : Prop :=
+  HasType Θ Δ (Grant.of S.expectedType) Γ e S.expectedType ∧ ∀ p ∈ S.commitments, ev Δ e p
 
-instance (ev : Evidence) [∀ Δ e p, Decidable (ev Δ e p)] (Δ : DeclEnv) (Γ : Ctx) (e : Expr) (S : DeclInterface) :
-    Decidable (Satisfies ev Δ Γ e S) :=
-  inferInstanceAs (Decidable (HasType Δ Γ e S.expectedType ∧ ∀ p ∈ S.commitments, ev Δ e p))
+instance (ev : Evidence) [∀ Δ e p, Decidable (ev Δ e p)] (Θ : ConceptEnv) (Δ : DeclEnv) (Γ : Ctx) (e : Expr) (S : DeclInterface) :
+    Decidable (Satisfies ev Θ Δ Γ e S) :=
+  inferInstanceAs (Decidable (HasType Θ Δ (Grant.of S.expectedType) Γ e S.expectedType ∧ ∀ p ∈ S.commitments, ev Δ e p))
 
 /-- **Theorem 5 (interface level).**  A realization of a refined interface
     realizes the original interface. -/
-theorem Satisfies.of_refines {ev : Evidence} {Δ : DeclEnv} {Γ : Ctx} {e : Expr} {S₀ S₁ : DeclInterface}
-    (h : InterfaceRefines S₀ S₁) (hs : Satisfies ev Δ Γ e S₁) : Satisfies ev Δ Γ e S₀ :=
+theorem Satisfies.of_refines {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv} {Γ : Ctx} {e : Expr} {S₀ S₁ : DeclInterface}
+    (h : InterfaceRefines S₀ S₁) (hs : Satisfies ev Θ Δ Γ e S₁) : Satisfies ev Θ Δ Γ e S₀ :=
   ⟨h.expectedType_eq ▸ hs.1, fun p hp => hs.2 p (h.commitments_subset hp)⟩
 
 /-- Satisfaction survives environment refinement — given monotone evidence. -/
-theorem Satisfies.of_envRefines {ev : Evidence} (mono : ev.Monotone)
+theorem Satisfies.of_envRefines {ev : Evidence} (mono : ev.Monotone) {Θ : ConceptEnv}
     {Δ₁ Δ₂ : DeclEnv} (er : EnvRefines Δ₁ Δ₂) {Γ : Ctx} {e : Expr} {S : DeclInterface}
-    (hs : Satisfies ev Δ₁ Γ e S) : Satisfies ev Δ₂ Γ e S :=
+    (hs : Satisfies ev Θ Δ₁ Γ e S) : Satisfies ev Θ Δ₂ Γ e S :=
   ⟨hs.1.of_envRefines er, fun p hp => mono _ _ _ _ er (hs.2 p hp)⟩
+
+/-- Satisfaction survives binding more representations (Phase 3). -/
+theorem Satisfies.of_conceptRefines {ev : Evidence} {Θ₁ Θ₂ : ConceptEnv} (hc : ConceptRefines Θ₁ Θ₂)
+    {Δ : DeclEnv} {Γ : Ctx} {e : Expr} {S : DeclInterface}
+    (hs : Satisfies ev Θ₁ Δ Γ e S) : Satisfies ev Θ₂ Δ Γ e S :=
+  ⟨hs.1.mono_concept hc, hs.2⟩
 
 /-- **Completeness of `InterfaceRefines`.**  With evidence abstract, the syntactic
     refinement relation is exactly the semantic one. -/
 theorem InterfaceRefines_iff_semantic (S₀ S₁ : DeclInterface) :
     InterfaceRefines S₀ S₁ ↔
-      ∀ (ev : Evidence) (Δ : DeclEnv) (Γ : Ctx) (e : Expr),
-        Satisfies ev Δ Γ e S₁ → Satisfies ev Δ Γ e S₀ := by
+      ∀ (ev : Evidence) (Θ : ConceptEnv) (Δ : DeclEnv) (Γ : Ctx) (e : Expr),
+        Satisfies ev Θ Δ Γ e S₁ → Satisfies ev Θ Δ Γ e S₀ := by
   constructor
-  · intro h ev Δ Γ e hs
+  · intro h ev Θ Δ Γ e hs
     exact hs.of_refines h
   · intro h
     constructor
     · -- realize `S₁` by an unresolved declaration of its type, trivial evidence
-      have hs := h (fun _ _ _ => True) (.single ⟨0⟩ S₁.expectedType) [] (.declRef ⟨0⟩)
+      have hs := h (fun _ _ _ => True) .empty (.single ⟨0⟩ S₁.expectedType) [] (.declRef ⟨0⟩)
         ⟨DeclEnv.single_hasType _ _ [], fun _ _ => trivial⟩
       exact hs.1.unique (DeclEnv.single_hasType _ _ [])
     · intro p hp
-      have hs := h (fun _ _ q => q ∈ S₁.commitments) (.single ⟨0⟩ S₁.expectedType) [] (.declRef ⟨0⟩)
+      have hs := h (fun _ _ q => q ∈ S₁.commitments) .empty (.single ⟨0⟩ S₁.expectedType) [] (.declRef ⟨0⟩)
         ⟨DeclEnv.single_hasType _ _ [], fun _ hq => hq⟩
       exact hs.2 p hp
 
@@ -91,28 +100,33 @@ theorem InterfaceRefines_iff_semantic (S₀ S₁ : DeclInterface) :
 /-- A realized declaration's term satisfies its *current* interface; an
     unresolved declaration is always well formed (every `DeclInterface` is
     valid in this model). -/
-def WellFormedDecl (ev : Evidence) (Δ : DeclEnv) (Γ : Ctx) (h : DesignDecl) : Prop :=
-  ∀ e, h.realization = some e → Satisfies ev Δ Γ e h.interface
+def WellFormedDecl (ev : Evidence) (Θ : ConceptEnv) (Δ : DeclEnv) (Γ : Ctx) (h : DesignDecl) : Prop :=
+  ∀ e, h.realization = some e → Satisfies ev Θ Δ Γ e h.interface
 
-theorem WellFormedDecl.unresolved (ev : Evidence) (Δ : DeclEnv) (Γ : Ctx) (id : DeclId) (S : DeclInterface) :
-    WellFormedDecl ev Δ Γ (.unresolved id S) :=
+theorem WellFormedDecl.unresolved (ev : Evidence) (Θ : ConceptEnv) (Δ : DeclEnv) (Γ : Ctx) (id : DeclId) (S : DeclInterface) :
+    WellFormedDecl ev Θ Δ Γ (.unresolved id S) :=
   fun _ h => nomatch h
 
-theorem WellFormedDecl.realized {ev : Evidence} {Δ : DeclEnv} {Γ : Ctx} {id : DeclId} {S : DeclInterface} {e : Expr}
-    (hs : Satisfies ev Δ Γ e S) : WellFormedDecl ev Δ Γ ⟨id, S, some e⟩ :=
+theorem WellFormedDecl.realized {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv} {Γ : Ctx} {id : DeclId} {S : DeclInterface} {e : Expr}
+    (hs : Satisfies ev Θ Δ Γ e S) : WellFormedDecl ev Θ Δ Γ ⟨id, S, some e⟩ :=
   fun _ h => Option.some.inj h ▸ hs
 
-theorem WellFormedDecl.of_envRefines {ev : Evidence} (mono : ev.Monotone)
+theorem WellFormedDecl.of_envRefines {ev : Evidence} (mono : ev.Monotone) {Θ : ConceptEnv}
     {Δ₁ Δ₂ : DeclEnv} (er : EnvRefines Δ₁ Δ₂) {Γ : Ctx} {h : DesignDecl}
-    (wf : WellFormedDecl ev Δ₁ Γ h) : WellFormedDecl ev Δ₂ Γ h :=
+    (wf : WellFormedDecl ev Θ Δ₁ Γ h) : WellFormedDecl ev Θ Δ₂ Γ h :=
   fun e he => (wf e he).of_envRefines mono er
 
-instance (ev : Evidence) [∀ Δ e p, Decidable (ev Δ e p)] (Δ : DeclEnv) (Γ : Ctx) (h : DesignDecl) :
-    Decidable (WellFormedDecl ev Δ Γ h) :=
+theorem WellFormedDecl.of_conceptRefines {ev : Evidence} {Θ₁ Θ₂ : ConceptEnv} (hc : ConceptRefines Θ₁ Θ₂)
+    {Δ : DeclEnv} {Γ : Ctx} {h : DesignDecl}
+    (wf : WellFormedDecl ev Θ₁ Δ Γ h) : WellFormedDecl ev Θ₂ Δ Γ h :=
+  fun e he => (wf e he).of_conceptRefines hc
+
+instance (ev : Evidence) [∀ Δ e p, Decidable (ev Δ e p)] (Θ : ConceptEnv) (Δ : DeclEnv) (Γ : Ctx) (h : DesignDecl) :
+    Decidable (WellFormedDecl ev Θ Δ Γ h) :=
   match hr : h.realization with
   | none => isTrue fun _ h' => by rw [hr] at h'; exact nomatch h'
   | some e =>
-    if hs : Satisfies ev Δ Γ e h.interface then
+    if hs : Satisfies ev Θ Δ Γ e h.interface then
       isTrue fun _ h' => by rw [hr] at h'; exact Option.some.inj h' ▸ hs
     else
       isFalse fun wf => hs (wf e hr)
@@ -124,41 +138,41 @@ instance (ev : Evidence) [∀ Δ e p, Decidable (ev Δ e p)] (Δ : DeclEnv) (Γ 
     `id`.  The three steps are: refine the interface of an unresolved
     declaration; realize it; strengthen the interface of a realized
     declaration *with re-verification*.  Nothing else is a refinement. -/
-inductive DeclRefines (ev : Evidence) (Δ : DeclEnv) (Γ : Ctx) : DesignDecl → DesignDecl → Prop where
+inductive DeclRefines (ev : Evidence) (Θ : ConceptEnv) (Δ : DeclEnv) (Γ : Ctx) : DesignDecl → DesignDecl → Prop where
   | refine {id : DeclId} {S S' : DeclInterface}
       (h : InterfaceRefines S S') :
-      DeclRefines ev Δ Γ ⟨id, S, none⟩ ⟨id, S', none⟩
+      DeclRefines ev Θ Δ Γ ⟨id, S, none⟩ ⟨id, S', none⟩
   | realize {id : DeclId} {S : DeclInterface} {e : Expr}
-      (hs : Satisfies ev Δ Γ e S) :
-      DeclRefines ev Δ Γ ⟨id, S, none⟩ ⟨id, S, some e⟩
+      (hs : Satisfies ev Θ Δ Γ e S) :
+      DeclRefines ev Θ Δ Γ ⟨id, S, none⟩ ⟨id, S, some e⟩
   | strengthen {id : DeclId} {S S' : DeclInterface} {e : Expr}
-      (h : InterfaceRefines S S') (hs : Satisfies ev Δ Γ e S') :
-      DeclRefines ev Δ Γ ⟨id, S, some e⟩ ⟨id, S', some e⟩
+      (h : InterfaceRefines S S') (hs : Satisfies ev Θ Δ Γ e S') :
+      DeclRefines ev Θ Δ Γ ⟨id, S, some e⟩ ⟨id, S', some e⟩
 
 section SingleStep
-variable {ev : Evidence} {Δ : DeclEnv} {Γ : Ctx} {h₁ h₂ : DesignDecl}
+variable {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv} {Γ : Ctx} {h₁ h₂ : DesignDecl}
 
 /-- **Theorem 1 — identity preservation.** -/
-theorem DeclRefines.id_eq (h : DeclRefines ev Δ Γ h₁ h₂) : h₁.id = h₂.id := by
+theorem DeclRefines.id_eq (h : DeclRefines ev Θ Δ Γ h₁ h₂) : h₁.id = h₂.id := by
   cases h <;> rfl
 
-theorem DeclRefines.interface_refines (h : DeclRefines ev Δ Γ h₁ h₂) : InterfaceRefines h₁.interface h₂.interface := by
+theorem DeclRefines.interface_refines (h : DeclRefines ev Θ Δ Γ h₁ h₂) : InterfaceRefines h₁.interface h₂.interface := by
   cases h with
   | refine h => exact h
   | realize _ => exact InterfaceRefines.refl _
   | strengthen h _ => exact h
 
 /-- **Theorem 2 — type commitment preservation.** -/
-theorem DeclRefines.expectedType_eq (h : DeclRefines ev Δ Γ h₁ h₂) :
+theorem DeclRefines.expectedType_eq (h : DeclRefines ev Θ Δ Γ h₁ h₂) :
     h₁.interface.expectedType = h₂.interface.expectedType :=
   h.interface_refines.expectedType_eq
 
 /-- **Theorem 3 — commitment monotonicity.** -/
-theorem DeclRefines.commitments_subset (h : DeclRefines ev Δ Γ h₁ h₂) :
+theorem DeclRefines.commitments_subset (h : DeclRefines ev Θ Δ Γ h₁ h₂) :
     h₁.interface.commitments ⊆ h₂.interface.commitments :=
   h.interface_refines.commitments_subset
 
-theorem DeclRefines.realization_mono (h : DeclRefines ev Δ Γ h₁ h₂) :
+theorem DeclRefines.realization_mono (h : DeclRefines ev Θ Δ Γ h₁ h₂) :
     ∀ e, h₁.realization = some e → h₂.realization = some e := by
   cases h with
   | refine _ => intro _ h; exact nomatch h
@@ -166,13 +180,13 @@ theorem DeclRefines.realization_mono (h : DeclRefines ev Δ Γ h₁ h₂) :
   | strengthen _ _ => intro _ h; exact h
 
 /-- A lifecycle step is a structural step. -/
-theorem DeclRefines.toLeq (h : DeclRefines ev Δ Γ h₁ h₂) : DeclLeq h₁ h₂ :=
+theorem DeclRefines.toLeq (h : DeclRefines ev Θ Δ Γ h₁ h₂) : DeclLeq h₁ h₂ :=
   ⟨h.id_eq, h.interface_refines, h.realization_mono⟩
 
 /-- The target of a step is well formed, from the step's own side conditions. -/
-theorem DeclRefines.wellFormed_target (h : DeclRefines ev Δ Γ h₁ h₂) : WellFormedDecl ev Δ Γ h₂ := by
+theorem DeclRefines.wellFormed_target (h : DeclRefines ev Θ Δ Γ h₁ h₂) : WellFormedDecl ev Θ Δ Γ h₂ := by
   cases h with
-  | refine _ => exact WellFormedDecl.unresolved ev Δ Γ _ _
+  | refine _ => exact WellFormedDecl.unresolved ev Θ Δ Γ _ _
   | realize hs => exact WellFormedDecl.realized hs
   | strengthen _ hs => exact WellFormedDecl.realized hs
 
@@ -181,17 +195,24 @@ theorem DeclRefines.wellFormed_target (h : DeclRefines ev Δ Γ h₁ h₂) : Wel
     finding: the invariant lives in the definition, so this theorem has no
     independent content.) -/
 theorem DeclRefines.preserves_wellFormed
-    (_wf : WellFormedDecl ev Δ Γ h₁) (h : DeclRefines ev Δ Γ h₁ h₂) :
-    WellFormedDecl ev Δ Γ h₂ :=
+    (_wf : WellFormedDecl ev Θ Δ Γ h₁) (h : DeclRefines ev Θ Δ Γ h₁ h₂) :
+    WellFormedDecl ev Θ Δ Γ h₂ :=
   h.wellFormed_target
 
 /-- A step whose side conditions hold in `Δ₁` also holds in any refinement `Δ₂`. -/
 theorem DeclRefines.of_envRefines (mono : ev.Monotone) {Δ₂ : DeclEnv} (er : EnvRefines Δ Δ₂)
-    (h : DeclRefines ev Δ Γ h₁ h₂) : DeclRefines ev Δ₂ Γ h₁ h₂ := by
+    (h : DeclRefines ev Θ Δ Γ h₁ h₂) : DeclRefines ev Θ Δ₂ Γ h₁ h₂ := by
   cases h with
   | refine h => exact .refine h
   | realize hs => exact .realize (hs.of_envRefines mono er)
   | strengthen h hs => exact .strengthen h (hs.of_envRefines mono er)
+
+theorem DeclRefines.of_conceptRefines {Θ₂ : ConceptEnv} (hc : ConceptRefines Θ Θ₂)
+    (h : DeclRefines ev Θ Δ Γ h₁ h₂) : DeclRefines ev Θ₂ Δ Γ h₁ h₂ := by
+  cases h with
+  | refine h => exact .refine h
+  | realize hs => exact .realize (hs.of_conceptRefines hc)
+  | strengthen h hs => exact .strengthen h (hs.of_conceptRefines hc)
 
 end SingleStep
 
@@ -224,30 +245,30 @@ theorem InterfaceRefines.of_star {S₀ Sₙ : DeclInterface} (h : Star Interface
   h.elim InterfaceRefines.refl InterfaceRefines.trans id
 
 /-- **Theorem 5 (n-step).** -/
-theorem Satisfies.of_refines_star {ev : Evidence} {Δ : DeclEnv} {Γ : Ctx} {e : Expr} {S₀ Sₙ : DeclInterface}
-    (h : Star InterfaceRefines S₀ Sₙ) (hs : Satisfies ev Δ Γ e Sₙ) : Satisfies ev Δ Γ e S₀ :=
+theorem Satisfies.of_refines_star {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv} {Γ : Ctx} {e : Expr} {S₀ Sₙ : DeclInterface}
+    (h : Star InterfaceRefines S₀ Sₙ) (hs : Satisfies ev Θ Δ Γ e Sₙ) : Satisfies ev Θ Δ Γ e S₀ :=
   hs.of_refines (InterfaceRefines.of_star h)
 
 /-- **Theorem 6.**  Multi-step lifecycle (all side conditions checked in `Δ`). -/
-abbrev DeclRefinesStar (ev : Evidence) (Δ : DeclEnv) (Γ : Ctx) : DesignDecl → DesignDecl → Prop :=
-  Star (DeclRefines ev Δ Γ)
+abbrev DeclRefinesStar (ev : Evidence) (Θ : ConceptEnv) (Δ : DeclEnv) (Γ : Ctx) : DesignDecl → DesignDecl → Prop :=
+  Star (DeclRefines ev Θ Δ Γ)
 
 section MultiStep
-variable {ev : Evidence} {Δ : DeclEnv} {Γ : Ctx} {h₀ h₁ h₂ : DesignDecl}
+variable {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv} {Γ : Ctx} {h₀ h₁ h₂ : DesignDecl}
 
-theorem DeclRefinesStar.of_two (a : DeclRefines ev Δ Γ h₀ h₁) (b : DeclRefines ev Δ Γ h₁ h₂) :
-    DeclRefinesStar ev Δ Γ h₀ h₂ :=
+theorem DeclRefinesStar.of_two (a : DeclRefines ev Θ Δ Γ h₀ h₁) (b : DeclRefines ev Θ Δ Γ h₁ h₂) :
+    DeclRefinesStar ev Θ Δ Γ h₀ h₂ :=
   .step a (.single b)
 
-theorem DeclRefinesStar.toLeq (h : DeclRefinesStar ev Δ Γ h₀ h₂) : DeclLeq h₀ h₂ :=
+theorem DeclRefinesStar.toLeq (h : DeclRefinesStar ev Θ Δ Γ h₀ h₂) : DeclLeq h₀ h₂ :=
   h.elim DeclLeq.refl DeclLeq.trans DeclRefines.toLeq
 
-theorem DeclRefinesStar.id_eq (h : DeclRefinesStar ev Δ Γ h₀ h₂) : h₀.id = h₂.id := h.toLeq.id_eq
-theorem DeclRefinesStar.interface_refines (h : DeclRefinesStar ev Δ Γ h₀ h₂) : InterfaceRefines h₀.interface h₂.interface :=
+theorem DeclRefinesStar.id_eq (h : DeclRefinesStar ev Θ Δ Γ h₀ h₂) : h₀.id = h₂.id := h.toLeq.id_eq
+theorem DeclRefinesStar.interface_refines (h : DeclRefinesStar ev Θ Δ Γ h₀ h₂) : InterfaceRefines h₀.interface h₂.interface :=
   h.toLeq.interface_refines
 
 theorem DeclRefinesStar.preserves_wellFormed
-    (wf : WellFormedDecl ev Δ Γ h₀) (h : DeclRefinesStar ev Δ Γ h₀ h₂) : WellFormedDecl ev Δ Γ h₂ := by
+    (wf : WellFormedDecl ev Θ Δ Γ h₀) (h : DeclRefinesStar ev Θ Δ Γ h₀ h₂) : WellFormedDecl ev Θ Δ Γ h₂ := by
   induction h with
   | refl _ => exact wf
   | step hab _ ih => exact ih (hab.preserves_wellFormed wf)
@@ -255,13 +276,13 @@ theorem DeclRefinesStar.preserves_wellFormed
 /-- **Theorem 5 (declaration level).**  The eventual realization satisfies
     the interface the declaration had at every earlier point in its life. -/
 theorem DeclRefinesStar.final_realization_satisfies_all
-    (wf : WellFormedDecl ev Δ Γ h₀) (h : DeclRefinesStar ev Δ Γ h₀ h₂)
-    {e : Expr} (he : h₂.realization = some e) : Satisfies ev Δ Γ e h₀.interface :=
+    (wf : WellFormedDecl ev Θ Δ Γ h₀) (h : DeclRefinesStar ev Θ Δ Γ h₀ h₂)
+    {e : Expr} (he : h₂.realization = some e) : Satisfies ev Θ Δ Γ e h₀.interface :=
   (h.preserves_wellFormed wf e he).of_refines h.interface_refines
 
 /-- The lifecycle closure is exactly: structural order + well-formed target. -/
-theorem DeclRefinesStar_iff (wf : WellFormedDecl ev Δ Γ h₁) :
-    DeclRefinesStar ev Δ Γ h₁ h₂ ↔ DeclLeq h₁ h₂ ∧ WellFormedDecl ev Δ Γ h₂ := by
+theorem DeclRefinesStar_iff (wf : WellFormedDecl ev Θ Δ Γ h₁) :
+    DeclRefinesStar ev Θ Δ Γ h₁ h₂ ↔ DeclLeq h₁ h₂ ∧ WellFormedDecl ev Θ Δ Γ h₂ := by
   constructor
   · intro h
     exact ⟨h.toLeq, h.preserves_wellFormed wf⟩

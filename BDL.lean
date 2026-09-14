@@ -7,3 +7,5 @@ import BDL.Core.Env
 import BDL.Core.Dependency
 import BDL.Experiments.DeclCounterexamples
 import BDL.Experiments.SemanticTypeAlternatives
+import BDL.Experiments.RepresentationBindingAlternatives
+import BDL.Experiments.DimensionAlternatives

@@ -27,25 +27,31 @@ namespace BDL
 
 /-- Every declaration is stored under its own id, and its realization (if
     any) satisfies its interface *in this environment*, at top level. -/
-def GlobalWF (ev : Evidence) (Δ : DeclEnv) : Prop :=
-  ∀ id h, Δ id = some h → h.id = id ∧ WellFormedDecl ev Δ [] h
+def GlobalWF (ev : Evidence) (Θ : ConceptEnv) (Δ : DeclEnv) : Prop :=
+  ∀ id h, Δ id = some h → h.id = id ∧ WellFormedDecl ev Θ Δ [] h
 
-theorem GlobalWF.empty (ev : Evidence) : GlobalWF ev .empty :=
+theorem GlobalWF.empty (ev : Evidence) (Θ : ConceptEnv) : GlobalWF ev Θ .empty :=
   fun _ _ h => nomatch h
 
 /-- For finite environments, global well-formedness reduces to a decidable
     check over the list. -/
-theorem GlobalWF.ofList {ev : Evidence} {l : List DesignDecl}
-    (h : ∀ dh ∈ l, WellFormedDecl ev (.ofList l) [] dh) : GlobalWF ev (.ofList l) := by
+theorem GlobalWF.ofList {ev : Evidence} {Θ : ConceptEnv} {l : List DesignDecl}
+    (h : ∀ dh ∈ l, WellFormedDecl ev Θ (.ofList l) [] dh) : GlobalWF ev Θ (.ofList l) := by
   intro id dh hh
   obtain ⟨hmem, dId⟩ := DeclEnv.ofList_some hh
   exact ⟨dId, h dh hmem⟩
 
-theorem GlobalWF.stored_id {ev : Evidence} {Δ : DeclEnv} (g : GlobalWF ev Δ) {id : DeclId} {h : DesignDecl}
+theorem GlobalWF.stored_id {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv} (g : GlobalWF ev Θ Δ) {id : DeclId} {h : DesignDecl}
     (hh : Δ id = some h) : h.id = id := (g id h hh).1
 
-theorem GlobalWF.wellFormed {ev : Evidence} {Δ : DeclEnv} (g : GlobalWF ev Δ) {id : DeclId} {h : DesignDecl}
-    (hh : Δ id = some h) : WellFormedDecl ev Δ [] h := (g id h hh).2
+theorem GlobalWF.wellFormed {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv} (g : GlobalWF ev Θ Δ) {id : DeclId} {h : DesignDecl}
+    (hh : Δ id = some h) : WellFormedDecl ev Θ Δ [] h := (g id h hh).2
+
+/-- **Binding a representation preserves global well-formedness** (Phase 3):
+    the concept environment is write-once and typing is monotone in it. -/
+theorem GlobalWF.of_conceptRefines {ev : Evidence} {Θ₁ Θ₂ : ConceptEnv} (hc : ConceptRefines Θ₁ Θ₂)
+    {Δ : DeclEnv} (g : GlobalWF ev Θ₁ Δ) : GlobalWF ev Θ₂ Δ :=
+  fun _ _ hh => ⟨g.stored_id hh, (g.wellFormed hh).of_conceptRefines hc⟩
 
 /-! ## Phase-1 main theorems -/
 
@@ -58,9 +64,9 @@ client of `B`, and every non-client, unchanged.
 Hypotheses: `B` is declared, and `DeclLeq B B'`.  Nothing about evidence,
 commitments being satisfied, or well-formedness of anything.  In fact only
 `B'.interface.expectedType = B.interface.expectedType` is used (via `EnvRefines.tyView`). -/
-theorem local_refinement_preserves_global_typing {Δ : DeclEnv} {B B' : DesignDecl}
+theorem local_refinement_preserves_global_typing {Θ : ConceptEnv} {G : Grant} {Δ : DeclEnv} {B B' : DesignDecl}
     (hB : Δ B.id = some B) (le : DeclLeq B B') :
-    ∀ {Γ : Ctx} {e : Expr} {τ : Ty}, HasType Δ Γ e τ → HasType (Δ.update B') Γ e τ :=
+    ∀ {Γ : Ctx} {e : Expr} {τ : Ty}, HasType Θ Δ G Γ e τ → HasType Θ (Δ.update B') G Γ e τ :=
   fun h => h.of_envRefines (EnvRefines_update hB le)
 
 /-- **Local refinement preserves global well-formedness.**
@@ -68,10 +74,10 @@ theorem local_refinement_preserves_global_typing {Δ : DeclEnv} {B B' : DesignDe
 If the design is globally well formed and `B` takes one lifecycle step
 (side conditions checked in the current environment), the updated design is
 globally well formed — provided evidence is monotone. -/
-theorem local_refinement_preserves_global_wf {ev : Evidence} (mono : ev.Monotone)
-    {Δ : DeclEnv} (g : GlobalWF ev Δ) {B B' : DesignDecl}
-    (hB : Δ B.id = some B) (step : DeclRefines ev Δ [] B B') :
-    GlobalWF ev (Δ.update B') := by
+theorem local_refinement_preserves_global_wf {ev : Evidence} (mono : ev.Monotone) {Θ : ConceptEnv}
+    {Δ : DeclEnv} (g : GlobalWF ev Θ Δ) {B B' : DesignDecl}
+    (hB : Δ B.id = some B) (step : DeclRefines ev Θ Δ [] B B') :
+    GlobalWF ev Θ (Δ.update B') := by
   have er : EnvRefines Δ (Δ.update B') := EnvRefines_update hB step.toLeq
   intro id h hh
   by_cases dId : id = B'.id
@@ -91,13 +97,13 @@ theorem DeclEnv.update_update_same {Δ : DeclEnv} {h₁ h₂ : DesignDecl} (dId 
 
 /-- Multi-step version: a whole lifecycle of `B`, all side conditions checked
     against the *original* environment, preserves global well-formedness. -/
-theorem local_lifecycle_preserves_global_wf {ev : Evidence} (mono : ev.Monotone)
-    {Δ : DeclEnv} (g : GlobalWF ev Δ) {B B' : DesignDecl}
-    (hB : Δ B.id = some B) (steps : DeclRefinesStar ev Δ [] B B') :
-    GlobalWF ev (Δ.update B') := by
+theorem local_lifecycle_preserves_global_wf {ev : Evidence} (mono : ev.Monotone) {Θ : ConceptEnv}
+    {Δ : DeclEnv} (g : GlobalWF ev Θ Δ) {B B' : DesignDecl}
+    (hB : Δ B.id = some B) (steps : DeclRefinesStar ev Θ Δ [] B B') :
+    GlobalWF ev Θ (Δ.update B') := by
   -- generalize over the environment the steps are replayed in
-  suffices key : ∀ Δ', EnvRefines Δ Δ' → GlobalWF ev Δ' → Δ' B.id = some B →
-      GlobalWF ev (Δ'.update B') from
+  suffices key : ∀ Δ', EnvRefines Δ Δ' → GlobalWF ev Θ Δ' → Δ' B.id = some B →
+      GlobalWF ev Θ (Δ'.update B') from
     key Δ (EnvRefines.refl Δ) g hB
   clear hB g
   induction steps with
@@ -112,7 +118,7 @@ theorem local_lifecycle_preserves_global_wf {ev : Evidence} (mono : ev.Monotone)
   | step s rest ih =>
     rename_i B B₁ B'
     intro Δ' er g' hB'
-    have s' : DeclRefines ev Δ' [] B B₁ := s.of_envRefines mono er
+    have s' : DeclRefines ev Θ Δ' [] B B₁ := s.of_envRefines mono er
     have g₁ := local_refinement_preserves_global_wf mono g' hB' s'
     have er₁ : EnvRefines Δ (Δ'.update B₁) := er.trans (EnvRefines_update hB' s.toLeq)
     have hB₁ : (Δ'.update B₁) B₁.id = some B₁ := Δ'.update_self B₁

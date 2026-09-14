@@ -102,14 +102,19 @@ inductive Unfolds (Δ : DeclEnv) : Expr → Expr → Prop where
   | refStuck {h : DeclId} : Δ.realizationOf h = none → Unfolds Δ (.declRef h) (.declRef h)
   | refRealized {h : DeclId} {e e' : Expr} :
       Δ.realizationOf h = some e → Unfolds Δ e e' → Unfolds Δ (.declRef h) e'
+  | rep {e e' : Expr} : Unfolds Δ e e' → Unfolds Δ (.rep e) (.rep e')
+  | mk {s : SemanticId} {e e' : Expr} : Unfolds Δ e e' → Unfolds Δ (.mk s e) (.mk s e')
+  | prim (p : Prim) : Unfolds Δ (.prim p) (.prim p)
 
 /-- Unfolding is deterministic. -/
 theorem Unfolds.det {Δ : DeclEnv} {e e₁ e₂ : Expr}
     (h₁ : Unfolds Δ e e₁) (h₂ : Unfolds Δ e e₂) : e₁ = e₂ := by
   induction h₁ generalizing e₂ with
-  | var _ | boolLit _ | natLit _ => cases h₂; rfl
+  | var _ | boolLit _ | natLit _ | prim _ => cases h₂; rfl
   | lam _ ih => cases h₂ with | lam hb => rw [ih hb]
   | app _ _ ihf iha => cases h₂ with | app hf ha => rw [ihf hf, iha ha]
+  | rep _ ih => cases h₂ with | rep he => rw [ih he]
+  | mk _ ih => cases h₂ with | mk he => rw [ih he]
   | refStuck hn =>
     cases h₂ with
     | refStuck _ => rfl
@@ -123,7 +128,9 @@ theorem Unfolds.det {Δ : DeclEnv} {e e₁ e₂ : Expr}
 theorem Unfolds.refs_stuck {Δ : DeclEnv} {e e' : Expr} (h : Unfolds Δ e e') :
     ∀ x ∈ e'.refs, Δ.realizationOf x = none := by
   induction h with
-  | var _ | boolLit _ | natLit _ => intro x hx; simp [Expr.refs] at hx
+  | var _ | boolLit _ | natLit _ | prim _ => intro x hx; simp [Expr.refs] at hx
+  | rep _ ih => exact ih
+  | mk _ ih => exact ih
   | lam _ ih => exact ih
   | app _ _ ihf iha =>
     intro x hx
@@ -133,22 +140,32 @@ theorem Unfolds.refs_stuck {Δ : DeclEnv} {e e' : Expr} (h : Unfolds Δ e e') :
   | refRealized _ _ ih => exact ih
 
 /-- **Type preservation.**  In a globally well-formed design, unfolding
-    preserves typing.  Uses `HasType.of_closed`: a realization is typed at
-    top level and may be inlined under binders. -/
-theorem Unfolds.preserves_typing {ev : Evidence} {Δ : DeclEnv} (g : GlobalWF ev Δ)
+    preserves typing — under the universal grant.  Each inlined body was
+    typed under the grant of its *own* signature, so the flattened term
+    carries constructions that were individually authorized at their
+    declarations; the unfolded program is the implementation, where the
+    design-time isolation has been discharged, not violated
+    (`HasType.constructs_granted` holds for every inlined body separately). -/
+theorem Unfolds.preserves_typing {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv} (g : GlobalWF ev Θ Δ)
     {e e' : Expr} (hu : Unfolds Δ e e') :
-    ∀ {Γ : Ctx} {τ : Ty}, HasType Δ Γ e τ → HasType Δ Γ e' τ := by
+    ∀ {G : Grant} {Γ : Ctx} {τ : Ty}, HasType Θ Δ G Γ e τ → HasType Θ Δ Grant.all Γ e' τ := by
   induction hu with
-  | var _ | boolLit _ | natLit _ => intro _ _ ht; exact ht
+  | var _ | boolLit _ | natLit _ | prim _ => intro _ _ _ ht; exact ht.to_all
   | lam _ ih =>
-    intro Γ τ ht
+    intro G Γ τ ht
     cases ht with | lam hb => exact .lam (ih hb)
   | app _ _ ihf iha =>
-    intro Γ τ ht
+    intro G Γ τ ht
     cases ht with | app hf ha => exact .app (ihf hf) (iha ha)
-  | refStuck _ => intro _ _ ht; exact ht
+  | rep _ ih =>
+    intro G Γ τ ht
+    cases ht with | rep hΘ he => exact .rep hΘ (ih he)
+  | mk _ ih =>
+    intro G Γ τ ht
+    cases ht with | mk _ hΘ he => exact .mk trivial hΘ (ih he)
+  | refStuck _ => intro _ _ _ ht; exact ht.to_all
   | refRealized hs _ ih =>
-    intro Γ τ ht
+    intro G Γ τ ht
     cases ht with
     | declRef htv =>
       simp only [DeclEnv.realizationOf, DeclEnv.tyView, Option.bind_eq_some_iff,
@@ -166,9 +183,9 @@ def DeclEnv.FullyRealized (Δ : DeclEnv) : Prop :=
 /-- **Executable designs flatten.**  A well-typed term in a fully realized
     environment unfolds (if it unfolds at all — see cycles) to a
     reference-free term. -/
-theorem Unfolds.refFree_of_fullyRealized {ev : Evidence} {Δ : DeclEnv} (g : GlobalWF ev Δ)
-    (fr : Δ.FullyRealized) {Γ : Ctx} {e e' : Expr} {τ : Ty}
-    (ht : HasType Δ Γ e τ) (hu : Unfolds Δ e e') : e'.RefFree := by
+theorem Unfolds.refFree_of_fullyRealized {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv} (g : GlobalWF ev Θ Δ)
+    (fr : Δ.FullyRealized) {G : Grant} {Γ : Ctx} {e e' : Expr} {τ : Ty}
+    (ht : HasType Θ Δ G Γ e τ) (hu : Unfolds Δ e e') : e'.RefFree := by
   have ht' := hu.preserves_typing g ht
   unfold Expr.RefFree
   cases hr : e'.refs with
@@ -192,7 +209,9 @@ theorem Unfolds.refFree_of_fullyRealized {ev : Evidence} {Δ : DeclEnv} (g : Glo
 theorem Unfolds.refs_not_cyclic {Δ : DeclEnv} {e e' : Expr} (hu : Unfolds Δ e e') :
     ∀ x ∈ e.refs, ¬ Reaches Δ x x := by
   induction hu with
-  | var _ | boolLit _ | natLit _ => intro x hx; simp [Expr.refs] at hx
+  | var _ | boolLit _ | natLit _ | prim _ => intro x hx; simp [Expr.refs] at hx
+  | rep _ ih => exact ih
+  | mk _ ih => exact ih
   | lam _ ih => exact ih
   | app _ _ ihf iha =>
     intro x hx
@@ -251,6 +270,9 @@ theorem Unfolds.exists_of_acyclic {Δ : DeclEnv} (ha : Acyclic Δ) (e : Expr) :
       obtain ⟨f', hf'⟩ := ihf fun x hx => hb x (by simp [Expr.refs, hx])
       obtain ⟨a', ha'⟩ := iha fun x hx => hb x (by simp [Expr.refs, hx])
       exact ⟨_, .app hf' ha'⟩
+    | rep e ih => obtain ⟨e', he'⟩ := ih hb; exact ⟨_, .rep he'⟩
+    | mk s e ih => obtain ⟨e', he'⟩ := ih hb; exact ⟨_, .mk he'⟩
+    | prim p => exact ⟨_, .prim p⟩
     | declRef h =>
       cases hs : Δ.realizationOf h with
       | none => exact ⟨_, .refStuck hs⟩

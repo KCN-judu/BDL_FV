@@ -76,6 +76,69 @@ def DeclEnv.tyView (Δ : DeclEnv) (h : DeclId) : Option Ty :=
 def DeclEnv.realizationOf (Δ : DeclEnv) (h : DeclId) : Option Expr :=
   (Δ h).bind (·.realization)
 
+/-! ## Concept environment (Phase 3)
+
+Representation binding is a *witness* `Θ s = some R`: concept `s` is
+represented by `R`.  It is a second, concept-level environment, separate
+from `DeclEnv` (a concept is a type, a declaration is a value — Phase 2,
+Model C).  Like a realization it is write-once (`ConceptRefines`). -/
+
+abbrev ConceptEnv := SemanticId → Option Ty
+
+def ConceptEnv.empty : ConceptEnv := fun _ => none
+
+/-- Representation types must not be semantic: binding `Tilt ↦ MotorAngle`
+    would make `rep` a hidden mapping
+    (`Experiments.RepBinding.binding_to_semantic_type_is_hidden_mapping`). -/
+def ConceptEnv.WF (Θ : ConceptEnv) : Prop :=
+  ∀ s R, Θ s = some R → R.SemFree
+
+/-- Binding more concepts (never rebinding) is a refinement. -/
+def ConceptRefines (Θ₁ Θ₂ : ConceptEnv) : Prop :=
+  ∀ s R, Θ₁ s = some R → Θ₂ s = some R
+
+theorem ConceptRefines.refl (Θ : ConceptEnv) : ConceptRefines Θ Θ := fun _ _ h => h
+theorem ConceptRefines.trans {Θ₀ Θ₁ Θ₂ : ConceptEnv}
+    (a : ConceptRefines Θ₀ Θ₁) (b : ConceptRefines Θ₁ Θ₂) : ConceptRefines Θ₀ Θ₂ :=
+  fun s R h => b s R (a s R h)
+
+/-- Bind a representation to an (unbound) concept. -/
+def ConceptEnv.bind (Θ : ConceptEnv) (s : SemanticId) (R : Ty) : ConceptEnv :=
+  fun s' => if s' = s then some R else Θ s'
+
+theorem ConceptRefines.bind {Θ : ConceptEnv} {s : SemanticId} (R : Ty) (h : Θ s = none) :
+    ConceptRefines Θ (Θ.bind s R) := by
+  intro s' R' h'
+  unfold ConceptEnv.bind
+  split
+  · rename_i heq; subst heq; rw [h] at h'; exact nomatch h'
+  · exact h'
+
+/-! ## Construction grants (Phase 3)
+
+`mk s` may be used only where the grant permits `s`.  A declaration's
+realization is granted exactly the concepts in result position of its own
+signature: the signature is the authority for crossing semantic identities. -/
+
+abbrev Grant := SemanticId → Prop
+
+def Grant.none : Grant := fun _ => False
+def Grant.all  : Grant := fun _ => True
+
+instance : DecidablePred Grant.none := fun _ => inferInstanceAs (Decidable False)
+instance : DecidablePred Grant.all  := fun _ => inferInstanceAs (Decidable True)
+
+/-- Concepts in result position of a signature. -/
+def Ty.grant : Ty → List SemanticId
+  | .sem s => [s]
+  | .arr _ b => b.grant
+  | _ => []
+
+/-- The grant a declaration of type `τ` receives for its realization. -/
+def Grant.of (τ : Ty) : Grant := fun s => s ∈ τ.grant
+
+instance (τ : Ty) : DecidablePred (Grant.of τ) := fun s => inferInstanceAs (Decidable (s ∈ τ.grant))
+
 /-! ## Structural lifecycle order -/
 
 /-- `DeclLeq h₁ h₂`: `h₂` is a later state of the *same* declaration under

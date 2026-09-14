@@ -40,10 +40,19 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | stratified `ConceptDecl` (distinct sort, own identity) | not required in Phase 2 | may reappear in Phase 3 | may carry representation metadata | no | not rejected; reduces the Phase-2 requirement to an independent `SemanticId` |
 | semantic concept declaration `decl Tilt` | no | yes → allocates a `SemanticId` | — | no | Phase 2; representation binding pending Phase 3 |
 | concept display-name table | no | yes | no | — | rename is a surface refactoring (`semantic_rename_preserves_identity`) |
-| representation binding / `mk`, `rep` | ? | — | ? | — | **pending Phase 3 with a constraint (D-25)**: must not let `mkMotor (repTilt x)` bypass semantic typing; first Phase-3 test is to attempt that counterexample |
-| `Sem[n,d]` dimension component `d` | ? | ? | ? | ? | Phase 3 |
-| dimensions `Q[d]` | ? | ? | ? | ? | Phase 3 |
-| units | ? | ? | ? | ? | Phase 3 |
+| `RepresentationBinding` witness (`ConceptEnv Θ`, `Θ s = some R`, sem-free, write-once) | yes | `decl Tilt represented by …` | — | no | Phase 3: D-27, D-29; monotone to bind, edit to rebind |
+| `rep` (representation observation) | yes, unrestricted | — | — | no | safe everywhere (`provenance`, Model B); needed for any formula |
+| `mk` (semantic construction) | yes, **granted only** | — | — | no | Model A bypass (D-26); licensed by the realized declaration's signature (D-28) |
+| unrestricted symmetric `mk`/`rep` | no | no | no | **yes** | formally rejected: `unrestricted_representation_binding_bypasses_semantic_identity` |
+| observation-only binding (no `mk`) | no | — | — | **yes** | formally unable to realize mappings by formula (`modelB_cannot_realize_mapping`) |
+| construction grant `Grant.of` signature | yes | invisible (derived from the signature) | — | no | `constructs_granted`, `hidden_crossing_rejected_under_grant` |
+| separate realization typing judgment | no — same judgment, indexed by grant | — | — | — | D-29: `HasType Θ Δ G`; client code at `Grant.none`, bodies at `Grant.of` |
+| `Q[d]` = `Ty.q Dim` | yes | — | — | no | `dimension_mismatch_rejected`; baseline is its erasure (D-31) |
+| dimension algebra | yes, in `Prim.ty` only | — | — | no | no dimension-specific typing rule needed |
+| dimensions as metadata / validation | — | — | not formalized | — | engineering preference; not universally ruled out (§3.5) |
+| units | no | yes → scaled dimensioned literal | — | no | `unit_scaling_preserves_dimension` (D-32); affine units pending |
+| semantic–dimension association | in `Θ` (not in `SemanticId`, not in `Ty.sem`, not in `DeclInterface`) | — | — | — | `same_dimension_does_not_imply_same_semantic_identity` (D-33) |
+| `Sem[n,d]` two-index constructor | no | no | no | **yes** | replaced by `Ty.sem s` + `Θ s = some (q d)` |
 | `Event` vs `Signal (Option τ)` | ? | ? | no | ? | Phase 4 |
 | `delay`/`previous`/`hold`/`count`/`since` | ? | ? | — | ? | Phase 5 |
 | `for`/`after`/`while`/`until`/`once`/`every` | ? | likely | — | ? | Phase 5 |
@@ -138,3 +147,54 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - CAN IT BE DESUGARED: no
 - OBSERVABLE DIFFERENCE: renaming `Tilt → DeviceTilt` changes nothing in the kernel
 - LEAN THEOREM / COUNTEREXAMPLE: `semantic_rename_preserves_identity`, `rename_under_name_identity_breaks_client`, `conceptC_usable_as_value`
+
+### FEATURE: representation-binding witness (`ConceptEnv`, `Θ s = some R`)
+- KERNEL STATUS: keep (write-once, sem-free)
+- SURFACE STATUS: `decl Tilt represented by Q[Angle]`
+- VALIDATION STATUS: n/a
+- WHY IT EXISTS: `rep`/`mk` need to know the representation; binding is deferred like a realization
+- WHAT BREAKS WITHOUT IT: no formula can touch a semantic value
+- CAN IT BE DESUGARED: no; and it must not be a `DeclInterface` field or a `Ty.sem` index (D-29, D-33)
+- OBSERVABLE DIFFERENCE: unbound concepts still wire; `rep`/`mk` become typable once bound; rebinding breaks realizations
+- LEAN THEOREM / COUNTEREXAMPLE: `HasType.mono_concept`, `GlobalWF.of_conceptRefines`, `unbound_concept_still_wires`, `representation_change_is_edit_not_refinement`, `binding_to_semantic_type_is_hidden_mapping`
+
+### FEATURE: `rep` (observation, unrestricted)
+- KERNEL STATUS: keep
+- SURFACE STATUS: implicit inside formulas
+- VALIDATION STATUS: n/a
+- WHY IT EXISTS: formulas compute on representations
+- WHAT BREAKS WITHOUT IT: no formula can read a semantic input
+- CAN IT BE DESUGARED: no
+- OBSERVABLE DIFFERENCE: none for isolation — observation never creates identity
+- LEAN THEOREM / COUNTEREXAMPLE: `observation_is_available`, `provenance` (safe under `.none`)
+
+### FEATURE: `mk` under `Grant.of` signature (construction, licensed)
+- KERNEL STATUS: keep
+- SURFACE STATUS: implicit — the elaborator inserts `mk` for a mapping whose codomain is semantic (paper §7.2)
+- VALIDATION STATUS: n/a
+- WHY IT EXISTS: the only way a formula can produce a semantic output
+- WHAT BREAKS WITHOUT IT: Model B — mappings unrealizable by formula
+- WHAT BREAKS WITHOUT THE GRANT: Model A — implicit cross-identity paths
+- CAN IT BE DESUGARED: no
+- OBSERVABLE DIFFERENCE: `mkMotor (repTilt x)` is ill-typed in client code and inside `Tilt → Brightness`; legal only inside a declaration announcing `MotorAngle`
+- LEAN THEOREM / COUNTEREXAMPLE: `representation_binding_does_not_enable_hidden_semantic_mapping`, `explicit_semantic_mapping_can_use_representation_formula`, `hidden_crossing_rejected_under_grant`, `HasType.constructs_granted`, `grant_provenance`
+
+### FEATURE: quantity type `q d` with algebra in `Prim.ty`
+- KERNEL STATUS: keep
+- SURFACE STATUS: shown with units
+- VALIDATION STATUS: n/a
+- WHY IT EXISTS: dimensionally invalid computation must be rejected
+- WHAT BREAKS WITHOUT IT: Counterexample B — `length + time` accepted
+- CAN IT BE DESUGARED: not by any tested alternative (erasure is the baseline; metadata/validation argued redundant, not ruled out)
+- OBSERVABLE DIFFERENCE: `length + time` rejected; `length / time` typed at the computed dimension
+- LEAN THEOREM / COUNTEREXAMPLE: `dimension_mismatch_rejected`, `dimensional_addition_requires_equal_dimensions`, `HasType.eraseDim`, `counterexampleB_baseline_accepts_length_plus_time`
+
+### FEATURE: units as elaboration
+- KERNEL STATUS: no
+- SURFACE STATUS: keep — literal `n u` elaborates to `prim (lit u.dim (n·u.scale))`
+- VALIDATION STATUS: n/a
+- WHY IT EXISTS: designers write `5 cm`
+- WHAT BREAKS WITHOUT IT: nothing in the kernel
+- CAN IT BE DESUGARED: yes — that is the point
+- OBSERVABLE DIFFERENCE: a unit change changes the value, never the type
+- LEAN THEOREM / COUNTEREXAMPLE: `unit_scaling_preserves_dimension`, `unit_change_is_value_not_type`
