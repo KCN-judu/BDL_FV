@@ -1,6 +1,6 @@
-name = "PersistentHole"
-version = "0.1.0"
-defaultTargets = ["PersistentHole"]
+name = "BDL"
+version = "0.2.0"
+defaultTargets = ["BDL"]
 
 [[lean_lib]]
-name = "PersistentHole"
+name = "BDL"

@@ -1,200 +1,199 @@
-# Report: persistent typed design holes — a Lean 4 feasibility experiment
+# REPORT — formal results so far
 
-Everything below refers to definitions and theorems in `PersistentHole/`.
-The project builds with `lake build`, contains no `sorry`, and the theorems
-depend on no axiom beyond `propext`.
+Project state: **Phase 1 complete** (cross-hole references and dependency).
+Phases 2–13 not started.  Everything builds with `lake build`; no `sorry`;
+axioms used are `propext` and `Quot.sound` (the latter only through `funext`
+in `HoleEnv.update_update_same` and standard `simp` lemmas).  No
+`Classical.choice` anywhere.
 
-## 1. What is the minimal formal object corresponding to a persistent typed design hole?
+Layout:
 
-```lean
-structure Spec       where expectedType : Ty;  obligations : List PropertyId
-structure DesignHole where id : HoleId;  spec : Spec;  realization : Option Expr
+| File | Contents |
+|---|---|
+| `BDL/Core/Base.lean` | `Ty`, `HoleId`, `Expr` (with `holeRef`), `refs`, `HoleFree` |
+| `BDL/Core/Spec.lean` | `Spec`, `Refines` preorder (Phase 0) |
+| `BDL/Core/Hole.lean` | `DesignHole`, `HoleEnv`, `tyView`, structural order `HoleLeq` / `EnvRefines`, `EnvRefines_update` |
+| `BDL/Core/Typing.lean` | `HasType Δ Γ e τ`, decidable `infer`, weakening, **factoring lemma** `HasType.mono_env` |
+| `BDL/Core/Satisfaction.lean` | env-dependent `Evidence`, `Evidence.Monotone`, `Satisfies`, `WellFormedHole`, `HoleRefines`, Theorems 1–6 (Phase 0, ported) |
+| `BDL/Core/Env.lean` | `GlobalWF`, **`local_refinement_preserves_global_typing`**, **`local_refinement_preserves_global_wf`**, multi-step version |
+| `BDL/Core/Dependency.lean` | `DependsOn`, `Reaches`, `Cyclic`/`Acyclic`, unfolding semantics `Unfolds`, determinism, type preservation, cycle theorems |
+| `BDL/Experiments/HoleCounterexamples.lean` | Phase-0 examples; Phase-1 probes 1–6; cycle examples |
+
+---
+
+## Phase 0 (preserved) — a single persistent hole
+
+Conclusions carried forward unchanged:
+
+1. A persistent hole is a stable name + a fixed type + a monotonically
+   growing obligation set + a write-once realization.  The lifecycle closure
+   is exactly this preorder (`HoleRefinesStar_iff`).
+2. Strengthening a realized hole must re-verify the realization
+   (`HoleRefines.strengthen` carries the premise; `naive_breaks_wellformedness`).
+3. Identity alone contributes nothing beyond a declaration name to the
+   single-hole theorems.
+4. Theorem 4 (`preserves_wellFormed`) has no independent content: its
+   hypothesis is unused because the invariant was moved into the definition.
+   This is reported, not hidden (`HoleRefines.wellFormed_target`).
+
+---
+
+## Phase 1 — cross-hole references
+
+### 1.1 The model
+
+* `Expr.holeRef : HoleId → Expr`.
+* `HoleEnv := HoleId → Option DesignHole`; `Δ.tyView h := (Δ h).map (·.spec.expectedType)`.
+* Typing rule: `Δ.tyView h = some τ ⟹ HasType Δ Γ (holeRef h) τ`.  This is the
+  only rule that reads `Δ`, and it reads only `tyView`.
+* `Evidence : HoleEnv → Expr → PropertyId → Prop` — evidence may consult the
+  environment (needed for compositional discharge: "`A` is monotone because
+  `B` is committed to be monotone").
+* The **order** is separated from the **invariant**:
+  * `HoleLeq h₁ h₂` (structural): same id, `Refines` on specs, realization
+    write-once.  `EnvRefines Δ₁ Δ₂`: pointwise `HoleLeq`, new holes allowed.
+  * `GlobalWF ev Δ`: every stored hole is under its own id and its realization
+    satisfies its spec *in `Δ`*.
+
+### 1.2 The main theorem, in two halves
+
+**Typing half** — `local_refinement_preserves_global_typing`:
+
+```
+Δ B.id = some B  →  HoleLeq B B'  →  ∀ Γ e τ, HasType Δ Γ e τ → HasType (Δ.update B') Γ e τ
 ```
 
-together with the lifecycle preorder, which `HoleRefinesStar_iff_HoleLeq`
-proves is *exactly* the reflexive–transitive closure of the three step rules
-(`refine`, `realize`, `strengthen`):
+Hypotheses are purely structural: no evidence, no well-formedness of `B`,
+`B'`, or anything else.  In fact only `B'.spec.expectedType = B.spec.expectedType`
+is used.  **This theorem is a one-liner and it should be reported as such**:
+it is true because typing was *defined* to factor through `tyView`
+(`HasType.mono_env`).  Its content is that the "signature-first" design
+decision — clients see signatures, never bodies — is *sufficient* for client
+stability.  Probe 4 shows `tyView` preservation is also *necessary*.
 
-```lean
-HoleLeq ev Γ h₁ h₂ :=
-  h₁.id = h₂.id                                           -- identity frozen
-  ∧ Refines h₁.spec h₂.spec                               -- type frozen, obligations ⊆
-  ∧ (∀ e, h₁.realization = some e → h₂.realization = some e)  -- write-once realization
-  ∧ (∀ e, h₂.realization = some e → Satisfies ev Γ e h₂.spec) -- realization meets current spec
+**Commitment half** — `local_refinement_preserves_global_wf`:
+
+```
+ev.Monotone → GlobalWF ev Δ → Δ B.id = some B → HoleRefines ev Δ [] B B' → GlobalWF ev (Δ.update B')
 ```
 
-So the minimal object is: **a fixed name, paired with a point in the
-join-semilattice `Ty × Finset PropertyId` (ordered by `=` on the type and `⊆`
-on obligations), paired with a write-once cell, subject to one invariant.**
-Nothing in `DesignHole` mentions a syntactic position; a hole is a declaration,
-not a location.
+and the multi-step version `local_lifecycle_preserves_global_wf`.  This one
+needed a hypothesis that was **not** in the brief and was discovered by
+trying to make the theorem fail: `Evidence.Monotone` — evidence must be
+stable under `EnvRefines`.  Probe 6 shows the theorem is false without it.
 
-## 2. Which invariants are required for progressive refinement?
+### 1.3 The five probes ("try hard to make it fail")
 
-Five, and each is discharged by a counterexample in `Examples.lean` showing
-what breaks without it:
+`A : nat → bool`, `A := λx. f (B x)`, `B : nat → nat` unresolved.  Then:
 
-| Invariant | Encoded where | Breaks without it |
-|---|---|---|
-| `expectedType` is frozen | `Refines` | Theorem 5 (`loose_breaks_theorem5`); clients typed against the old type become ill-typed (`client`) |
-| obligations only grow | `Refines` | Theorem 5 (`forgetful_breaks_theorem5`): a commitment is silently forgotten |
-| identity is preserved by every step | every constructor of `HoleRefines` reuses `id` | References go stale (`consumer.RefersTo h₂ ∧ ¬ consumer.RefersTo h₃'`); the environment slot readers look at is never updated (`fresh_id_breaks_env_refinement`) |
-| a realization is write-once and immutable | shape of `HoleRefines` | (not tested; needed for `HoleLeq.toStar` and for `final_realization_satisfies_all` to be about *the* realization) |
-| **strengthening a realized hole re-verifies the term** | premise `hs` of `HoleRefines.strengthen` | Theorem 4 (`naive_breaks_wellformedness`) |
+| Probe | Operation on `B` | `A`'s typing | `A`'s commitments | Result |
+|---|---|---|---|---|
+| 1 | strengthen spec | preserved | preserved | theorem instance `probe1_*` |
+| 2 | realize | preserved | preserved; `A` now unfolds to a hole-free program of the same type | `probe2_*` |
+| 3a | re-identify **replacing** `B` | **broken** — dangling reference | — | `probe3a_breaks_typing` |
+| 3b | re-identify **beside** `B` | preserved | vacuous | `A` still depends on the stale `B`; design can never become executable (`probe3b_*`) |
+| 4 | change expected type (id kept) | **broken** | — | `probe4_breaks_typing`; `probe4_id_alone_insufficient` |
+| 5 | drop an obligation | **preserved** | **broken** | `probe5_typing_kept`, `probe5_breaks_commitment` |
+| 6 | (valid realize, but evidence non-monotone) | preserved | **broken** | `probe6_breaks`, `badEv_not_mono` |
 
-The last row is the one the experiment was run to find. See §4.
+Two of these deserve comment.
 
-## 3. Which of the intended theorems were provable?
+**Probe 5 is the important negative result.**  Dropping `B`'s `monotone`
+obligation does not change a single type; the type checker is silent.  But
+`A`'s own `monotone` commitment was discharged *through* `B`'s commitment
+(`compEv`), so `A` is now ill-formed without having been edited.  Consequence
+for the design: **obligations are part of the interface**.  The "signature"
+that clients depend on is `expectedType × obligations`, and both must be
+monotone for client stability.  The paper says properties "attach to the
+name" (§3.2); this shows they are load-bearing for dependents, which is a
+stronger claim than the paper makes.
 
-All of them, for the final `HoleRefines`:
+**Probe 6 is the discovered invariant.**  Any discharge mechanism that
+consults the *absence* of information (an unresolved hole, a missing
+obligation) produces evidence that valid refinement destroys.  So the
+validation layer is constrained by the kernel: every `DischargedBy` must be
+positive/monotone in the environment.  This is not a decoration on the
+theorem; `badEv_not_mono` derives non-monotonicity of the bad evidence from
+the theorem's failure.
 
-| Theorem | Lean name | Notes |
-|---|---|---|
-| 1 identity preservation | `HoleRefines.id_eq` | `cases h <;> rfl` — definitional, as intended |
-| 2 type commitment preservation | `HoleRefines.expectedType_eq` | |
-| 3 obligation monotonicity | `HoleRefines.obligations_subset` | |
-| 4 refinement preserves well-formedness | `HoleRefines.preserves_wellFormed` | see §4 |
-| 5 realization satisfies earlier specs | `Satisfies.of_refines` (2-step), `Satisfies.of_refines_star` (n-step), `HoleRefinesStar.final_realization_satisfies_all` (hole level) | |
-| 6 multi-step refinement | `HoleRefinesStar`, `HoleRefinesStar.of_two`, lifted versions of 1–4 | `HoleRefines` itself is *not* transitive (`refine` then `realize` has no single-step form) so the closure is used |
-| reference stability | `Artifact.refersTo_of_refines`, `EnvRefines_update`, `resolve_update_refines` | |
+### 1.4 Dependency graph and cycles
 
-Two results not in the brief turned out to be the most informative:
+* `DependsOn Δ a b` iff `a`'s realization refers to `b`.  Specs contain no
+  references in this model, so there is no spec-level dependency; a cycle
+  can therefore never pass through an unresolved hole (`DependsOn.realized`).
+* Semantics at this phase is **unfolding** (`Unfolds Δ e e'`): inline
+  realized references recursively, stop at unresolved ones.  It is
+  deterministic (`Unfolds.det`), type-preserving under `GlobalWF`
+  (`Unfolds.preserves_typing`, which needs closed-term weakening), and in a
+  fully realized environment produces a hole-free term whose typing no longer
+  depends on any environment (`Unfolds.holeFree_of_fullyRealized`,
+  `HasType.holeFree_env_irrelevant`).  This is the formal content of the
+  paper's "executable" acceptance level.
+* **Every cycle blocks unfolding** (`Unfolds.not_of_cyclic`): a self-reference
+  `S := S` and a mutual recursion `P := Q, Q := P` are both *well typed*
+  (references are typed by signature) yet have no unfolding.  Conversely
+  acyclic environments (rank-witnessed) unfold every term
+  (`Unfolds.exists_of_acyclic`).
+* There is **no harmless cycle** in this fragment: the pure language has no
+  fixpoint, so a cyclic definition denotes nothing.  The distinction
+  "structural cycle vs instantaneous computational cycle" cannot yet arise;
+  it requires a delay operator (Phase 5/8).  Deferred, not dismissed.
+* Classification: realization-acyclicity is a **kernel** well-formedness
+  condition beyond typing (the semantic function is undefined otherwise),
+  not a validation obligation.
 
-* **`Refines_iff_semantic`**: with evidence abstract, the syntactic relation
-  "same type ∧ obligations ⊆" is *exactly* "every realization of the new spec
-  realizes the old spec, for every evidence relation". So choosing a small
-  decidable refinement relation over "arbitrary logical implication" costs
-  nothing at this level of abstraction.
-* **`HoleRefinesStar_iff_HoleLeq`**: the operational three-rule lifecycle
-  collapses to the closed-form preorder in §1.
+### 1.5 Is persistent identity now formally non-trivial?
 
-`SpecEquiv` is a genuine equivalence but not antisymmetric, because obligations
-are a `List` (`[total, total]` vs `[total]`). Cosmetic; a `Finset` would fix it
-at the cost of a Mathlib dependency.
+**No.  It is still exactly a declaration name.**  Precisely:
 
-## 4. Which intended theorem failed, and why?
+* Every Phase-1 theorem that mentions `id` uses it in one way only: to make
+  `Δ.update B'` land on the slot `holeRef B` resolves to
+  (`EnvRefines_update`).  That is what a name does in any environment-based
+  semantics.
+* What *is* non-trivial is not identity but the **environment order**
+  `EnvRefines` and the two facts that clients depend on it only through
+  (a) `tyView` for typing and (b) monotone evidence for commitments.  This is
+  the standard interface/implementation separation: clients are typed
+  against signatures; definitions can be supplied or refined later.  It is
+  the same structure as ML signatures / Coq `Parameter` later given a
+  `Definition` / Lean's metavariable context (assignment write-once, types
+  fixed), and `Evidence.Monotone` is the familiar "stable under world
+  extension" condition of Kripke-style models.
+* Two aspects are *slightly* non-standard, and they are where the design
+  content sits: (i) the signature includes a growable obligation set, and
+  the growth is a first-class operation on a declared-but-undefined name;
+  (ii) the kernel imposes positivity on the validation layer's evidence.
+  Neither is a new PL abstraction.
 
-**Theorem 4 fails for the natural first definition of the lifecycle**, in
-which a realized hole may have its spec strengthened by merely `Refines S S'`
-(`NaiveHoleRefines` in `Examples.lean`). Concretely: `constZero = λx:nat. 0`
-realizes `S₁ = ⟨nat→nat, [total]⟩`; strengthen to `S₂ = S₁ + monotone`; the
-hole is now ill-formed because there is no evidence that `constZero` is
-monotone (`naive_breaks_wellformedness`).
+So the answer to the Phase-1 question is: identity is a name; the model is
+"a module of named declarations with monotone signatures and write-once
+bodies"; the non-trivial invariants live in the order on environments, not
+in identity.
 
-The missing assumption is isolated by `naive_strengthen_wf_iff`: a naive
-strengthen step preserves well-formedness iff the existing term satisfies the
-*strengthened* spec. So the corrected rule carries that as a premise:
+### 1.6 Theorems that became trivial by definition (reported per §21)
 
-```lean
-| strengthen (h : Refines S S') (hs : Satisfies ev Γ e S') :
-    HoleRefines ev Γ ⟨id, S, some e⟩ ⟨id, S', some e⟩
-```
+* `HoleRefines.preserves_wellFormed` (Phase 0) — hypothesis unused.
+* `local_refinement_preserves_global_typing` — a one-line consequence of
+  making the `holeRef` rule read `tyView` only.  Its necessity direction
+  (probe 4) is the non-trivial half.
 
-Semantic justification: "adding a commitment" to a hole that already has a
-body is not a spec-only operation — it is a claim about the body, and must be
-discharged when made, not deferred.
+### 1.7 Tension with the paper, recorded
 
-A more uncomfortable observation: in the proof of `preserves_wellFormed`, the
-hypothesis `WellFormedHole ev Γ h₁` is used in *no* case. Well-formedness of
-the target follows from the step's own premises. This means Theorem 4 is not
-a theorem *about* the relation so much as a check that the invariant has been
-correctly pushed into the definition. That is fine for a calculus — but it
-also means the theorem has no independent content.
+The paper allows *detaching* a definition ("retracts an implementation while
+retaining the claim that the relationship exists", §3.2).  In this model a
+realization is write-once; detaching is not a `HoleLeq` step.  The formal
+reason: detaching `B` does not affect typing of clients (`tyView` unchanged)
+but destroys any client evidence that consulted `B`'s realization, i.e. it
+is a non-monotone edit.  It can be supported as an *edit* that re-opens
+validation of all transitive dependents, but not as a *refinement*.  See
+`DESIGN_DECISIONS.md` D-07.
 
-## 5. Does persistent identity add anything beyond `let f : A → B := ?` or an abstract declaration?
+---
 
-Formally, in this model: **very little**, and one should be precise about
-what little.
+## Open items carried to later phases
 
-* Theorems 2–6 never use `id` except to pass it along. Delete the `id` field
-  and every single-hole theorem survives unchanged. Persistent identity is
-  therefore not what makes refinement work; it is orthogonal to refinement.
-* `id` does real work exactly once: in `EnvRefines_update`, where
-  `HoleRefines.id_eq` is what guarantees that writing the new state back
-  lands on the slot existing references read from. But this is precisely the
-  role a *name* plays in any declaration-based system. `let f : A → B := ?`
-  also has a stable name `f` that clients refer to, and clients do not need
-  editing when `?` is filled in.
-* Metavariable systems (Lean `?m`, Agda `?0`, Coq evars) already have
-  persistent, referable identities and write-once assignment. The
-  `write-once realization` half of `HoleLeq` is exactly a metavariable
-  assignment.
-
-What `DesignHole` has that `let f : A → B := ?` does not is the **monotone
-obligation set that may grow after declaration and after realization**. But
-that is a property of the *spec* (it is a semilattice element rather than a
-fixed type), not of *identity*. The honest summary of the model is:
-
-> a named, write-once cell whose "type" is `Ty × (growing finite set of
-> obligation labels)`, plus the rule that growth after assignment re-checks
-> the assignment.
-
-That is an abstract declaration with a mutable-but-monotone set of proof
-obligations — structurally similar to a Coq `Program`/`Obligation` or an
-Agda postulate whose set of pending goals can only shrink (here: only grow,
-but the same monotonicity).
-
-## 6. Which existing notion is the abstraction closest to?
-
-A combination, with weights:
-
-* **Contextual metavariables** (strongest match): persistent id, referable
-  before assignment, write-once assignment, typed. Missing from mvars: the
-  post-declaration growth of obligations.
-* **Refinement systems** (second): `Refines` is a spec preorder and Theorem 5
-  is the standard "a refined spec has fewer models" fact; `Refines_iff_semantic`
-  says the syntactic order is complete for it. But there is no *type*
-  refinement here — the type is frozen — so it is refinement of an
-  obligation set only.
-* **Abstract declarations**: what `DesignHole` reduces to once `id` is seen as
-  a name.
-* **Typed holes** (Hazel-style): weak match. Those holes are syntactic
-  positions with live semantics (hole environments, evaluation around holes);
-  `DesignHole` has no position and no evaluation.
-* **Program sketching**: no match; there is no search, and `Evidence` is not a
-  solver.
-
-## 7. Based only on the formal model, what is the genuine PL contribution?
-
-Being critical: **as it stands, the model does not contain a new PL result.**
-Every theorem is either definitional (1–3, 6), a check that an invariant was
-placed correctly (4), or a two-line consequence of `⊆` (5). The completeness
-result `Refines_iff_semantic` is neat but is also a symptom: because evidence
-is fully abstract, obligations are opaque labels, and any set-inclusion order
-on labels is trivially complete.
-
-What the exercise *does* establish:
-
-1. The abstraction is **coherent**: there is a clean closed-form preorder
-   (`HoleLeq`) and the operational lifecycle is exactly its closure.
-2. The abstraction has **one non-obvious invariant** — re-verification on
-   post-realization strengthening — that a naive design misses and that the
-   counterexample makes concrete.
-3. The three weakenings the brief was worried about (retyping, forgetting,
-   re-identifying) each break a specific theorem, so the invariants are
-   necessary, not decorative.
-
-What it does *not* establish is that "persistent design hole" is more than
-"named declaration + monotone obligation set + write-once body". To find out
-whether there is more, the next experiment should add the one thing this
-model deliberately omits, which is also the only place identity can do
-non-trivial work:
-
-* **Let realizations contain holes** (`Expr.hole : HoleId → Expr`), typed
-  against the hole environment. Then a term that realizes hole `A` may refer
-  to hole `B`; realizing `B` later must preserve the typing and the
-  obligations of `A` *without editing `A`'s term*. That theorem is the actual
-  content of "persistent, referable identity"; in the present model it is
-  trivial because artifacts are inert lists of ids. It also forces the
-  questions that would distinguish this from metavariables — cyclic
-  references, obligations on `A` whose evidence depends on `B`'s realization,
-  and whether strengthening `B` can invalidate `A`.
-* Secondarily, allow the expected type to be *narrowed* (a subtyping or
-  refinement-type order on `Ty`). Theorem 5 then stops being `⊆` and acquires
-  variance conditions on `arr`, which is where a "refinement system" reading
-  would start to have teeth.
-
-Until one of those is done, the safe claim is that the formal core of the
-idea is a well-behaved but standard structure, and the novelty (if any) lies
-in the *combination* with position-independence and cross-hole reference —
-neither of which this minimal model yet exercises.
+* Spec-level references (obligations that mention other holes) — needed
+  before a full dependency graph is meaningful.
+* Delay/temporal boundaries — needed to revisit which cycles are harmless.
+* Whether "several candidate definitions with one active" (§3.2) is a
+  surface convenience over a write-once kernel realization.

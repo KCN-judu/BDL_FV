@@ -1,23 +1,15 @@
-# PersistentHole
+# BDL_FV — formal-design experiment for a Behavior Design Language kernel
 
-A deliberately small Lean 4 formalization testing one question:
-
-> Can a typed hole be modeled as a persistent, referable design entity whose
-> specification is progressively refined — preserving identity and earlier
-> commitments — until it is realized by a concrete term?
-
-No dependencies beyond core Lean (no Mathlib). Builds with
+A Lean 4 project that treats the BDL proposal as a *candidate* specification
+and derives, by construction / counterexample / proof, what its kernel
+actually needs.  No dependencies beyond core Lean.
 
 ```bash
 lake build
 ```
 
-| File | Contents |
-|---|---|
-| `PersistentHole/Syntax.lean` | Tiny STLC, `HasType`, decidable `infer`, uniqueness of typing |
-| `PersistentHole/Spec.lean` | `Spec`, `Refines` (preorder), `Evidence`, `Satisfies`, Theorem 5, completeness of `Refines` |
-| `PersistentHole/Hole.lean` | `HoleId`, `DesignHole`, `WellFormedHole` |
-| `PersistentHole/Refinement.lean` | `HoleRefines`, Theorems 1–6, closure `HoleRefinesStar`, characterization `HoleLeq` |
-| `PersistentHole/Artifact.lean` | References by id, hole environments, stability of references under refinement |
-| `PersistentHole/Examples.lean` | Concrete lifecycle checked by `decide`; counterexamples A–D |
-| `REPORT.md` | Findings |
+* `REPORT.md` — formal results per phase
+* `DESIGN_DECISIONS.md` — every model choice and rejected alternative
+* `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table
+
+Status: Phase 1 (cross-hole references, dependency) complete.
