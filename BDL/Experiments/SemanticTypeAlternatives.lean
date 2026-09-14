@@ -124,6 +124,7 @@ example : aTilt.realization = none ∧ aMap.realization = none := by decide
 def _root_.BDL.Ty.erase (ρ : SemanticId → Ty) : Ty → Ty
   | .sem s => ρ s
   | .arr a b => .arr (a.erase ρ) (b.erase ρ)
+  | .opt τ => .opt (τ.erase ρ)
   | .bool => .bool
   | .nat => .nat
   | .q d => .q d
@@ -133,13 +134,22 @@ theorem _root_.BDL.Ty.erase_semFree (ρ : SemanticId → Ty) : ∀ {τ : Ty}, τ
   | .nat, _ => rfl
   | .q _, _ => rfl
   | .sem _, h => h.elim
+  | .opt τ, h => by simp [Ty.erase, Ty.erase_semFree ρ (τ := τ) h]
   | .arr a b, h => by simp [Ty.erase, Ty.erase_semFree ρ h.1, Ty.erase_semFree ρ h.2]
 
-theorem _root_.BDL.Prim.ty_semFree : ∀ p : Prim, p.ty.SemFree
-  | .lit _ _ => trivial
-  | .add _ => ⟨trivial, trivial, trivial⟩
-  | .mul _ _ => ⟨trivial, trivial, trivial⟩
-  | .div _ _ => ⟨trivial, trivial, trivial⟩
+/-- Registered operators are sem-free *except* the polymorphic ones instantiated
+    at a semantic type (`ite (sem s)`, `some (sem s)`, …), which merely route
+    values.  Erasure of a prim erases its type index. -/
+def _root_.BDL.Prim.erase (ρ : SemanticId → Ty) : Prim → Prim
+  | .ite τ => .ite (τ.erase ρ)
+  | .none τ => .none (τ.erase ρ)
+  | .some τ => .some (τ.erase ρ)
+  | .isSome τ => .isSome (τ.erase ρ)
+  | .getD τ => .getD (τ.erase ρ)
+  | p => p
+
+theorem _root_.BDL.Prim.ty_erase (ρ : SemanticId → Ty) (p : Prim) : (p.erase ρ).ty = p.ty.erase ρ := by
+  cases p <;> simp [Prim.erase, Prim.ty, Ty.erase]
 
 /-- Erasing terms: `rep`/`mk` disappear (the representation *is* the value). -/
 def _root_.BDL.Expr.erase (ρ : SemanticId → Ty) : Expr → Expr
@@ -147,7 +157,17 @@ def _root_.BDL.Expr.erase (ρ : SemanticId → Ty) : Expr → Expr
   | .app f a => .app (f.erase ρ) (a.erase ρ)
   | .rep e => e.erase ρ
   | .mk _ e => e.erase ρ
+  | .prim p => .prim (p.erase ρ)
+  | .delay i e => .delay (i.erase ρ) (e.erase ρ)
   | e => e
+
+theorem _root_.BDL.Ty.erase_data (ρ : SemanticId → Ty) (hρ : ∀ s, (ρ s).Data) : ∀ {τ : Ty}, τ.Data → (τ.erase ρ).Data
+  | .bool, _ => trivial
+  | .nat, _ => trivial
+  | .q _, _ => trivial
+  | .sem s, _ => hρ s
+  | .opt τ, h => Ty.erase_data ρ hρ (τ := τ) h
+  | .arr _ _, h => h.elim
 
 def _root_.BDL.DesignDecl.erase (ρ : SemanticId → Ty) (d : DesignDecl) : DesignDecl :=
   { d with interface := { d.interface with expectedType := d.interface.expectedType.erase ρ },
@@ -167,7 +187,7 @@ theorem _root_.BDL.DeclEnv.tyView_erase (ρ : SemanticId → Ty) (Δ : DeclEnv) 
     `R` sem-free).  `rep`/`mk` erase to their arguments.  So the semantic
     kernel is conservative over the representation language: generated code
     is well typed after erasing concepts. -/
-theorem _root_.BDL.HasType.erase (ρ : SemanticId → Ty) {Θ : ConceptEnv} (hΘ : Θ.WF)
+theorem _root_.BDL.HasType.erase (ρ : SemanticId → Ty) (hρd : ∀ s, (ρ s).Data) {Θ : ConceptEnv} (hΘ : Θ.WF)
     (hρ : ∀ s R, Θ s = some R → ρ s = R) {Δ : DeclEnv} {G G' : Grant} {Γ : Ctx} {e : Expr} {τ : Ty}
     (h : HasType Θ Δ G Γ e τ) :
     HasType Θ (Δ.erase ρ) G' (Γ.map (Ty.erase ρ)) (e.erase ρ) (τ.erase ρ) := by
@@ -179,13 +199,14 @@ theorem _root_.BDL.HasType.erase (ρ : SemanticId → Ty) {Θ : ConceptEnv} (hΘ
   | app _ _ ihf iha => exact .app ihf iha
   | declRef h => exact .declRef (by rw [DeclEnv.tyView_erase, h]; rfl)
   | @rep _ _ s R hb _ ih =>
-    have hR : R.erase ρ = R := Ty.erase_semFree ρ (hΘ s R hb)
+    have hR : R.erase ρ = R := Ty.erase_semFree ρ (hΘ s R hb).1
     simpa [Expr.erase, hR, Ty.erase, hρ s R hb] using ih
   | @mk _ _ s R _ hb _ ih =>
-    have hR : R.erase ρ = R := Ty.erase_semFree ρ (hΘ s R hb)
+    have hR : R.erase ρ = R := Ty.erase_semFree ρ (hΘ s R hb).1
     simp only [Expr.erase, Ty.erase, hρ s R hb]
     simpa [hR] using ih
-  | prim => simpa [Expr.erase, Ty.erase_semFree ρ (Prim.ty_semFree _)] using HasType.prim
+  | prim => exact (Prim.ty_erase ρ _) ▸ HasType.prim
+  | delay hd _ _ ihi ihe => exact .delay (Ty.erase_data ρ hρd hd) ihi ihe
 
 /-- The numeric binding: every concept is represented by `nat`. -/
 def ρnat : SemanticId → Ty := fun _ => .nat
@@ -208,6 +229,8 @@ def _root_.BDL.Expr.SemFree : Expr → Prop
   | .app f a => f.SemFree ∧ a.SemFree
   | .rep e => e.SemFree
   | .mk _ _ => False
+  | .prim p => p.ty.SemFree
+  | .delay i e => i.SemFree ∧ e.SemFree
   | _ => True
 
 /-- **Result 4 — semantic extension preserves structural typing.**  A
@@ -234,7 +257,8 @@ theorem semantic_extension_preserves_structural_typing {Θ : ConceptEnv} {Δ : D
   | declRef h => exact hΔ _ _ h
   | rep _ _ ih => exact (ih hΓ he).elim
   | mk _ _ _ _ => exact he.elim
-  | prim => exact Prim.ty_semFree _
+  | prim => exact he
+  | delay _ _ _ ihi _ => exact ihi hΓ he.1
 
 /-! ### Refinement preservation is inherited from Phase 1
 
@@ -312,13 +336,25 @@ def _root_.BDL.Ty.denote : Ty → Type
   | .nat => Nat
   | .q _ => Nat
   | .arr a b => a.denote → b.denote
+  | .opt τ => Option τ.denote
   | .sem _ => Empty
 
 def _root_.BDL.Prim.denote : ∀ p : Prim, p.ty.denote
   | .lit _ n => (show Nat from n)
   | .add _ => (show Nat → Nat → Nat from fun a b => a + b)
+  | .sub _ => (show Nat → Nat → Nat from fun a b => a - b)
   | .mul _ _ => (show Nat → Nat → Nat from fun a b => a * b)
   | .div _ _ => (show Nat → Nat → Nat from fun a b => a / b)
+  | .lt _ => (show Nat → Nat → Bool from fun a b => decide (a < b))
+  | .eq _ => (show Nat → Nat → Bool from fun a b => decide (a = b))
+  | .not => (show Bool → Bool from fun a => !a)
+  | .and => (show Bool → Bool → Bool from fun a b => a && b)
+  | .or => (show Bool → Bool → Bool from fun a b => a || b)
+  | .ite τ => (show Bool → τ.denote → τ.denote → τ.denote from fun c x y => if c then x else y)
+  | .none τ => (show Option τ.denote from Option.none)
+  | .some τ => (show τ.denote → Option τ.denote from Option.some)
+  | .isSome τ => (show Option τ.denote → Bool from Option.isSome)
+  | .getD τ => (show Option τ.denote → τ.denote → τ.denote from Option.getD)
 
 /-- Interpretation of a context: a value for every variable. -/
 def _root_.BDL.Ctx.Interp (Γ : Ctx) : Type := ∀ (i : Nat) (τ : Ty), Γ[i]? = some τ → τ.denote
@@ -366,6 +402,7 @@ def _root_.BDL.Expr.eval {Θ : ConceptEnv} {Δ : DeclEnv} (δ : Δ.Interp) :
         | nat => simp [infer, hf, ha] at h
         | q _ => simp [infer, hf, ha] at h
         | sem _ => simp [infer, hf, ha] at h
+        | opt _ => simp [infer, hf, ha] at h
         | arr dom cod =>
           simp [infer, hf, ha] at h
           obtain ⟨rfl, rfl⟩ := h
@@ -380,8 +417,23 @@ def _root_.BDL.Expr.eval {Θ : ConceptEnv} {Δ : DeclEnv} (δ : Δ.Interp) :
       | bool => simp [infer, he] at h
       | nat => simp [infer, he] at h
       | q _ => simp [infer, he] at h
+      | opt _ => simp [infer, he] at h
       | arr _ _ => simp [infer, he] at h
   | .mk s e, _, _, _, h => by simp [infer, Grant.none] at h
+  | .delay i e, Γ, γ, τ, h => by
+    -- timeless denotation: a delay denotes its initial value
+    by_cases hΓ : Γ = []
+    · subst hΓ
+      cases hi : infer Θ Δ Grant.none [] i with
+      | none => simp [infer, hi] at h
+      | some τi =>
+        cases he : infer Θ Δ Grant.none [] e with
+        | none => simp [infer, hi, he] at h
+        | some τe =>
+          simp [infer, hi, he] at h
+          obtain ⟨⟨rfl, _⟩, rfl⟩ := h
+          exact Expr.eval δ i [] γ _ hi
+    · simp [infer, hΓ] at h
 
 def _root_.BDL.HasType.denote {Θ : ConceptEnv} {Δ : DeclEnv} (δ : Δ.Interp) {Γ : Ctx} {e : Expr} {τ : Ty}
     (h : HasType Θ Δ Grant.none Γ e τ) (γ : Γ.Interp) : τ.denote :=
@@ -392,6 +444,7 @@ def _root_.BDL.Ty.SemFree.inhabitant : ∀ {τ : Ty}, τ.SemFree → τ.denote
   | .bool, _ => (show Bool from true)
   | .nat, _ => (show Nat from 0)
   | .q _, _ => (show Nat from 0)
+  | .opt _, _ => (show Option _ from Option.none)
   | .arr _ b, h => fun _ => Ty.SemFree.inhabitant (τ := b) h.2
 
 /-- **Result 6.**  In an environment declaring only sem-free types, no closed

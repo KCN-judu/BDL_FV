@@ -47,12 +47,16 @@ inductive Ty where
   /-- Phase 3: a physical quantity of dimension `d`.  The representation type
       of physical concepts.  `nat` remains for counts. -/
   | q (d : Dim)
+  /-- Phase 4: optional value.  `opt τ` streams are the single-domain model
+      of events (at most one occurrence per tick). -/
+  | opt (τ : Ty)
   deriving DecidableEq, Repr
 
 /-- A type mentioning no semantic concept. -/
 def Ty.SemFree : Ty → Prop
   | .sem _ => False
   | .arr a b => a.SemFree ∧ b.SemFree
+  | .opt τ => τ.SemFree
   | _ => True
 
 instance : ∀ τ : Ty, Decidable τ.SemFree
@@ -60,25 +64,65 @@ instance : ∀ τ : Ty, Decidable τ.SemFree
   | .nat => inferInstanceAs (Decidable True)
   | .q _ => inferInstanceAs (Decidable True)
   | .sem _ => inferInstanceAs (Decidable False)
+  | .opt τ => instDecidableSemFree τ
   | .arr a b =>
     have := instDecidableSemFree a
     have := instDecidableSemFree b
     inferInstanceAs (Decidable (a.SemFree ∧ b.SemFree))
 
+/-- A *data* type: no function type inside.  Phase 4: only data may be
+    delayed — temporal state stores values, not behaviour. -/
+def Ty.Data : Ty → Prop
+  | .arr _ _ => False
+  | .opt τ => τ.Data
+  | _ => True
+
+instance : ∀ τ : Ty, Decidable τ.Data
+  | .bool => inferInstanceAs (Decidable True)
+  | .nat => inferInstanceAs (Decidable True)
+  | .q _ => inferInstanceAs (Decidable True)
+  | .sem _ => inferInstanceAs (Decidable True)
+  | .opt τ => instDecidableData τ
+  | .arr _ _ => inferInstanceAs (Decidable False)
+
 /-- Registered pure operators (the paper's `p(e₁,…,eₙ)`).  Dimension algebra
     lives entirely in their types; typing an application is ordinary STLC. -/
 inductive Prim where
+  -- Phase 3: dimensioned arithmetic
   | lit (d : Dim) (n : Nat)
   | add (d : Dim)
+  | sub (d : Dim)
   | mul (d₁ d₂ : Dim)
   | div (d₁ d₂ : Dim)
+  -- Phase 4: comparisons, booleans, conditionals, options (plain STLC data)
+  | lt (d : Dim)
+  | eq (d : Dim)
+  | not
+  | and
+  | or
+  | ite (τ : Ty)
+  | none (τ : Ty)
+  | some (τ : Ty)
+  | isSome (τ : Ty)
+  | getD (τ : Ty)
   deriving DecidableEq, Repr
 
 def Prim.ty : Prim → Ty
   | .lit d _ => .q d
   | .add d => .arr (.q d) (.arr (.q d) (.q d))
+  | .sub d => .arr (.q d) (.arr (.q d) (.q d))
   | .mul d₁ d₂ => .arr (.q d₁) (.arr (.q d₂) (.q (d₁.add d₂)))
   | .div d₁ d₂ => .arr (.q d₁) (.arr (.q d₂) (.q (d₁.sub d₂)))
+  | .lt d => .arr (.q d) (.arr (.q d) .bool)
+  | .eq d => .arr (.q d) (.arr (.q d) .bool)
+  | .not => .arr .bool .bool
+  | .and => .arr .bool (.arr .bool .bool)
+  | .or => .arr .bool (.arr .bool .bool)
+  | .ite τ => .arr .bool (.arr τ (.arr τ τ))
+  | .none τ => .opt τ
+  | .some τ => .arr τ (.opt τ)
+  | .isSome τ => .arr (.opt τ) .bool
+  | .getD τ => .arr (.opt τ) (.arr τ τ)
 
 /-- Stable identity of a design declaration — an ordinary declaration name,
     not a novel abstraction (Phase 1, REPORT §1.5).  A wrapper rather than a
@@ -98,6 +142,7 @@ inductive Expr where
   | rep (e : Expr)                -- Phase 3: observe a semantic value's representation
   | mk (s : SemanticId) (e : Expr) -- Phase 3: construct a semantic value (granted only)
   | prim (p : Prim)               -- Phase 3: registered operator
+  | delay (init e : Expr)         -- Phase 4: the value of `e` one tick ago; `init` at tick 0
   deriving DecidableEq, Repr
 
 /-- Typing context: the type of de Bruijn index `i` is `Γ[i]?`. -/
@@ -111,6 +156,47 @@ def Expr.refs : Expr → List DeclId
   | .declRef d => [d]
   | .rep e => e.refs
   | .mk _ e => e.refs
+  | .delay i e => i.refs ++ e.refs
+
+/-- The declarations a term refers to *instantaneously*: those not under a
+    `delay`.  (The initial value of a delay is read at tick 0, so it is
+    instantaneous; the delayed operand is read one tick late.) -/
+def Expr.instRefs : Expr → List DeclId
+  | .var _ | .boolLit _ | .natLit _ | .prim _ => []
+  | .lam _ b => b.instRefs
+  | .app f a => f.instRefs ++ a.instRefs
+  | .declRef d => [d]
+  | .rep e => e.instRefs
+  | .mk _ e => e.instRefs
+  | .delay i _ => i.instRefs
+
+/-- Does the term contain a `delay`?  The timeless fragment is delay-free. -/
+def Expr.DelayFree : Expr → Prop
+  | .lam _ b => b.DelayFree
+  | .app f a => f.DelayFree ∧ a.DelayFree
+  | .rep e => e.DelayFree
+  | .mk _ e => e.DelayFree
+  | .delay _ _ => False
+  | _ => True
+
+instance : ∀ e : Expr, Decidable e.DelayFree
+  | .var _ | .boolLit _ | .natLit _ | .prim _ | .declRef _ => inferInstanceAs (Decidable True)
+  | .lam _ b => instDecidableDelayFree b
+  | .app f a =>
+    have := instDecidableDelayFree f
+    have := instDecidableDelayFree a
+    inferInstanceAs (Decidable (f.DelayFree ∧ a.DelayFree))
+  | .rep e => instDecidableDelayFree e
+  | .mk _ e => instDecidableDelayFree e
+  | .delay _ _ => inferInstanceAs (Decidable False)
+
+theorem Expr.instRefs_of_delayFree : ∀ {e : Expr}, e.DelayFree → e.instRefs = e.refs
+  | .var _, _ | .boolLit _, _ | .natLit _, _ | .prim _, _ | .declRef _, _ => rfl
+  | .lam _ b, h => Expr.instRefs_of_delayFree (e := b) h
+  | .app f a, h => by simp [Expr.instRefs, Expr.refs, Expr.instRefs_of_delayFree h.1, Expr.instRefs_of_delayFree h.2]
+  | .rep e, h => Expr.instRefs_of_delayFree (e := e) h
+  | .mk _ e, h => Expr.instRefs_of_delayFree (e := e) h
+  | .delay _ _, h => h.elim
 
 /-- A term that refers to no declaration: an ordinary program whose typing is
     independent of any environment. -/

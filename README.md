@@ -13,8 +13,11 @@ lake build
 * `DESIGN_DECISIONS.md` — every model choice and rejected alternative
 * `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table
 
-Status: Phase 3 (representation binding, dimensions) complete. Phases 0–2
-complete; kernel ontology migrated from "holes" to declarations (REPORT §M).
+Status: Phases 0–4 complete (lifecycle/refinement; cross-declaration
+preservation; semantic identity; representation binding + dimensions;
+reactive core). Remaining: Phase 5 clock domains + synchronization; Phase 6
+actions / effects / arbitration; Phase 7 validation + invalidation; Phase 8
+surface elaboration + executable semantics; final minimality audit.
 
 Kernel in one line: `DeclEnv : DeclId → Option DesignDecl`, where a
 `DesignDecl` is a stable id, a `DeclInterface` (expected type + monotone
@@ -22,7 +25,10 @@ public commitments), and an optional realization. Types include nominal
 semantic concepts `Ty.sem SemanticId` (Phase 2) and quantities `Ty.q Dim`
 (Phase 3). A write-once `ConceptEnv` binds concepts to sem-free
 representations; `rep` observes freely, `mk s` constructs only inside a
-realization whose own signature announces `sem s` (Phase 3). Typing sees only the
+realization whose own signature announces `sem s` (Phase 3). One temporal
+primitive `delay init e` and a tick-indexed evaluation relation give the
+single-domain reactive semantics: deterministic, total on causal designs, and
+every designer-facing temporal operator derived (Phase 4). Typing sees only the
 expected type; validation may rely on commitments and evidence; monotone
 refinement preserves earlier commitments; anything else is an edit that
 requires rechecking dependents.

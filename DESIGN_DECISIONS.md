@@ -275,3 +275,65 @@ Reason: `same_dimension_does_not_imply_same_semantic_identity` — Tilt and
 MotorAngle share `q Angle` and stay distinct with the direct wire rejected;
 the association lives in `Θ` (D-29).  This is what Phase 2 + Phase 3 yield
 *instead of* the paper's `Sem[name, dimension]`.
+
+## Phase 4
+
+**D-34. One temporal primitive: `delay init e`.**
+Rejected as primitives: `previous`, `hold`, `count`, `since`, `once`,
+`every`, `rise`, `Event`, `Signal`.  Each was reduced to `delay` plus
+`Prim` and executed (`*_trace`).  Reason: no candidate adds observable
+behaviour, changes causality beyond one delayed self-edge, or needs its own
+storage.  Claim strength: expressibility by execution; there is no kernel
+definition for them to be equivalent to.
+
+**D-35. `delay` is data-typed and top-level (empty context).**
+Rejected: delay at function types; delay under lambdas.
+Reason: forced by the totality proof — closures cannot be transported across
+ticks (`Red_data` needs `τ.Data`), and a delay under a lambda would evaluate
+its operand at the previous tick under a current-tick environment.
+Consequence: temporal state belongs to declarations; mappings are pointwise;
+reusable stateful components need instantiation (Phase 8).  Also scopes
+`HasType.weaken_append` / `Unfolds.preserves_typing` to the delay-free
+fragment — the domain of validity of the Phase-1 inlining results.
+
+**D-36. `Signal` is not a type; `Event` is `opt`.**
+Rejected: `Ty.signal`, `Ty.event`.
+Reason: under the tick semantics every declaration is a stream, so a signal
+type distinguishes nothing; an event input is an `opt` stream by
+construction of `Input`, and `event_encoding_equivalent` /
+`event_encoding_loses_multiplicity` locate multiplicity in the cross-domain
+observation model (Phase 5).  Claim strength: engineering preference for
+`Signal`; equivalence by proof under the single-domain model for `Event`.
+
+**D-37. Causality replaces blanket acyclicity: `Causal` on `InstDependsOn`.**
+Rejected: deleting `Unfolds.not_of_cyclic`; keeping structural acyclicity
+as the execution criterion.
+Reason: `Unfolds` stays correct wherever it exists (`unfolds_preserves_eval`
+on wiring designs) and is the delay-free special case
+(`Causal_iff_acyclic_of_delayFree`); execution exists exactly on causal
+designs (`reactive_total`, `Ev.not_of_strictCyclic`).  Known gap:
+lambda-guarded cycles are rejected conservatively.
+
+**D-38. Explicit initial value on every delay.**
+Rejected: `previous : τ → opt τ` as the primitive (derivable); no init
+(undefined or nondeterministic first tick, `first_tick_*`); init as a
+validation obligation (nothing to validate without a unique first step).
+
+**D-39. State has no identity; state is structural.**
+Rejected: `StateId`, reuse of `DeclId`/`SemanticId` for cells.
+Reason: a delay node is referred to by nobody; consumers reference the
+declaration.  "Multiple writers" does not arise until actions (Phase 6).
+
+**D-40. Representation types are data (`ConceptEnv.WF` strengthened).**
+Reason: a semantic value may be delayed; a function-typed representation
+would carry a closure across ticks.
+
+**D-41. Temporal changes are realization edits.**
+Adding/removing a delay or changing an initial value is not `DeclLeq`
+(`temporal_change_is_edit`); D-16 applies unchanged.
+
+**D-42. The reactive semantics is a relation, not yet a machine.**
+Rejected for now: an explicit `MachineState`/`Step` with stored cells.
+Reason: the tick-indexed relation is the specification and suffices for
+determinism, totality, causality, provenance, and the Event comparison; the
+stored-state machine is an implementation to be proven equivalent in Phase 8.

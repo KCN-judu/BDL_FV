@@ -89,6 +89,90 @@ theorem Acyclic.not_cyclic {Δ : DeclEnv} (h : Acyclic Δ) : ¬ Cyclic Δ := by
     | step hxy _ ih => exact Nat.le_trans ih (Nat.le_of_lt (hr _ _ hxy))
   exact Nat.lt_irrefl _ (Nat.lt_of_lt_of_le (hr _ _ hac) (this hca))
 
+/-! ## Instantaneous dependency and causality (Phase 4)
+
+`DependsOn` counts every reference; `InstDependsOn` counts only references
+not under a `delay`.  Structural cycles that pass through a delay are not
+instantaneous cycles.  `Causal` is `Acyclic` for the instantaneous graph,
+with a bound on ranks (needed so that delayed operands can be evaluated at
+the previous tick under any rank). -/
+
+def instDependsOn (Δ : DeclEnv) (a b : DeclId) : Bool :=
+  match Δ.realizationOf a with
+  | some e => decide (b ∈ e.instRefs)
+  | none => false
+
+def InstDependsOn (Δ : DeclEnv) (a b : DeclId) : Prop := instDependsOn Δ a b = true
+
+instance (Δ : DeclEnv) (a b : DeclId) : Decidable (InstDependsOn Δ a b) :=
+  inferInstanceAs (Decidable (instDependsOn Δ a b = true))
+
+theorem InstDependsOn.iff {Δ : DeclEnv} {a b : DeclId} :
+    InstDependsOn Δ a b ↔ ∃ e, Δ.realizationOf a = some e ∧ b ∈ e.instRefs := by
+  unfold InstDependsOn instDependsOn
+  cases h : Δ.realizationOf a with
+  | none => simp
+  | some e => simp
+
+/-- Instantaneous dependency is a sub-relation of structural dependency. -/
+theorem InstDependsOn.toDependsOn {Δ : DeclEnv} {a b : DeclId} (h : InstDependsOn Δ a b) : DependsOn Δ a b := by
+  obtain ⟨e, he, hb⟩ := InstDependsOn.iff.mp h
+  exact DependsOn.iff.mpr ⟨e, he, instRefs_sub hb⟩
+where
+  instRefs_sub {e : Expr} {b : DeclId} : b ∈ e.instRefs → b ∈ e.refs := by
+    induction e with
+    | var _ | boolLit _ | natLit _ | prim _ | declRef _ => intro h; simp_all [Expr.instRefs, Expr.refs]
+    | lam _ b ih => exact ih
+    | app f a ihf iha =>
+      intro h
+      simp only [Expr.instRefs, Expr.refs, List.mem_append] at h ⊢
+      exact h.elim (fun h => .inl (ihf h)) (fun h => .inr (iha h))
+    | rep e ih => exact ih
+    | mk _ e ih => exact ih
+    | delay i e ihi _ =>
+      intro h
+      simp only [Expr.instRefs, Expr.refs, List.mem_append] at h ⊢
+      exact .inl (ihi h)
+
+/-- Every realization is delay-free: the Phase-1 timeless fragment. -/
+def DeclEnv.DelayFree (Δ : DeclEnv) : Prop :=
+  ∀ d e, Δ.realizationOf d = some e → e.DelayFree
+
+theorem DeclEnv.DelayFree.ofList {l : List DesignDecl}
+    (h : ∀ dh ∈ l, ∀ e, dh.realization = some e → e.DelayFree) : DeclEnv.DelayFree (.ofList l) := by
+  intro d e he
+  simp only [DeclEnv.realizationOf, Option.bind_eq_some_iff] at he
+  obtain ⟨dh, hdh, hre⟩ := he
+  exact h dh (DeclEnv.ofList_some hdh).1 e hre
+
+/-- In the timeless fragment the two graphs coincide. -/
+theorem InstDependsOn_iff_DependsOn_of_delayFree {Δ : DeclEnv} (h : Δ.DelayFree) (a b : DeclId) :
+    InstDependsOn Δ a b ↔ DependsOn Δ a b := by
+  rw [InstDependsOn.iff, DependsOn.iff]
+  constructor
+  · rintro ⟨e, he, hb⟩; exact ⟨e, he, by rw [← Expr.instRefs_of_delayFree (h a e he)]; exact hb⟩
+  · rintro ⟨e, he, hb⟩; exact ⟨e, he, by rw [Expr.instRefs_of_delayFree (h a e he)]; exact hb⟩
+
+/-- **Causality**: the instantaneous graph is acyclic, witnessed by a bounded
+    rank. -/
+def Causal (Δ : DeclEnv) : Prop :=
+  ∃ (rank : DeclId → Nat) (R : Nat), (∀ d, rank d < R) ∧ ∀ a b, InstDependsOn Δ a b → rank b < rank a
+
+/-- Structural acyclicity (with a bounded rank) implies causality: every
+    Phase-1-acceptable design is causal. -/
+theorem Causal.of_acyclic_bounded {Δ : DeclEnv} (rank : DeclId → Nat) (R : Nat) (hR : ∀ d, rank d < R)
+    (h : ∀ a b, DependsOn Δ a b → rank b < rank a) : Causal Δ :=
+  ⟨rank, R, hR, fun a b hab => h a b hab.toDependsOn⟩
+
+/-- In the timeless fragment causality is exactly (bounded) acyclicity. -/
+theorem Causal_iff_acyclic_of_delayFree {Δ : DeclEnv} (h : Δ.DelayFree) :
+    Causal Δ ↔ ∃ (rank : DeclId → Nat) (R : Nat), (∀ d, rank d < R) ∧ ∀ a b, DependsOn Δ a b → rank b < rank a := by
+  constructor
+  · rintro ⟨rank, R, hR, hr⟩
+    exact ⟨rank, R, hR, fun a b hab => hr a b ((InstDependsOn_iff_DependsOn_of_delayFree h a b).mpr hab)⟩
+  · rintro ⟨rank, R, hR, hr⟩
+    exact ⟨rank, R, hR, fun a b hab => hr a b ((InstDependsOn_iff_DependsOn_of_delayFree h a b).mp hab)⟩
+
 /-! ## Unfolding semantics -/
 
 /-- Replace references to realized declarations by their bodies, recursively;
@@ -105,6 +189,7 @@ inductive Unfolds (Δ : DeclEnv) : Expr → Expr → Prop where
   | rep {e e' : Expr} : Unfolds Δ e e' → Unfolds Δ (.rep e) (.rep e')
   | mk {s : SemanticId} {e e' : Expr} : Unfolds Δ e e' → Unfolds Δ (.mk s e) (.mk s e')
   | prim (p : Prim) : Unfolds Δ (.prim p) (.prim p)
+  | delay {i i' e e' : Expr} : Unfolds Δ i i' → Unfolds Δ e e' → Unfolds Δ (.delay i e) (.delay i' e')
 
 /-- Unfolding is deterministic. -/
 theorem Unfolds.det {Δ : DeclEnv} {e e₁ e₂ : Expr}
@@ -115,6 +200,7 @@ theorem Unfolds.det {Δ : DeclEnv} {e e₁ e₂ : Expr}
   | app _ _ ihf iha => cases h₂ with | app hf ha => rw [ihf hf, iha ha]
   | rep _ ih => cases h₂ with | rep he => rw [ih he]
   | mk _ ih => cases h₂ with | mk he => rw [ih he]
+  | delay _ _ ihi ihe => cases h₂ with | delay hi he => rw [ihi hi, ihe he]
   | refStuck hn =>
     cases h₂ with
     | refStuck _ => rfl
@@ -136,6 +222,10 @@ theorem Unfolds.refs_stuck {Δ : DeclEnv} {e e' : Expr} (h : Unfolds Δ e e') :
     intro x hx
     simp only [Expr.refs, List.mem_append] at hx
     exact hx.elim (ihf x) (iha x)
+  | delay _ _ ihi ihe =>
+    intro x hx
+    simp only [Expr.refs, List.mem_append] at hx
+    exact hx.elim (ihi x) (ihe x)
   | refStuck hn => intro x hx; simp [Expr.refs] at hx; subst hx; exact hn
   | refRealized _ _ ih => exact ih
 
@@ -147,7 +237,7 @@ theorem Unfolds.refs_stuck {Δ : DeclEnv} {e e' : Expr} (h : Unfolds Δ e e') :
     design-time isolation has been discharged, not violated
     (`HasType.constructs_granted` holds for every inlined body separately). -/
 theorem Unfolds.preserves_typing {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv} (g : GlobalWF ev Θ Δ)
-    {e e' : Expr} (hu : Unfolds Δ e e') :
+    (hd : Δ.DelayFree) {e e' : Expr} (hu : Unfolds Δ e e') :
     ∀ {G : Grant} {Γ : Ctx} {τ : Ty}, HasType Θ Δ G Γ e τ → HasType Θ Δ Grant.all Γ e' τ := by
   induction hu with
   | var _ | boolLit _ | natLit _ | prim _ => intro _ _ _ ht; exact ht.to_all
@@ -163,18 +253,22 @@ theorem Unfolds.preserves_typing {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv
   | mk _ ih =>
     intro G Γ τ ht
     cases ht with | mk _ hΘ he => exact .mk trivial hΘ (ih he)
+  | delay _ _ ihi ihe =>
+    intro G Γ τ ht
+    cases ht with | delay hd hi he => exact .delay hd (ihi hi) (ihe he)
   | refStuck _ => intro _ _ _ ht; exact ht.to_all
-  | refRealized hs _ ih =>
+  | @refRealized d b _ hs _ ih =>
     intro G Γ τ ht
     cases ht with
     | declRef htv =>
+      have hdf := hd d b hs
       simp only [DeclEnv.realizationOf, DeclEnv.tyView, Option.bind_eq_some_iff,
         Option.map_eq_some_iff] at hs htv
       obtain ⟨dh, hh, hre⟩ := hs
       obtain ⟨dh', hh', hty⟩ := htv
       rw [hh] at hh'; cases hh'
       subst hty
-      exact ih (((g.wellFormed hh) _ hre).1.of_closed Γ)
+      exact ih (((g.wellFormed hh) _ hre).1.of_closed hdf Γ)
 
 /-- Every declaration is realized. -/
 def DeclEnv.FullyRealized (Δ : DeclEnv) : Prop :=
@@ -184,9 +278,9 @@ def DeclEnv.FullyRealized (Δ : DeclEnv) : Prop :=
     environment unfolds (if it unfolds at all — see cycles) to a
     reference-free term. -/
 theorem Unfolds.refFree_of_fullyRealized {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv} (g : GlobalWF ev Θ Δ)
-    (fr : Δ.FullyRealized) {G : Grant} {Γ : Ctx} {e e' : Expr} {τ : Ty}
+    (hd : Δ.DelayFree) (fr : Δ.FullyRealized) {G : Grant} {Γ : Ctx} {e e' : Expr} {τ : Ty}
     (ht : HasType Θ Δ G Γ e τ) (hu : Unfolds Δ e e') : e'.RefFree := by
-  have ht' := hu.preserves_typing g ht
+  have ht' := hu.preserves_typing g hd ht
   unfold Expr.RefFree
   cases hr : e'.refs with
   | nil => rfl
@@ -217,6 +311,10 @@ theorem Unfolds.refs_not_cyclic {Δ : DeclEnv} {e e' : Expr} (hu : Unfolds Δ e 
     intro x hx
     simp only [Expr.refs, List.mem_append] at hx
     exact hx.elim (ihf x) (iha x)
+  | delay _ _ ihi ihe =>
+    intro x hx
+    simp only [Expr.refs, List.mem_append] at hx
+    exact hx.elim (ihi x) (ihe x)
   | refStuck hn =>
     intro x hx hr
     simp [Expr.refs] at hx; subst hx
@@ -273,6 +371,10 @@ theorem Unfolds.exists_of_acyclic {Δ : DeclEnv} (ha : Acyclic Δ) (e : Expr) :
     | rep e ih => obtain ⟨e', he'⟩ := ih hb; exact ⟨_, .rep he'⟩
     | mk s e ih => obtain ⟨e', he'⟩ := ih hb; exact ⟨_, .mk he'⟩
     | prim p => exact ⟨_, .prim p⟩
+    | delay i e ihi ihe =>
+      obtain ⟨i', hi'⟩ := ihi fun x hx => hb x (by simp [Expr.refs, hx])
+      obtain ⟨e', he'⟩ := ihe fun x hx => hb x (by simp [Expr.refs, hx])
+      exact ⟨_, .delay hi' he'⟩
     | declRef h =>
       cases hs : Δ.realizationOf h with
       | none => exact ⟨_, .refStuck hs⟩

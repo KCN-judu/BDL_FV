@@ -83,13 +83,28 @@ def _root_.BDL.Dim.erase : Dim → Dim := fun _ => Dim.zero
 def _root_.BDL.Ty.eraseDim : Ty → Ty
   | .q _ => .q Dim.zero
   | .arr a b => .arr a.eraseDim b.eraseDim
+  | .opt τ => .opt τ.eraseDim
   | τ => τ
+
+theorem _root_.BDL.Ty.eraseDim_data : ∀ {τ : Ty}, τ.Data → τ.eraseDim.Data
+  | .bool, _ | .nat, _ | .q _, _ | .sem _, _ => trivial
+  | .opt τ, h => Ty.eraseDim_data (τ := τ) h
+  | .arr _ _, h => h.elim
 
 def _root_.BDL.Prim.eraseDim : Prim → Prim
   | .lit _ n => .lit Dim.zero n
   | .add _ => .add Dim.zero
+  | .sub _ => .sub Dim.zero
   | .mul _ _ => .mul Dim.zero Dim.zero
   | .div _ _ => .div Dim.zero Dim.zero
+  | .lt _ => .lt Dim.zero
+  | .eq _ => .eq Dim.zero
+  | .ite τ => .ite τ.eraseDim
+  | .none τ => .none τ.eraseDim
+  | .some τ => .some τ.eraseDim
+  | .isSome τ => .isSome τ.eraseDim
+  | .getD τ => .getD τ.eraseDim
+  | p => p
 
 theorem _root_.BDL.Prim.ty_eraseDim (p : Prim) : p.eraseDim.ty = p.ty.eraseDim := by
   cases p <;> simp [Prim.eraseDim, Prim.ty, Ty.eraseDim, Dim.add, Dim.sub, Dim.zero]
@@ -100,6 +115,7 @@ def _root_.BDL.Expr.eraseDim : Expr → Expr
   | .rep e => .rep e.eraseDim
   | .mk s e => .mk s e.eraseDim
   | .prim p => .prim p.eraseDim
+  | .delay i e => .delay i.eraseDim e.eraseDim
   | e => e
 
 def _root_.BDL.DesignDecl.eraseDim (d : DesignDecl) : DesignDecl :=
@@ -128,6 +144,7 @@ theorem _root_.BDL.HasType.eraseDim {Θ : ConceptEnv} {Δ : DeclEnv} {G : Grant}
   | rep hb _ ih => exact .rep (by simp [ConceptEnv.eraseDim, hb]) ih
   | mk hg hb _ ih => exact .mk hg (by simp [ConceptEnv.eraseDim, hb]) ih
   | prim => exact (Prim.ty_eraseDim _) ▸ HasType.prim
+  | delay hd _ _ ihi ihe => exact .delay (Ty.eraseDim_data hd) ihi ihe
 
 /-- **Counterexample B.**  After erasure `length + time` is accepted, and the
     erased environment cannot tell the sensors apart. -/
@@ -185,11 +202,11 @@ theorem Θdim_wf : Θdim.WF := by
   intro s R h
   unfold Θdim at h
   split at h
-  · cases h; trivial
+  · cases h; exact ⟨trivial, trivial⟩
   · split at h
-    · cases h; trivial
+    · cases h; exact ⟨trivial, trivial⟩
     · split at h
-      · cases h; trivial
+      · cases h; exact ⟨trivial, trivial⟩
       · exact nomatch h
 
 /-- **`same_dimension_does_not_imply_same_semantic_identity`.**  Same

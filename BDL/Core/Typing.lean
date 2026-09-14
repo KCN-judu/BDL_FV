@@ -47,6 +47,12 @@ inductive HasType (Θ : ConceptEnv) (Δ : DeclEnv) (G : Grant) : Ctx → Expr �
   | rep     {Γ e s R} : Θ s = some R → HasType Θ Δ G Γ e (.sem s) → HasType Θ Δ G Γ (.rep e) R
   | mk      {Γ e s R} : G s → Θ s = some R → HasType Θ Δ G Γ e R → HasType Θ Δ G Γ (.mk s e) (.sem s)
   | prim    {Γ p} : HasType Θ Δ G Γ (.prim p) p.ty
+  /-- Phase 4.  Only *data* may be delayed, and only outside binders
+      (empty context): temporal state belongs to a declaration, not to a
+      function.  A delay under a lambda would require closures to persist
+      across ticks. -/
+  | delay   {i e τ} : τ.Data → HasType Θ Δ G [] i τ → HasType Θ Δ G [] e τ →
+      HasType Θ Δ G [] (.delay i e) τ
 
 /-- Syntax-directed type inference. -/
 def infer (Θ : ConceptEnv) (Δ : DeclEnv) (G : Grant) [DecidablePred G] : Ctx → Expr → Option Ty
@@ -70,6 +76,12 @@ def infer (Θ : ConceptEnv) (Δ : DeclEnv) (G : Grant) [DecidablePred G] : Ctx �
       | _, _ => none
     else none
   | _, .prim p       => some p.ty
+  | Γ, .delay i e    =>
+    if Γ = [] then
+      match infer Θ Δ G [] i, infer Θ Δ G [] e with
+      | some τ, some τ' => if τ = τ' ∧ τ.Data then some τ else none
+      | _, _ => none
+    else none
 
 section Inference
 variable {Θ : ConceptEnv} {Δ : DeclEnv} {G : Grant} [DecidablePred G]
@@ -100,6 +112,7 @@ theorem infer_sound :
         | nat => simp [infer, hf, ha] at h
         | sem _ => simp [infer, hf, ha] at h
         | q _ => simp [infer, hf, ha] at h
+        | opt _ => simp [infer, hf, ha] at h
         | arr dom cod =>
           simp [infer, hf, ha] at h
           obtain ⟨rfl, rfl⟩ := h
@@ -113,7 +126,21 @@ theorem infer_sound :
       | bool => simp [infer, he] at h
       | nat => simp [infer, he] at h
       | q _ => simp [infer, he] at h
+      | opt _ => simp [infer, he] at h
       | arr _ _ => simp [infer, he] at h
+  | Γ, .delay i e, τ, h => by
+    by_cases hΓ : Γ = []
+    · subst hΓ
+      cases hi : infer Θ Δ G [] i with
+      | none => simp [infer, hi] at h
+      | some τi =>
+        cases he : infer Θ Δ G [] e with
+        | none => simp [infer, hi, he] at h
+        | some τe =>
+          simp [infer, hi, he] at h
+          obtain ⟨⟨rfl, hd⟩, rfl⟩ := h
+          exact .delay hd (infer_sound hi) (infer_sound he)
+    · simp [infer, hΓ] at h
   | Γ, .mk s e, τ, h => by
     by_cases hg : G s
     · cases hΘ : Θ s with
@@ -139,6 +166,7 @@ theorem infer_complete {Γ : Ctx} {e : Expr} {τ : Ty}
   | rep hΘ _ ih => simp [infer, ih, hΘ]
   | mk hg hΘ _ ih => simp [infer, hg, hΘ, ih]
   | prim => rfl
+  | delay hd _ _ ihi ihe => simp [infer, ihi, ihe, hd]
 
 theorem HasType.unique {Γ : Ctx} {e : Expr} {τ₁ τ₂ : Ty}
     (h₁ : HasType Θ Δ G Γ e τ₁) (h₂ : HasType Θ Δ G Γ e τ₂) : τ₁ = τ₂ :=
@@ -154,8 +182,11 @@ end Inference
 section Structural
 variable {Θ : ConceptEnv} {Δ : DeclEnv} {G : Grant}
 
-/-- Weakening by extending the context at the tail (no index shifting needed). -/
-theorem HasType.weaken_append {Γ : Ctx} {e : Expr} {τ : Ty}
+/-- Weakening by extending the context at the tail (no index shifting
+    needed) — for the **delay-free** fragment.  A `delay` is typed only in the
+    empty context, so a stateful term cannot be moved under binders; this is
+    the domain of validity of the Phase-1 inlining results. -/
+theorem HasType.weaken_append {Γ : Ctx} {e : Expr} {τ : Ty} (hd : e.DelayFree)
     (h : HasType Θ Δ G Γ e τ) (Γ' : Ctx) : HasType Θ Δ G (Γ ++ Γ') e τ := by
   induction h with
   | var h =>
@@ -165,17 +196,18 @@ theorem HasType.weaken_append {Γ : Ctx} {e : Expr} {τ : Ty}
     exact h
   | boolLit => exact .boolLit
   | natLit => exact .natLit
-  | lam _ ih => exact .lam ih
-  | app _ _ ihf iha => exact .app ihf iha
+  | lam _ ih => exact .lam (ih hd)
+  | app _ _ ihf iha => exact .app (ihf hd.1) (iha hd.2)
   | declRef h => exact .declRef h
-  | rep hΘ _ ih => exact .rep hΘ ih
-  | mk hg hΘ _ ih => exact .mk hg hΘ ih
+  | rep hΘ _ ih => exact .rep hΘ (ih hd)
+  | mk hg hΘ _ ih => exact .mk hg hΘ (ih hd)
   | prim => exact .prim
+  | delay _ _ _ _ _ => exact hd.elim
 
-/-- A term well typed at top level is well typed in every context. -/
-theorem HasType.of_closed {e : Expr} {τ : Ty}
+/-- A delay-free term well typed at top level is well typed in every context. -/
+theorem HasType.of_closed {e : Expr} {τ : Ty} (hd : e.DelayFree)
     (h : HasType Θ Δ G [] e τ) (Γ : Ctx) : HasType Θ Δ G Γ e τ :=
-  h.weaken_append Γ
+  h.weaken_append hd Γ
 
 /-- Every type is inhabited in some environment — by an *unresolved
     declaration* of that type.  Signature-first typing never needs closed
@@ -204,6 +236,7 @@ theorem HasType.mono_env {Δ₁ Δ₂ : DeclEnv}
   | rep hΘ _ ih => exact .rep hΘ ih
   | mk hg hΘ _ ih => exact .mk hg hΘ ih
   | prim => exact .prim
+  | delay hd _ _ ihi ihe => exact .delay hd ihi ihe
 
 theorem HasType.of_envRefines {Δ₁ Δ₂ : DeclEnv} (er : EnvRefines Δ₁ Δ₂)
     {Γ : Ctx} {e : Expr} {τ : Ty} (h : HasType Θ Δ₁ G Γ e τ) : HasType Θ Δ₂ G Γ e τ :=
@@ -223,6 +256,7 @@ theorem HasType.mono_concept {Θ₁ Θ₂ : ConceptEnv} (hc : ConceptRefines Θ�
   | rep hΘ _ ih => exact .rep (hc _ _ hΘ) ih
   | mk hg hΘ _ ih => exact .mk hg (hc _ _ hΘ) ih
   | prim => exact .prim
+  | delay hd _ _ ihi ihe => exact .delay hd ihi ihe
 
 /-- Granting more construction rights never breaks a derivation. -/
 theorem HasType.mono_grant {G₁ G₂ : Grant} (hg : ∀ s, G₁ s → G₂ s)
@@ -237,6 +271,7 @@ theorem HasType.mono_grant {G₁ G₂ : Grant} (hg : ∀ s, G₁ s → G₂ s)
   | rep hΘ _ ih => exact .rep hΘ ih
   | mk hg' hΘ _ ih => exact .mk (hg _ hg') hΘ ih
   | prim => exact .prim
+  | delay hd _ _ ihi ihe => exact .delay hd ihi ihe
 
 theorem HasType.to_all {Γ : Ctx} {e : Expr} {τ : Ty} (h : HasType Θ Δ G Γ e τ) :
     HasType Θ Δ Grant.all Γ e τ :=
@@ -248,6 +283,7 @@ def Expr.constructs (s : SemanticId) : Expr → Prop
   | .app f a => f.constructs s ∨ a.constructs s
   | .rep e => e.constructs s
   | .mk s' e => s' = s ∨ e.constructs s
+  | .delay i e => i.constructs s ∨ e.constructs s
   | _ => False
 
 /-- **Construction requires a grant** (syntactic form of the isolation
@@ -266,6 +302,7 @@ theorem HasType.constructs_granted {Γ : Ctx} {e : Expr} {τ : Ty}
     rcases hs with rfl | hs
     · exact hg
     · exact ih s hs
+  | delay _ _ _ ihi ihe => intro s hs; exact hs.elim (ihi s) (ihe s)
 
 /-- Every declaration a well-typed term refers to exists in the environment. -/
 theorem HasType.refs_declared {Γ : Ctx} {e : Expr} {τ : Ty}
@@ -284,6 +321,10 @@ theorem HasType.refs_declared {Γ : Ctx} {e : Expr} {τ : Ty}
     exact ⟨_, h⟩
   | rep _ _ ih => exact ih
   | mk _ _ _ ih => exact ih
+  | delay _ _ _ ihi ihe =>
+    intro x hx
+    simp only [Expr.refs, List.mem_append] at hx
+    exact hx.elim (ihi x) (ihe x)
 
 /-- A reference-free term's typing is independent of the declaration environment. -/
 theorem HasType.refFree_env_irrelevant {Δ₁ Δ₂ : DeclEnv} {Γ : Ctx} {e : Expr} {τ : Ty}
@@ -298,6 +339,8 @@ theorem HasType.refFree_env_irrelevant {Δ₁ Δ₂ : DeclEnv} {Γ : Ctx} {e : E
   | rep hΘ _ ih => exact .rep hΘ (ih hf)
   | mk hg hΘ _ ih => exact .mk hg hΘ (ih hf)
   | prim => exact .prim
+  | delay hd _ _ ihi ihe =>
+    exact .delay hd (ihi (List.append_eq_nil_iff.mp hf).1) (ihe (List.append_eq_nil_iff.mp hf).2)
 
 end Structural
 

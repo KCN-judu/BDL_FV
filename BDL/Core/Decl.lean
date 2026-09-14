@@ -87,11 +87,13 @@ abbrev ConceptEnv := SemanticId → Option Ty
 
 def ConceptEnv.empty : ConceptEnv := fun _ => none
 
-/-- Representation types must not be semantic: binding `Tilt ↦ MotorAngle`
+/-- Representation types must not be semantic — binding `Tilt ↦ MotorAngle`
     would make `rep` a hidden mapping
-    (`Experiments.RepBinding.binding_to_semantic_type_is_hidden_mapping`). -/
+    (`Experiments.RepBinding.binding_to_semantic_type_is_hidden_mapping`) —
+    and must be *data* (Phase 4): a semantic value may be delayed, and a
+    function-typed representation would carry a closure across ticks. -/
 def ConceptEnv.WF (Θ : ConceptEnv) : Prop :=
-  ∀ s R, Θ s = some R → R.SemFree
+  ∀ s R, Θ s = some R → R.SemFree ∧ R.Data
 
 /-- Binding more concepts (never rebinding) is a refinement. -/
 def ConceptRefines (Θ₁ Θ₂ : ConceptEnv) : Prop :=

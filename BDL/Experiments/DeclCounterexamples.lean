@@ -173,8 +173,19 @@ example : eA_flat.RefFree := by decide
 /-- … of the same type, now independent of any environment. -/
 example : HasType ConceptEnv.empty .empty Grant.all [] eA_flat (.arr .nat .bool) :=
   (probe2_unfolds.preserves_typing probe2_wf
+    (DeclEnv.DelayFree.ofList_update (by decide))
     (local_refinement_preserves_global_typing (G := Grant.none) Δ₀_B probe2_lifecycle.toLeq (by decide)))
     |>.refFree_env_irrelevant (by decide)
+where
+  DeclEnv.DelayFree.ofList_update {l : List DesignDecl} {h : DesignDecl}
+      (hall : ∀ dh ∈ h :: l, ∀ e, dh.realization = some e → e.DelayFree) :
+      DeclEnv.DelayFree ((DeclEnv.ofList l).update h) := by
+    intro d e he
+    simp only [DeclEnv.realizationOf, DeclEnv.update, Option.bind_eq_some_iff] at he
+    obtain ⟨dh, hdh, hre⟩ := he
+    split at hdh
+    · cases hdh; exact hall _ (List.mem_cons_self) e hre
+    · exact hall _ (List.mem_cons_of_mem _ (DeclEnv.ofList_some hdh).1) e hre
 
 /-- Before realization, unfolding is stuck at `B`: the design is well typed
     but not executable.  ("Well-typed partial" vs "executable".) -/

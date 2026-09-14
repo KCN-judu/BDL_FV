@@ -133,6 +133,7 @@ theorem rinfer_sound {Θ : ConceptEnv} {Δ : DeclEnv} {P : Policy} :
         | bool => simp [rinfer, hf, ha] at h
         | nat => simp [rinfer, hf, ha] at h
         | q _ => simp [rinfer, hf, ha] at h
+        | opt _ => simp [rinfer, hf, ha] at h
         | sem _ => simp [rinfer, hf, ha] at h
         | arr dom cod =>
           simp [rinfer, hf, ha] at h
@@ -147,6 +148,7 @@ theorem rinfer_sound {Θ : ConceptEnv} {Δ : DeclEnv} {P : Policy} :
       | bool => simp [rinfer, he] at h
       | nat => simp [rinfer, he] at h
       | q _ => simp [rinfer, he] at h
+      | opt _ => simp [rinfer, he] at h
       | arr _ _ => simp [rinfer, he] at h
   | Γ, .mk s e, τ, h => by
     by_cases hp : P.allows s
@@ -257,6 +259,7 @@ def _root_.BDL.Ty.isSourceB (t : SemanticId) : Ty → Bool
   | .bool => false
   | .nat => false
   | .q _ => false
+  | .opt _ => false   -- `none` inhabits every option type: an absent event is no source
   | .sem s => decide (s = t)
   | .arr a b => !a.isSourceB t && b.isSourceB t
 
@@ -273,6 +276,7 @@ def _root_.BDL.Ty.tdenote (t : SemanticId) : Ty → Type
   | .bool => Bool
   | .nat => Nat
   | .q _ => Nat
+  | .opt τ => Option (τ.tdenote t)
   | .arr a b => a.tdenote t → b.tdenote t
   | .sem s => PLift (s ≠ t)
 
@@ -285,6 +289,7 @@ def _root_.BDL.Ty.tinfo (t : SemanticId) : ∀ τ : Ty, TInfo t τ
   | .bool => ⟨fun _ => (show Bool from true), fun h => by simp [Ty.IsSource, Ty.isSourceB] at h⟩
   | .nat => ⟨fun _ => (show Nat from 0), fun h => by simp [Ty.IsSource, Ty.isSourceB] at h⟩
   | .q _ => ⟨fun _ => (show Nat from 0), fun h => by simp [Ty.IsSource, Ty.isSourceB] at h⟩
+  | .opt _ => ⟨fun _ => (show Option _ from Option.none), fun h => by simp [Ty.IsSource, Ty.isSourceB] at h⟩
   | .sem s =>
     ⟨fun h => ⟨by simpa [Ty.IsSource, Ty.isSourceB] using h⟩,
      fun h x => PLift.down x (by simpa [Ty.IsSource, Ty.isSourceB] using h)⟩
@@ -303,6 +308,7 @@ theorem _root_.BDL.Ty.SemFree.not_source {t : SemanticId} : ∀ {τ : Ty}, τ.Se
   | .bool, _ => by simp [Ty.IsSource, Ty.isSourceB]
   | .nat, _ => by simp [Ty.IsSource, Ty.isSourceB]
   | .q _, _ => by simp [Ty.IsSource, Ty.isSourceB]
+  | .opt _, _ => by simp [Ty.IsSource, Ty.isSourceB]
   | .sem _, h => h.elim
   | .arr a b, h => by
     have := Ty.SemFree.not_source (t := t) (τ := b) h.2
@@ -348,6 +354,7 @@ def REval {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {P : Policy} {t : Seman
         | bool => simp [rinfer, hf, ha] at h
         | nat => simp [rinfer, hf, ha] at h
         | q _ => simp [rinfer, hf, ha] at h
+        | opt _ => simp [rinfer, hf, ha] at h
         | sem _ => simp [rinfer, hf, ha] at h
         | arr dom cod =>
           simp [rinfer, hf, ha] at h
@@ -360,10 +367,11 @@ def REval {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {P : Policy} {t : Seman
       cases τe with
       | sem s =>
         simp [rinfer, he] at h
-        exact (Ty.tinfo t τ).inh ((hΘ s τ h).not_source)
+        exact (Ty.tinfo t τ).inh ((hΘ s τ h).1.not_source)
       | bool => simp [rinfer, he] at h
       | nat => simp [rinfer, he] at h
       | q _ => simp [rinfer, he] at h
+      | opt _ => simp [rinfer, he] at h
       | arr _ _ => simp [rinfer, he] at h
   | .mk s e, Γ, _, τ, h => by
     by_cases hp : P.allows s
@@ -398,7 +406,7 @@ def motorConsumer  : DeclId := ⟨51⟩
 
 /-- Everything is represented by `nat`. -/
 def Θnat : ConceptEnv := fun _ => some .nat
-theorem Θnat_wf : Θnat.WF := fun _ _ h => by cases h; trivial
+theorem Θnat_wf : Θnat.WF := fun _ _ h => by cases h; exact ⟨trivial, trivial⟩
 
 def dTilt : DesignDecl := ⟨tiltSensor, ⟨Tilt, []⟩, none⟩
 def dMotorConsumer : DesignDecl := ⟨motorConsumer, ⟨.arr MotorAngle Brightness, []⟩, none⟩
@@ -441,7 +449,7 @@ theorem binding_to_semantic_type_is_hidden_mapping :
     RHasType Θbad .empty .none [] (.lam Tilt (.rep (.var 0))) (.arr Tilt MotorAngle) := by
   decide
 
-example : ¬ Θbad.WF := fun h => (h cTilt MotorAngle (by decide)).elim
+example : ¬ Θbad.WF := fun h => (h cTilt MotorAngle (by decide)).1.elim
 
 /-! ### Model B — observation only -/
 
