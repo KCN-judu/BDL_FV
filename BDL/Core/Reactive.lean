@@ -106,6 +106,10 @@ inductive Ev (Δ : DeclEnv) (I : Input) : Nat → List Value → Expr → Value 
   | prim {t ρ p} : Ev Δ I t ρ (.prim p) (applyPrim p [])
   | delayZero {ρ i e v} : Ev Δ I 0 ρ i v → Ev Δ I 0 ρ (.delay i e) v
   | delaySucc {t ρ i e v} : Ev Δ I t ρ e v → Ev Δ I (t + 1) ρ (.delay i e) v
+  /-- In a single domain every clock is *the* clock, so a transport is a delay
+      (this is what the Phase-5 embedding theorem makes precise). -/
+  | syncZero {ρ c i e v} : Ev Δ I 0 ρ i v → Ev Δ I 0 ρ (.sync c i e) v
+  | syncSucc {t ρ c i e v} : Ev Δ I t ρ e v → Ev Δ I (t + 1) ρ (.sync c i e) v
 
 /-- **`reactive_step_deterministic`.**  Evaluation is a partial function:
     one tick, one environment, one term — at most one value.  No evaluation
@@ -139,6 +143,8 @@ theorem Ev.det {Δ : DeclEnv} {I : Input} {t : Nat} {ρ : List Value} {e : Expr}
   | prim => cases h₂; rfl
   | delayZero _ ih => cases h₂ with | delayZero h' => exact ih h'
   | delaySucc _ ih => cases h₂ with | delaySucc h' => exact ih h'
+  | syncZero _ ih => cases h₂ with | syncZero h' => exact ih h'
+  | syncSucc _ ih => cases h₂ with | syncSucc h' => exact ih h'
 
 /-! ### An executable interpreter, sound for `Ev`
 
@@ -172,6 +178,10 @@ def evalF (Δ : DeclEnv) (I : Input) : Nat → Nat → List Value → Expr → O
     | .mk s e => (evalF Δ I fuel t ρ e).map (.sem s)
     | .prim p => Option.some (applyPrim p [])
     | .delay i e =>
+      match t with
+      | 0 => evalF Δ I fuel 0 ρ i
+      | t' + 1 => evalF Δ I fuel t' ρ e
+    | .sync _ i e =>
       match t with
       | 0 => evalF Δ I fuel 0 ρ i
       | t' + 1 => evalF Δ I fuel t' ρ e
@@ -216,6 +226,10 @@ theorem evalF_sound {Δ : DeclEnv} {I : Input} :
       cases t with
       | zero => exact .delayZero (evalF_sound h)
       | succ t' => exact .delaySucc (evalF_sound h)
+    | sync c i e =>
+      cases t with
+      | zero => exact .syncZero (evalF_sound h)
+      | succ t' => exact .syncSucc (evalF_sound h)
 
 /-- Decidable evaluation for concrete examples: `evalF … = some v` gives `Ev`. -/
 theorem Ev.of_evalF {Δ : DeclEnv} {I : Input} {fuel t : Nat} {ρ : List Value} {e : Expr} {v : Value}
@@ -302,6 +316,8 @@ theorem Ev.strictRefs_not_cyclic {Δ : DeclEnv} {I : Input} {t : Nat} {ρ : List
   | mk _ ih => exact ih
   | delayZero _ _ => intro x hx; simp [Expr.strictRefs] at hx
   | delaySucc _ _ => intro x hx; simp [Expr.strictRefs] at hx
+  | syncZero _ _ => intro x hx; simp [Expr.strictRefs] at hx
+  | syncSucc _ _ => intro x hx; simp [Expr.strictRefs] at hx
 
 /-- **`instantaneous_cycle_rejected`.**  A declaration on an instantaneous
     cycle has no value at any tick — not "some default", not "one of several":
@@ -318,7 +334,7 @@ theorem StrictDependsOn.toInst {Δ : DeclEnv} {a b : DeclId} (h : StrictDependsO
 where
   sub {e : Expr} {b : DeclId} : b ∈ e.strictRefs → b ∈ e.instRefs := by
     induction e with
-    | var _ | boolLit _ | natLit _ | prim _ | declRef _ | lam _ _ _ | delay _ _ _ _ =>
+    | var _ | boolLit _ | natLit _ | prim _ | declRef _ | lam _ _ _ | delay _ _ _ _ | sync _ _ _ _ _ =>
       intro h; simp [Expr.strictRefs, Expr.instRefs] at h ⊢; try exact h
     | app f a ihf iha =>
       intro h
@@ -345,26 +361,32 @@ theorem Ev.app_of_apply {Δ : DeclEnv} {I : Input} {t : Nat} {ρ : List Value} {
   · exact .appClo hf ha hb
   · exact .appPrim hf ha
 
+/-- An application relation at one evaluation point: how a function value
+    applied to an argument yields a result.  `Red` is generic in it so that
+    the single-domain (`Apply`) and multi-domain (Phase 5) semantics share
+    one logical relation. -/
+abbrev App := Value → Value → Value → Prop
+
 /-- Logical relation at sem-free types. -/
-def RedSF (Δ : DeclEnv) (I : Input) (t : Nat) : Ty → Value → Prop
+def RedSF (A : App) : Ty → Value → Prop
   | .bool, v => ∃ b, v = .bool b
   | .nat, v => ∃ n, v = .nat n
   | .q _, v => ∃ n, v = .nat n
-  | .opt τ, v => v = .none ∨ ∃ w, v = .some w ∧ RedSF Δ I t τ w
-  | .arr a b, v => ∀ w, RedSF Δ I t a w → ∃ v', Apply Δ I t v w v' ∧ RedSF Δ I t b v'
+  | .opt τ, v => v = .none ∨ ∃ w, v = .some w ∧ RedSF A τ w
+  | .arr a b, v => ∀ w, RedSF A a w → ∃ v', A v w v' ∧ RedSF A b v'
   | .sem _, _ => False
 
 /-- Logical relation.  A semantic value is a tagged representation value. -/
-def Red (Θ : ConceptEnv) (Δ : DeclEnv) (I : Input) (t : Nat) : Ty → Value → Prop
+def Red (Θ : ConceptEnv) (A : App) : Ty → Value → Prop
   | .bool, v => ∃ b, v = .bool b
   | .nat, v => ∃ n, v = .nat n
   | .q _, v => ∃ n, v = .nat n
-  | .opt τ, v => v = .none ∨ ∃ w, v = .some w ∧ Red Θ Δ I t τ w
-  | .arr a b, v => ∀ w, Red Θ Δ I t a w → ∃ v', Apply Δ I t v w v' ∧ Red Θ Δ I t b v'
-  | .sem s, v => ∃ w, v = .sem s w ∧ ∀ R, Θ s = some R → RedSF Δ I t R w
+  | .opt τ, v => v = .none ∨ ∃ w, v = .some w ∧ Red Θ A τ w
+  | .arr a b, v => ∀ w, Red Θ A a w → ∃ v', A v w v' ∧ Red Θ A b v'
+  | .sem s, v => ∃ w, v = .sem s w ∧ ∀ R, Θ s = some R → RedSF A R w
 
-theorem Red_semFree {Θ : ConceptEnv} {Δ : DeclEnv} {I : Input} {t : Nat} :
-    ∀ {τ : Ty}, τ.SemFree → ∀ {v : Value}, (Red Θ Δ I t τ v ↔ RedSF Δ I t τ v)
+theorem Red_semFree {Θ : ConceptEnv} {A : App} :
+    ∀ {τ : Ty}, τ.SemFree → ∀ {v : Value}, (Red Θ A τ v ↔ RedSF A τ v)
   | .bool, _, _ => Iff.rfl
   | .nat, _, _ => Iff.rfl
   | .q _, _, _ => Iff.rfl
@@ -388,9 +410,10 @@ theorem Red_semFree {Θ : ConceptEnv} {Δ : DeclEnv} {I : Input} {t : Nat} :
       obtain ⟨v', hap, hv'⟩ := hv w ((Red_semFree h.1).mp hw)
       exact ⟨v', hap, (Red_semFree h.2).mpr hv'⟩
 
-/-- At data types the relation does not depend on the tick (no closures). -/
-theorem RedSF_data {Δ : DeclEnv} {I : Input} {t t' : Nat} :
-    ∀ {τ : Ty}, τ.Data → ∀ {v : Value}, RedSF Δ I t τ v → RedSF Δ I t' τ v
+/-- At data types the relation does not depend on the application relation
+    (no closures): values can be moved between evaluation points. -/
+theorem RedSF_data {A A' : App} :
+    ∀ {τ : Ty}, τ.Data → ∀ {v : Value}, RedSF A τ v → RedSF A' τ v
   | .bool, _, _, h => h
   | .nat, _, _, h => h
   | .q _, _, _, h => h
@@ -402,8 +425,8 @@ theorem RedSF_data {Δ : DeclEnv} {I : Input} {t t' : Nat} :
     · exact Or.inl rfl
     · exact Or.inr ⟨w, rfl, RedSF_data (τ := τ) hd hw⟩
 
-theorem Red_data {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {I : Input} {t t' : Nat} :
-    ∀ {τ : Ty}, τ.Data → ∀ {v : Value}, Red Θ Δ I t τ v → Red Θ Δ I t' τ v
+theorem Red_data {Θ : ConceptEnv} (hΘ : Θ.WF) {A A' : App} :
+    ∀ {τ : Ty}, τ.Data → ∀ {v : Value}, Red Θ A τ v → Red Θ A' τ v
   | .bool, _, _, h => h
   | .nat, _, _, h => h
   | .q _, _, _, h => h
@@ -418,64 +441,70 @@ theorem Red_data {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {I : Input} {t t
     · exact Or.inr ⟨w, rfl, Red_data (τ := τ) hΘ hd hw⟩
 
 /-- Environments related pointwise. -/
-def RedEnv (Θ : ConceptEnv) (Δ : DeclEnv) (I : Input) (t : Nat) (Γ : Ctx) (ρ : List Value) : Prop :=
-  ∀ (i : Nat) (τ : Ty), Γ[i]? = some τ → ∃ v, ρ[i]? = some v ∧ Red Θ Δ I t τ v
+def RedEnv (Θ : ConceptEnv) (A : App) (Γ : Ctx) (ρ : List Value) : Prop :=
+  ∀ (i : Nat) (τ : Ty), Γ[i]? = some τ → ∃ v, ρ[i]? = some v ∧ Red Θ A τ v
 
-theorem RedEnv.nil {Θ : ConceptEnv} {Δ : DeclEnv} {I : Input} {t : Nat} (ρ : List Value) :
-    RedEnv Θ Δ I t [] ρ := fun _ _ h => absurd h (by simp)
+theorem RedEnv.nil {Θ : ConceptEnv} {A : App} (ρ : List Value) : RedEnv Θ A [] ρ :=
+  fun _ _ h => absurd h (by simp)
 
-theorem RedEnv.cons {Θ : ConceptEnv} {Δ : DeclEnv} {I : Input} {t : Nat} {Γ : Ctx} {ρ : List Value}
-    {τ : Ty} {w : Value} (hw : Red Θ Δ I t τ w) (hρ : RedEnv Θ Δ I t Γ ρ) :
-    RedEnv Θ Δ I t (τ :: Γ) (w :: ρ) := by
+theorem RedEnv.cons {Θ : ConceptEnv} {A : App} {Γ : Ctx} {ρ : List Value}
+    {τ : Ty} {w : Value} (hw : Red Θ A τ w) (hρ : RedEnv Θ A Γ ρ) :
+    RedEnv Θ A (τ :: Γ) (w :: ρ) := by
   intro i τ' h
   cases i with
   | zero => rw [List.getElem?_cons_zero] at h; exact ⟨w, rfl, (Option.some.inj h) ▸ hw⟩
   | succ i => rw [List.getElem?_cons_succ] at h; exact hρ i τ' h
 
+/-- An application relation that at least applies primitives. -/
+def App.HasPrim (A : App) : Prop := ∀ p args w, A (.prim p args) w (applyPrim p (args ++ [w]))
+
+theorem Apply.hasPrim (Δ : DeclEnv) (I : Input) (t : Nat) : App.HasPrim (Apply Δ I t) :=
+  fun p args _ => Or.inr ⟨p, args, rfl, rfl⟩
+
 /-- Every registered operator inhabits its type. -/
-theorem Red_prim {Θ : ConceptEnv} {Δ : DeclEnv} {I : Input} {t : Nat} (p : Prim) :
-    Red Θ Δ I t p.ty (applyPrim p []) := by
+theorem Red_prim {Θ : ConceptEnv} {A : App} (hA : A.HasPrim) (p : Prim) :
+    Red Θ A p.ty (applyPrim p []) := by
   cases p with
   | lit d n => exact ⟨n, by simp [applyPrim, Prim.arity, Prim.compute]⟩
   | add d | sub d | mul _ _ | div _ _ =>
     simp only [Prim.ty, Red, applyPrim, Prim.arity]
     rintro _ ⟨a, rfl⟩
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     simp only [applyPrim, Prim.arity]
     rintro _ ⟨b, rfl⟩
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     simp [applyPrim, Prim.arity, Prim.compute]
   | lt d | eq d =>
     simp only [Prim.ty, Red, applyPrim, Prim.arity]
     rintro _ ⟨a, rfl⟩
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     simp only [applyPrim, Prim.arity]
     rintro _ ⟨b, rfl⟩
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     simp [applyPrim, Prim.arity, Prim.compute]
   | not =>
     simp only [Prim.ty, Red, applyPrim, Prim.arity]
     rintro _ ⟨a, rfl⟩
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     simp [applyPrim, Prim.arity, Prim.compute]
   | and | or =>
     simp only [Prim.ty, Red, applyPrim, Prim.arity]
     rintro _ ⟨a, rfl⟩
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     simp only [applyPrim, Prim.arity]
     rintro _ ⟨b, rfl⟩
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     simp [applyPrim, Prim.arity, Prim.compute]
   | ite τ =>
     simp only [Prim.ty, Red, applyPrim, Prim.arity]
     rintro _ ⟨c, rfl⟩
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     simp only [applyPrim, Prim.arity]
     intro x hx
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     simp only [applyPrim, Prim.arity]
     intro y hy
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     simp only [applyPrim, Prim.arity, List.length_cons, List.length_nil, Prim.compute,
       List.nil_append, List.cons_append]
     cases c <;> simpa
@@ -483,19 +512,19 @@ theorem Red_prim {Θ : ConceptEnv} {Δ : DeclEnv} {I : Input} {t : Nat} (p : Pri
   | some τ =>
     simp only [Prim.ty, Red, applyPrim, Prim.arity]
     intro x hx
-    exact ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, Or.inr ⟨x, by simp [applyPrim, Prim.arity, Prim.compute], hx⟩⟩
+    exact ⟨_, hA _ _ _, Or.inr ⟨x, by simp [applyPrim, Prim.arity, Prim.compute], hx⟩⟩
   | isSome τ =>
     simp only [Prim.ty, Red, applyPrim, Prim.arity]
     intro o ho
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     rcases ho with rfl | ⟨w, rfl, _⟩ <;> simp [applyPrim, Prim.arity, Prim.compute]
   | getD τ =>
     simp only [Prim.ty, Red, applyPrim, Prim.arity]
     intro o ho
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     simp only [applyPrim, Prim.arity]
     intro d hd
-    refine ⟨_, Or.inr ⟨_, _, rfl, rfl⟩, ?_⟩
+    refine ⟨_, hA _ _ _, ?_⟩
     rcases ho with rfl | ⟨w, rfl, hw⟩
     · simpa [applyPrim, Prim.arity, Prim.compute] using hd
     · simpa [applyPrim, Prim.arity, Prim.compute] using hw
@@ -507,10 +536,10 @@ theorem fundamental {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {I : Input}
     {rank : DeclId → Nat} {R : Nat} (hR : ∀ d, rank d < R)
     (hc : ∀ a b, InstDependsOn Δ a b → rank b < rank a)
     {ev : Evidence} (g : GlobalWF ev Θ Δ)
-    (hI : ∀ d τ t, Δ.tyView d = some τ → Δ.realizationOf d = none → Red Θ Δ I t τ (I d t)) :
+    (hI : ∀ d τ t, Δ.tyView d = some τ → Δ.realizationOf d = none → Red Θ (Apply Δ I t) τ (I d t)) :
     ∀ t r {G : Grant} {Γ : Ctx} {e : Expr} {τ : Ty}, HasType Θ Δ G Γ e τ →
-      ∀ ρ, (∀ x ∈ e.instRefs, rank x < r) → RedEnv Θ Δ I t Γ ρ →
-      ∃ v, Ev Δ I t ρ e v ∧ Red Θ Δ I t τ v := by
+      ∀ ρ, (∀ x ∈ e.instRefs, rank x < r) → RedEnv Θ (Apply Δ I t) Γ ρ →
+      ∃ v, Ev Δ I t ρ e v ∧ Red Θ (Apply Δ I t) τ v := by
   intro t
   induction t using Nat.strongRecOn with
   | ind t iht =>
@@ -568,7 +597,7 @@ theorem fundamental {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {I : Input}
     intro R'' hR''
     rw [hΘs] at hR''; cases hR''
     exact (Red_semFree (hΘ s R' hΘs).1).mp hr
-  | prim => intro ρ _ _; exact ⟨_, .prim, Red_prim _⟩
+  | prim => intro ρ _ _; exact ⟨_, .prim, Red_prim (Apply.hasPrim Δ I t) _⟩
   | @delay i e τ hdata hi he ihi _ =>
     intro ρ hb hρ
     cases t with
@@ -578,14 +607,23 @@ theorem fundamental {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {I : Input}
     | succ t' =>
       obtain ⟨v, hv, hr⟩ := iht t' (Nat.lt_succ_self _) R he ρ (fun x _ => hR x) (RedEnv.nil ρ)
       exact ⟨v, .delaySucc hv, Red_data hΘ hdata hr⟩
+  | @sync c i e τ hdata hi he ihi _ =>
+    intro ρ hb hρ
+    cases t with
+    | zero =>
+      obtain ⟨v, hv, hr⟩ := ihi ρ hb hρ
+      exact ⟨v, .syncZero hv, hr⟩
+    | succ t' =>
+      obtain ⟨v, hv, hr⟩ := iht t' (Nat.lt_succ_self _) R he ρ (fun x _ => hR x) (RedEnv.nil ρ)
+      exact ⟨v, .syncSucc hv, Red_data hΘ hdata hr⟩
 
 /-- **`reactive_total`.**  Every declaration of a causal, globally
     well-formed design has a value at every tick, related to its type. -/
 theorem reactive_total {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} (hc : Causal Δ) {I : Input}
     {ev : Evidence} (g : GlobalWF ev Θ Δ)
-    (hI : ∀ d τ t, Δ.tyView d = some τ → Δ.realizationOf d = none → Red Θ Δ I t τ (I d t))
+    (hI : ∀ d τ t, Δ.tyView d = some τ → Δ.realizationOf d = none → Red Θ (Apply Δ I t) τ (I d t))
     {d : DeclId} {τ : Ty} (htv : Δ.tyView d = some τ) (t : Nat) :
-    ∃ v, Ev Δ I t [] (.declRef d) v ∧ Red Θ Δ I t τ v := by
+    ∃ v, Ev Δ I t [] (.declRef d) v ∧ Red Θ (Apply Δ I t) τ v := by
   obtain ⟨rank, R, hR, hr⟩ := hc
   have h : HasType Θ Δ Grant.none [] (.declRef d) τ := .declRef htv
   exact fundamental hΘ hR hr g hI t R h [] (fun x hx => by simp [Expr.instRefs] at hx; subst hx; exact hR _)
@@ -595,9 +633,9 @@ theorem reactive_total {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} (hc : Caus
     `Ev.det`) is related to its type. -/
 theorem Ev.red {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} (hc : Causal Δ) {I : Input}
     {ev : Evidence} (g : GlobalWF ev Θ Δ)
-    (hI : ∀ d τ t, Δ.tyView d = some τ → Δ.realizationOf d = none → Red Θ Δ I t τ (I d t))
+    (hI : ∀ d τ t, Δ.tyView d = some τ → Δ.realizationOf d = none → Red Θ (Apply Δ I t) τ (I d t))
     {G : Grant} {e : Expr} {τ : Ty} (h : HasType Θ Δ G [] e τ) {t : Nat} {v : Value}
-    (hv : Ev Δ I t [] e v) : Red Θ Δ I t τ v := by
+    (hv : Ev Δ I t [] e v) : Red Θ (Apply Δ I t) τ v := by
   obtain ⟨rank, R, hR, hr⟩ := hc
   obtain ⟨v', hv', hr'⟩ := fundamental hΘ hR hr g hI t R h [] (fun x _ => hR x) (RedEnv.nil [])
   exact (hv.det hv') ▸ hr'
@@ -687,6 +725,8 @@ theorem Ev.tag_provenance {Δ : DeclEnv} {I : Input} (s : SemanticId)
     simp at hw
   | delayZero _ ih => intro he hρ; exact ih (fun h => he (Or.inl h)) hρ
   | delaySucc _ ih => intro he hρ; exact ih (fun h => he (Or.inr h)) hρ
+  | syncZero _ ih => intro he hρ; exact ih (fun h => he (Or.inl h)) hρ
+  | syncSucc _ ih => intro he hρ; exact ih (fun h => he (Or.inr h)) hρ
 
 /-- **`temporal_state_preserves_semantic_identity`.**  Combined with the
     Phase-3 grant discipline: if no declaration's *signature* announces
@@ -733,6 +773,7 @@ def _root_.BDL.Expr.Wiring : Expr → Prop
   | .rep e => e.Wiring
   | .mk _ e => e.Wiring
   | .delay i e => i.Wiring ∧ e.Wiring
+  | .sync _ i e => i.Wiring ∧ e.Wiring
   | _ => True
 
 def DeclEnvWiring (Δ : DeclEnv) : Prop := ∀ d b, Δ.realizationOf d = some b → b.Wiring
@@ -785,6 +826,8 @@ theorem Ev.noClo {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {I : Input} (hI : ∀ d
   | prim => intro _; exact applyPrim_noClo _ _ (fun _ h => by simp at h)
   | delayZero _ ih => intro hw; exact ih hw.1
   | delaySucc _ ih => intro hw; exact ih hw.2
+  | syncZero _ ih => intro hw; exact ih hw.1
+  | syncSucc _ ih => intro hw; exact ih hw.2
 
 /-- The environment is irrelevant for wiring terms. -/
 theorem Ev.env_irrelevant {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {I : Input} (hI : ∀ d t, (I d t).NoClo) :
@@ -805,6 +848,8 @@ theorem Ev.env_irrelevant {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {I : Input} (h
   | prim => intro _ _; exact .prim
   | delayZero _ ih => intro hw ρ'; exact .delayZero (ih hw.1 ρ')
   | delaySucc _ ih => intro hw ρ'; exact .delaySucc (ih hw.2 ρ')
+  | syncZero _ ih => intro hw ρ'; exact .syncZero (ih hw.1 ρ')
+  | syncSucc _ ih => intro hw ρ'; exact .syncSucc (ih hw.2 ρ')
 
 theorem unfolds_wiring {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {e e' : Expr} (h : Unfolds Δ e e') (hw : e.Wiring) : e'.Wiring := by
   induction h with
@@ -816,6 +861,7 @@ theorem unfolds_wiring {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {e e' : Expr} (h 
   | rep _ ih => exact ih hw
   | mk _ ih => exact ih hw
   | delay _ _ ihi ihe => exact ⟨ihi hw.1, ihe hw.2⟩
+  | sync _ _ ihi ihe => exact ⟨ihi hw.1, ihe hw.2⟩
 
 /-- **Unfolding preserves stepping** on wiring designs: the value of a term
     at any tick is the value of its unfolding.  So `Unfolds` (Phase 1) is a
@@ -845,6 +891,11 @@ theorem unfolds_preserves_eval {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {I : Inpu
     cases h with
     | delayZero h' => exact .delayZero (ihi hw.1 _ _ _ h')
     | delaySucc h' => exact .delaySucc (ihe hw.2 _ _ _ h')
+  | sync _ _ ihi ihe =>
+    intro t ρ v h
+    cases h with
+    | syncZero h' => exact .syncZero (ihi hw.1 _ _ _ h')
+    | syncSucc h' => exact .syncSucc (ihe hw.2 _ _ _ h')
 
 /-- `rep (delay i x)` and `delay (rep i) (rep x)` evaluate identically:
     representation access commutes with delay (both are typed `q Angle`). -/

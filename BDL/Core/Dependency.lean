@@ -133,6 +133,10 @@ where
       intro h
       simp only [Expr.instRefs, Expr.refs, List.mem_append] at h ⊢
       exact .inl (ihi h)
+    | sync _ i e ihi _ =>
+      intro h
+      simp only [Expr.instRefs, Expr.refs, List.mem_append] at h ⊢
+      exact .inl (ihi h)
 
 /-- Every realization is delay-free: the Phase-1 timeless fragment. -/
 def DeclEnv.DelayFree (Δ : DeclEnv) : Prop :=
@@ -190,6 +194,7 @@ inductive Unfolds (Δ : DeclEnv) : Expr → Expr → Prop where
   | mk {s : SemanticId} {e e' : Expr} : Unfolds Δ e e' → Unfolds Δ (.mk s e) (.mk s e')
   | prim (p : Prim) : Unfolds Δ (.prim p) (.prim p)
   | delay {i i' e e' : Expr} : Unfolds Δ i i' → Unfolds Δ e e' → Unfolds Δ (.delay i e) (.delay i' e')
+  | sync {c : ClockId} {i i' e e' : Expr} : Unfolds Δ i i' → Unfolds Δ e e' → Unfolds Δ (.sync c i e) (.sync c i' e')
 
 /-- Unfolding is deterministic. -/
 theorem Unfolds.det {Δ : DeclEnv} {e e₁ e₂ : Expr}
@@ -201,6 +206,7 @@ theorem Unfolds.det {Δ : DeclEnv} {e e₁ e₂ : Expr}
   | rep _ ih => cases h₂ with | rep he => rw [ih he]
   | mk _ ih => cases h₂ with | mk he => rw [ih he]
   | delay _ _ ihi ihe => cases h₂ with | delay hi he => rw [ihi hi, ihe he]
+  | sync _ _ ihi ihe => cases h₂ with | sync hi he => rw [ihi hi, ihe he]
   | refStuck hn =>
     cases h₂ with
     | refStuck _ => rfl
@@ -223,6 +229,10 @@ theorem Unfolds.refs_stuck {Δ : DeclEnv} {e e' : Expr} (h : Unfolds Δ e e') :
     simp only [Expr.refs, List.mem_append] at hx
     exact hx.elim (ihf x) (iha x)
   | delay _ _ ihi ihe =>
+    intro x hx
+    simp only [Expr.refs, List.mem_append] at hx
+    exact hx.elim (ihi x) (ihe x)
+  | sync _ _ ihi ihe =>
     intro x hx
     simp only [Expr.refs, List.mem_append] at hx
     exact hx.elim (ihi x) (ihe x)
@@ -256,6 +266,9 @@ theorem Unfolds.preserves_typing {ev : Evidence} {Θ : ConceptEnv} {Δ : DeclEnv
   | delay _ _ ihi ihe =>
     intro G Γ τ ht
     cases ht with | delay hd hi he => exact .delay hd (ihi hi) (ihe he)
+  | sync _ _ ihi ihe =>
+    intro G Γ τ ht
+    cases ht with | sync hd hi he => exact .sync hd (ihi hi) (ihe he)
   | refStuck _ => intro _ _ _ ht; exact ht.to_all
   | @refRealized d b _ hs _ ih =>
     intro G Γ τ ht
@@ -312,6 +325,10 @@ theorem Unfolds.refs_not_cyclic {Δ : DeclEnv} {e e' : Expr} (hu : Unfolds Δ e 
     simp only [Expr.refs, List.mem_append] at hx
     exact hx.elim (ihf x) (iha x)
   | delay _ _ ihi ihe =>
+    intro x hx
+    simp only [Expr.refs, List.mem_append] at hx
+    exact hx.elim (ihi x) (ihe x)
+  | sync _ _ ihi ihe =>
     intro x hx
     simp only [Expr.refs, List.mem_append] at hx
     exact hx.elim (ihi x) (ihe x)
@@ -375,6 +392,10 @@ theorem Unfolds.exists_of_acyclic {Δ : DeclEnv} (ha : Acyclic Δ) (e : Expr) :
       obtain ⟨i', hi'⟩ := ihi fun x hx => hb x (by simp [Expr.refs, hx])
       obtain ⟨e', he'⟩ := ihe fun x hx => hb x (by simp [Expr.refs, hx])
       exact ⟨_, .delay hi' he'⟩
+    | sync c i e ihi ihe =>
+      obtain ⟨i', hi'⟩ := ihi fun x hx => hb x (by simp [Expr.refs, hx])
+      obtain ⟨e', he'⟩ := ihe fun x hx => hb x (by simp [Expr.refs, hx])
+      exact ⟨_, .sync hi' he'⟩
     | declRef h =>
       cases hs : Δ.realizationOf h with
       | none => exact ⟨_, .refStuck hs⟩

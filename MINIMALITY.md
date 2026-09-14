@@ -66,9 +66,22 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | state initialization (`init` on every `delay`) | **yes** | shown | no | no | Phase 4 (D-38): semantic, not validation |
 | state identity | no — structural | — | — | **yes** | Phase 4 (D-39) |
 | explicit machine state / `Step` | pending | — | — | — | Phase 8 (D-42) |
-| clock domains (none / inferred / nominal) | ? | ? | ? | ? | Phase 5 |
-| cross-domain `hold`, event sync policies, event multiplicity | ? | ? | ? | ? | Phase 5 |
+| `ClockId` (nominal domain identity) | **yes** | declared `domain d` | — | no | Phase 5: A, B, E |
+| numeric rate / period | no | annotation | **yes** | — | Phase 5 (D-47): induces a schedule; never in `Clocked`/`MEv` |
+| clock-indexed type (`Signal[c,τ]`) | no | — | — | **yes** | Phase 5: forces polymorphism (`clocked_type_forces_polymorphism`) |
+| declaration clock metadata (`ClockEnv Κ`) | **yes** (interface-level, frozen) | — | — | no | Phase 5 (D-44, D-46) |
+| separate domain judgment `Clocked` | **yes** | diagnostic | — | no | Phase 5: rejects the direct wire; typing cannot |
+| `sync src init e` (transport) | **yes** — the one temporal read | — | — | no | Phase 5 (D-45); `delay` = `sync own` |
+| `hold` / `latest` | no | yes → `sync` | — | no | Phase 5 |
+| `sample` | no | yes → `sync` at the destination's activation | — | no | Phase 5 |
+| `buffer` / event queue | no | yes → `sync` of a log + `delay` of a cursor (+ list data) | capacity | no | Phase 5 (D-48); object-language form pending `Ty.list` |
+| `drop` | no | yes → head of the window | — | no | Phase 5 |
+| `coalesce μ` | no | yes → fold of the window | — | no | Phase 5 |
+| transport initialization (`init` on `sync`) | **yes** | shown | no | no | Phase 5: deterministic first activation |
+| scheduler / staging rule | no — strictly-before makes order irrelevant | — | — | **yes** | Phase 5: `scheduling_order_observable` shows why the alternative needs one |
+| `Ty.list` and list operators | pending | — | — | — | needed only to write the buffer in the object language |
 | effect rows | ? | ? | ? | ? | Phase 6 |
+| merge policy for two event sources | ? | ? | ? | ? | Phase 6 |
 | actuator arbitration, multiple writers | ? | ? | ? | — | Phase 6 |
 | range / latency / rate / feasibility obligations | no | — | yes | — | Phase 7 (expected: V) |
 | elaboration Surface → Core; reusable stateful components by instantiation | — | — | — | — | Phase 8 |
@@ -246,3 +259,33 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - CAN IT BE DESUGARED: `previous : τ → opt τ` is the reverse desugaring, not a replacement
 - OBSERVABLE DIFFERENCE: tick 0
 - LEAN THEOREM / COUNTEREXAMPLE: as above
+
+### FEATURE: nominal clock identity (`ClockId`, `ClockEnv`)
+- KERNEL STATUS: keep (interface-level, frozen; `none` = agnostic)
+- SURFACE STATUS: `domain d` declarations; shown on ports
+- VALIDATION STATUS: rates attach here as metadata
+- WHY IT EXISTS: without it the cross-rate wire is ambiguous (A) and equal rates cannot distinguish domains (B)
+- WHAT BREAKS WITHOUT IT: `unpolicied_wire_ambiguous`, `equal_rate_not_same_domain`
+- CAN IT BE DESUGARED: no; inference would break signature-first (D-44)
+- OBSERVABLE DIFFERENCE: which references are legal; what `sync` reads (`phase_matters`)
+- LEAN THEOREM / COUNTEREXAMPLE: `cross_domain_direct_wire_rejected`, `clock_change_invalidates_clients`
+
+### FEATURE: domain judgment `Clocked`
+- KERNEL STATUS: keep (separate from typing; `Ty`, `tyView` unchanged)
+- SURFACE STATUS: diagnostic naming the two domains
+- VALIDATION STATUS: n/a
+- WHY IT EXISTS: typing is blind to domains (`both_well_typed`); something static must reject the direct wire
+- WHAT BREAKS WITHOUT IT: ambiguous semantics accepted
+- CAN IT BE DESUGARED: not into typing without clocked types (rejected)
+- OBSERVABLE DIFFERENCE: the direct wire vs `sync`
+- LEAN THEOREM / COUNTEREXAMPLE: `cross_domain_direct_wire_rejected`, `explicit_transport_accepted`
+
+### FEATURE: `sync src init e`
+- KERNEL STATUS: keep — the single temporal read; `delay` is its own-domain instance
+- SURFACE STATUS: `hold`, `latest`, `sample`, `delay`, `previous` …
+- VALIDATION STATUS: capacity of derived buffers; value age
+- WHY IT EXISTS: the only way a domain sees another; strictly-before keeps scheduler order out of the semantics
+- WHAT BREAKS WITHOUT IT: no cross-domain flow; with the same-tick alternative: `scheduling_order_observable`
+- CAN IT BE DESUGARED: no (it subsumes `delay`, not the reverse)
+- OBSERVABLE DIFFERENCE: `transport_trace`, `delay_is_domain_relative`
+- LEAN THEOREM / COUNTEREXAMPLE: `delay_is_sync_own`, `single_domain_embedding`, `MEv.det`, `multi_domain_total`, `sync_preserves_semantic_identity`

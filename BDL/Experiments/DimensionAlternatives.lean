@@ -116,6 +116,7 @@ def _root_.BDL.Expr.eraseDim : Expr → Expr
   | .mk s e => .mk s e.eraseDim
   | .prim p => .prim p.eraseDim
   | .delay i e => .delay i.eraseDim e.eraseDim
+  | .sync c i e => .sync c i.eraseDim e.eraseDim
   | e => e
 
 def _root_.BDL.DesignDecl.eraseDim (d : DesignDecl) : DesignDecl :=
@@ -145,6 +146,7 @@ theorem _root_.BDL.HasType.eraseDim {Θ : ConceptEnv} {Δ : DeclEnv} {G : Grant}
   | mk hg hb _ ih => exact .mk hg (by simp [ConceptEnv.eraseDim, hb]) ih
   | prim => exact (Prim.ty_eraseDim _) ▸ HasType.prim
   | delay hd _ _ ihi ihe => exact .delay (Ty.eraseDim_data hd) ihi ihe
+  | sync hd _ _ ihi ihe => exact .sync (Ty.eraseDim_data hd) ihi ihe
 
 /-- **Counterexample B.**  After erasure `length + time` is accepted, and the
     erased environment cannot tell the sensors apart. -/

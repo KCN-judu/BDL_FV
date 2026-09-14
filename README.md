@@ -13,9 +13,9 @@ lake build
 * `DESIGN_DECISIONS.md` — every model choice and rejected alternative
 * `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table
 
-Status: Phases 0–4 complete (lifecycle/refinement; cross-declaration
+Status: Phases 0–5 complete (lifecycle/refinement; cross-declaration
 preservation; semantic identity; representation binding + dimensions;
-reactive core). Remaining: Phase 5 clock domains + synchronization; Phase 6
+reactive core; clock domains + synchronization). Remaining: Phase 6
 actions / effects / arbitration; Phase 7 validation + invalidation; Phase 8
 surface elaboration + executable semantics; final minimality audit.
 
@@ -28,7 +28,10 @@ representations; `rep` observes freely, `mk s` constructs only inside a
 realization whose own signature announces `sem s` (Phase 3). One temporal
 primitive `delay init e` and a tick-indexed evaluation relation give the
 single-domain reactive semantics: deterministic, total on causal designs, and
-every designer-facing temporal operator derived (Phase 4). Typing sees only the
+every designer-facing temporal operator derived (Phase 4). Nominal clock
+domains with a schedule, a domain judgment, and one transport primitive
+`sync src init e` (of which `delay` is the own-domain instance) give the
+multi-domain semantics; the single-domain one embeds exactly (Phase 5). Typing sees only the
 expected type; validation may rely on commitments and evidence; monotone
 refinement preserves earlier commitments; anything else is an edit that
 requires rechecking dependents.

@@ -337,3 +337,51 @@ Rejected for now: an explicit `MachineState`/`Step` with stored cells.
 Reason: the tick-indexed relation is the specification and suffices for
 determinism, totality, causality, provenance, and the Event comparison; the
 stored-state machine is an implementation to be proven equivalent in Phase 8.
+
+## Phase 5
+
+**D-43. Time is one global tick with a schedule; no rates, no timestamps in the kernel.**
+Rejected: domain-local counters with a scheduler relation; physical timestamps.
+Reason: the global tick with `Sched` is the smallest model that distinguishes
+the behaviours in question (Counterexamples A, B, F); a period induces a
+schedule (`Sched.periodic`) and everything numeric is validation (D-47).
+
+**D-44. Nominal `ClockId`, stored per declaration in `ClockEnv Κ`; `none` = domain-agnostic pure mapping.**
+Rejected: inferred domains (would make an unresolved declaration's domain
+depend on future realizations — the Phase-1 signature-first property);
+domains by rate (`equal_rate_not_same_domain`).
+Reason: clients' validity depends on the producer's domain
+(`clock_change_invalidates_clients`), so the domain is interface data and must
+be declarable before realization.
+
+**D-45. One transport primitive `sync src init e`, reading strictly before.**
+Rejected: same-tick-visible transport (makes scheduler order semantic,
+`scheduling_order_observable`); separate `hold`/`latest`/`sample` primitives
+(all are `sync`); a buffering primitive (derivable: `buffer_from_log_and_cursor`).
+Reason: `delay_is_sync_own` — the Phase-4 state primitive is this primitive at
+the own domain, so the kernel has *one* temporal read; `MEv.det`,
+`multi_domain_total`.
+
+**D-46. The clock is interface data held in a projection, not a record field.**
+The public interface is semantically `expectedType × commitments × clock`
+(Counterexample E; frozen under refinement; edit to change).  It is stored in
+`Κ`, as the representation is stored in `Θ`, rather than in `DeclInterface`.
+Rejected: `Ty`-indexed clocks (`clocked_type_forces_polymorphism`).  Folding
+`Κ` into the record is churn, not semantics; deferred.
+
+**D-47. Rates, drift, jitter, latency, buffer capacity, value age are validation.**
+None affects `Clocked`, `MEv.det`, or `multi_domain_total`; a rate change
+alters the induced schedule (observed values) but no client's well-formedness.
+
+**D-48. Event transport = window read; buffering derived, `Event` still not a primitive.**
+`opt_loses_multiplicity_under_sync` rejects `sync` as an *event* transport;
+`buffer_from_log_and_cursor` derives the exact window from `sync` of a log and
+`delay` of a cursor; `policies_lose_information` fixes what each policy keeps.
+Rejected: `Event τ` as a kernel type; a buffer primitive.
+Pending: `Ty.list` to write the buffer in the object language; capacity is
+validation.
+
+**D-49. The logical relation is generic in the application relation.**
+`Red Θ A` with `A : App`, so Phase 4 (`Apply Δ I t`) and Phase 5
+(`MApply S Δ I c t`) share `Red_prim`, `Red_data`, `RedEnv`.  Refactor, no
+semantic change.

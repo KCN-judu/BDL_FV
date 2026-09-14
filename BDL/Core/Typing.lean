@@ -53,6 +53,11 @@ inductive HasType (Θ : ConceptEnv) (Δ : DeclEnv) (G : Grant) : Ctx → Expr �
       across ticks. -/
   | delay   {i e τ} : τ.Data → HasType Θ Δ G [] i τ → HasType Θ Δ G [] e τ →
       HasType Θ Δ G [] (.delay i e) τ
+  /-- Phase 5.  Same shape as `delay`: transport preserves the type, hence
+      semantic identity and dimension.  Which domain `e` lives in is not a
+      typing matter (`Clock.lean`). -/
+  | sync    {c i e τ} : τ.Data → HasType Θ Δ G [] i τ → HasType Θ Δ G [] e τ →
+      HasType Θ Δ G [] (.sync c i e) τ
 
 /-- Syntax-directed type inference. -/
 def infer (Θ : ConceptEnv) (Δ : DeclEnv) (G : Grant) [DecidablePred G] : Ctx → Expr → Option Ty
@@ -77,6 +82,12 @@ def infer (Θ : ConceptEnv) (Δ : DeclEnv) (G : Grant) [DecidablePred G] : Ctx �
     else none
   | _, .prim p       => some p.ty
   | Γ, .delay i e    =>
+    if Γ = [] then
+      match infer Θ Δ G [] i, infer Θ Δ G [] e with
+      | some τ, some τ' => if τ = τ' ∧ τ.Data then some τ else none
+      | _, _ => none
+    else none
+  | Γ, .sync _ i e   =>
     if Γ = [] then
       match infer Θ Δ G [] i, infer Θ Δ G [] e with
       | some τ, some τ' => if τ = τ' ∧ τ.Data then some τ else none
@@ -141,6 +152,19 @@ theorem infer_sound :
           obtain ⟨⟨rfl, hd⟩, rfl⟩ := h
           exact .delay hd (infer_sound hi) (infer_sound he)
     · simp [infer, hΓ] at h
+  | Γ, .sync c i e, τ, h => by
+    by_cases hΓ : Γ = []
+    · subst hΓ
+      cases hi : infer Θ Δ G [] i with
+      | none => simp [infer, hi] at h
+      | some τi =>
+        cases he : infer Θ Δ G [] e with
+        | none => simp [infer, hi, he] at h
+        | some τe =>
+          simp [infer, hi, he] at h
+          obtain ⟨⟨rfl, hd⟩, rfl⟩ := h
+          exact .sync hd (infer_sound hi) (infer_sound he)
+    · simp [infer, hΓ] at h
   | Γ, .mk s e, τ, h => by
     by_cases hg : G s
     · cases hΘ : Θ s with
@@ -167,6 +191,7 @@ theorem infer_complete {Γ : Ctx} {e : Expr} {τ : Ty}
   | mk hg hΘ _ ih => simp [infer, hg, hΘ, ih]
   | prim => rfl
   | delay hd _ _ ihi ihe => simp [infer, ihi, ihe, hd]
+  | sync hd _ _ ihi ihe => simp [infer, ihi, ihe, hd]
 
 theorem HasType.unique {Γ : Ctx} {e : Expr} {τ₁ τ₂ : Ty}
     (h₁ : HasType Θ Δ G Γ e τ₁) (h₂ : HasType Θ Δ G Γ e τ₂) : τ₁ = τ₂ :=
@@ -203,6 +228,7 @@ theorem HasType.weaken_append {Γ : Ctx} {e : Expr} {τ : Ty} (hd : e.DelayFree)
   | mk hg hΘ _ ih => exact .mk hg hΘ (ih hd)
   | prim => exact .prim
   | delay _ _ _ _ _ => exact hd.elim
+  | sync _ _ _ _ _ => exact hd.elim
 
 /-- A delay-free term well typed at top level is well typed in every context. -/
 theorem HasType.of_closed {e : Expr} {τ : Ty} (hd : e.DelayFree)
@@ -237,6 +263,7 @@ theorem HasType.mono_env {Δ₁ Δ₂ : DeclEnv}
   | mk hg hΘ _ ih => exact .mk hg hΘ ih
   | prim => exact .prim
   | delay hd _ _ ihi ihe => exact .delay hd ihi ihe
+  | sync hd _ _ ihi ihe => exact .sync hd ihi ihe
 
 theorem HasType.of_envRefines {Δ₁ Δ₂ : DeclEnv} (er : EnvRefines Δ₁ Δ₂)
     {Γ : Ctx} {e : Expr} {τ : Ty} (h : HasType Θ Δ₁ G Γ e τ) : HasType Θ Δ₂ G Γ e τ :=
@@ -257,6 +284,7 @@ theorem HasType.mono_concept {Θ₁ Θ₂ : ConceptEnv} (hc : ConceptRefines Θ�
   | mk hg hΘ _ ih => exact .mk hg (hc _ _ hΘ) ih
   | prim => exact .prim
   | delay hd _ _ ihi ihe => exact .delay hd ihi ihe
+  | sync hd _ _ ihi ihe => exact .sync hd ihi ihe
 
 /-- Granting more construction rights never breaks a derivation. -/
 theorem HasType.mono_grant {G₁ G₂ : Grant} (hg : ∀ s, G₁ s → G₂ s)
@@ -272,6 +300,7 @@ theorem HasType.mono_grant {G₁ G₂ : Grant} (hg : ∀ s, G₁ s → G₂ s)
   | mk hg' hΘ _ ih => exact .mk (hg _ hg') hΘ ih
   | prim => exact .prim
   | delay hd _ _ ihi ihe => exact .delay hd ihi ihe
+  | sync hd _ _ ihi ihe => exact .sync hd ihi ihe
 
 theorem HasType.to_all {Γ : Ctx} {e : Expr} {τ : Ty} (h : HasType Θ Δ G Γ e τ) :
     HasType Θ Δ Grant.all Γ e τ :=
@@ -284,6 +313,7 @@ def Expr.constructs (s : SemanticId) : Expr → Prop
   | .rep e => e.constructs s
   | .mk s' e => s' = s ∨ e.constructs s
   | .delay i e => i.constructs s ∨ e.constructs s
+  | .sync _ i e => i.constructs s ∨ e.constructs s
   | _ => False
 
 /-- **Construction requires a grant** (syntactic form of the isolation
@@ -303,6 +333,7 @@ theorem HasType.constructs_granted {Γ : Ctx} {e : Expr} {τ : Ty}
     · exact hg
     · exact ih s hs
   | delay _ _ _ ihi ihe => intro s hs; exact hs.elim (ihi s) (ihe s)
+  | sync _ _ _ ihi ihe => intro s hs; exact hs.elim (ihi s) (ihe s)
 
 /-- Every declaration a well-typed term refers to exists in the environment. -/
 theorem HasType.refs_declared {Γ : Ctx} {e : Expr} {τ : Ty}
@@ -325,6 +356,10 @@ theorem HasType.refs_declared {Γ : Ctx} {e : Expr} {τ : Ty}
     intro x hx
     simp only [Expr.refs, List.mem_append] at hx
     exact hx.elim (ihi x) (ihe x)
+  | sync _ _ _ ihi ihe =>
+    intro x hx
+    simp only [Expr.refs, List.mem_append] at hx
+    exact hx.elim (ihi x) (ihe x)
 
 /-- A reference-free term's typing is independent of the declaration environment. -/
 theorem HasType.refFree_env_irrelevant {Δ₁ Δ₂ : DeclEnv} {Γ : Ctx} {e : Expr} {τ : Ty}
@@ -341,6 +376,8 @@ theorem HasType.refFree_env_irrelevant {Δ₁ Δ₂ : DeclEnv} {Γ : Ctx} {e : E
   | prim => exact .prim
   | delay hd _ _ ihi ihe =>
     exact .delay hd (ihi (List.append_eq_nil_iff.mp hf).1) (ihe (List.append_eq_nil_iff.mp hf).2)
+  | sync hd _ _ ihi ihe =>
+    exact .sync hd (ihi (List.append_eq_nil_iff.mp hf).1) (ihe (List.append_eq_nil_iff.mp hf).2)
 
 end Structural
 

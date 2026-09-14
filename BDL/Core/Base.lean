@@ -17,6 +17,12 @@ structure SemanticId where
   n : Nat
   deriving DecidableEq, Repr
 
+/-- Nominal identity of a clock domain (Phase 5).  Distinct from any rate:
+    two domains at equal rates with no phase relationship are distinct. -/
+structure ClockId where
+  n : Nat
+  deriving DecidableEq, Repr
+
 /-- Physical dimension as an exponent vector over three base dimensions
     (Phase 3).  Enough to test the abstraction; not an SI catalogue. -/
 structure Dim where
@@ -143,6 +149,10 @@ inductive Expr where
   | mk (s : SemanticId) (e : Expr) -- Phase 3: construct a semantic value (granted only)
   | prim (p : Prim)               -- Phase 3: registered operator
   | delay (init e : Expr)         -- Phase 4: the value of `e` one tick ago; `init` at tick 0
+  /-- Phase 5: cross-domain transport.  The value of `e` (evaluated in domain
+      `src`) at the last activation of `src` strictly before now; `init` if
+      there was none.  `delay init e` is `sync own init e`. -/
+  | sync (src : ClockId) (init e : Expr)
   deriving DecidableEq, Repr
 
 /-- Typing context: the type of de Bruijn index `i` is `Γ[i]?`. -/
@@ -157,6 +167,7 @@ def Expr.refs : Expr → List DeclId
   | .rep e => e.refs
   | .mk _ e => e.refs
   | .delay i e => i.refs ++ e.refs
+  | .sync _ i e => i.refs ++ e.refs
 
 /-- The declarations a term refers to *instantaneously*: those not under a
     `delay`.  (The initial value of a delay is read at tick 0, so it is
@@ -169,6 +180,7 @@ def Expr.instRefs : Expr → List DeclId
   | .rep e => e.instRefs
   | .mk _ e => e.instRefs
   | .delay i _ => i.instRefs
+  | .sync _ i _ => i.instRefs   -- a transport reads strictly earlier: never instantaneous
 
 /-- Does the term contain a `delay`?  The timeless fragment is delay-free. -/
 def Expr.DelayFree : Expr → Prop
@@ -177,6 +189,7 @@ def Expr.DelayFree : Expr → Prop
   | .rep e => e.DelayFree
   | .mk _ e => e.DelayFree
   | .delay _ _ => False
+  | .sync _ _ _ => False
   | _ => True
 
 instance : ∀ e : Expr, Decidable e.DelayFree
@@ -189,6 +202,7 @@ instance : ∀ e : Expr, Decidable e.DelayFree
   | .rep e => instDecidableDelayFree e
   | .mk _ e => instDecidableDelayFree e
   | .delay _ _ => inferInstanceAs (Decidable False)
+  | .sync _ _ _ => inferInstanceAs (Decidable False)
 
 theorem Expr.instRefs_of_delayFree : ∀ {e : Expr}, e.DelayFree → e.instRefs = e.refs
   | .var _, _ | .boolLit _, _ | .natLit _, _ | .prim _, _ | .declRef _, _ => rfl
@@ -197,6 +211,7 @@ theorem Expr.instRefs_of_delayFree : ∀ {e : Expr}, e.DelayFree → e.instRefs 
   | .rep e, h => Expr.instRefs_of_delayFree (e := e) h
   | .mk _ e, h => Expr.instRefs_of_delayFree (e := e) h
   | .delay _ _, h => h.elim
+  | .sync _ _ _, h => h.elim
 
 /-- A term that refers to no declaration: an ordinary program whose typing is
     independent of any environment. -/

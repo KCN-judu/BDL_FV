@@ -159,6 +159,7 @@ def _root_.BDL.Expr.erase (ρ : SemanticId → Ty) : Expr → Expr
   | .mk _ e => e.erase ρ
   | .prim p => .prim (p.erase ρ)
   | .delay i e => .delay (i.erase ρ) (e.erase ρ)
+  | .sync c i e => .sync c (i.erase ρ) (e.erase ρ)
   | e => e
 
 theorem _root_.BDL.Ty.erase_data (ρ : SemanticId → Ty) (hρ : ∀ s, (ρ s).Data) : ∀ {τ : Ty}, τ.Data → (τ.erase ρ).Data
@@ -207,6 +208,7 @@ theorem _root_.BDL.HasType.erase (ρ : SemanticId → Ty) (hρd : ∀ s, (ρ s).
     simpa [hR] using ih
   | prim => exact (Prim.ty_erase ρ _) ▸ HasType.prim
   | delay hd _ _ ihi ihe => exact .delay (Ty.erase_data ρ hρd hd) ihi ihe
+  | sync hd _ _ ihi ihe => exact .sync (Ty.erase_data ρ hρd hd) ihi ihe
 
 /-- The numeric binding: every concept is represented by `nat`. -/
 def ρnat : SemanticId → Ty := fun _ => .nat
@@ -231,6 +233,7 @@ def _root_.BDL.Expr.SemFree : Expr → Prop
   | .mk _ _ => False
   | .prim p => p.ty.SemFree
   | .delay i e => i.SemFree ∧ e.SemFree
+  | .sync _ i e => i.SemFree ∧ e.SemFree
   | _ => True
 
 /-- **Result 4 — semantic extension preserves structural typing.**  A
@@ -259,6 +262,7 @@ theorem semantic_extension_preserves_structural_typing {Θ : ConceptEnv} {Δ : D
   | mk _ _ _ _ => exact he.elim
   | prim => exact he
   | delay _ _ _ ihi _ => exact ihi hΓ he.1
+  | sync _ _ _ ihi _ => exact ihi hΓ he.1
 
 /-! ### Refinement preservation is inherited from Phase 1
 
@@ -422,6 +426,19 @@ def _root_.BDL.Expr.eval {Θ : ConceptEnv} {Δ : DeclEnv} (δ : Δ.Interp) :
   | .mk s e, _, _, _, h => by simp [infer, Grant.none] at h
   | .delay i e, Γ, γ, τ, h => by
     -- timeless denotation: a delay denotes its initial value
+    by_cases hΓ : Γ = []
+    · subst hΓ
+      cases hi : infer Θ Δ Grant.none [] i with
+      | none => simp [infer, hi] at h
+      | some τi =>
+        cases he : infer Θ Δ Grant.none [] e with
+        | none => simp [infer, hi, he] at h
+        | some τe =>
+          simp [infer, hi, he] at h
+          obtain ⟨⟨rfl, _⟩, rfl⟩ := h
+          exact Expr.eval δ i [] γ _ hi
+    · simp [infer, hΓ] at h
+  | .sync c i e, Γ, γ, τ, h => by
     by_cases hΓ : Γ = []
     · subst hΓ
       cases hi : infer Θ Δ Grant.none [] i with
