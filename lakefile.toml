@@ -1,0 +1,6 @@
+name = "PersistentHole"
+version = "0.1.0"
+defaultTargets = ["PersistentHole"]
+
+[[lean_lib]]
+name = "PersistentHole"
