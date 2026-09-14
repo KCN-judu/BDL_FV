@@ -18,10 +18,9 @@ specifications; the last is executable but forces the designer to adopt
 implementation-oriented concepts such as mutable variables, callbacks,
 polling loops, and device APIs. Existing physical prototyping systems
 such as Phidgets and d.tools substantially lowered the cost of building
-interactive prototypes
-#cite(<greenberg2001phidgets>);#cite(<hartmann2006dtools>);, but their
-behavioral representations still inherit important assumptions from
-programming and state-machine formalisms.
+interactive prototypes @greenberg2001phidgets@hartmann2006dtools, but
+their behavioral representations still inherit important assumptions
+from programming and state-machine formalisms.
 
 A concrete instance of the resulting cost appeared in a two-day
 introductory hardware workshop that one of the authors designed and
@@ -41,10 +40,10 @@ no place to live.
 This paper proposes a different boundary. The goal is not to make
 engineering representations merely easier for designers to use. The goal
 is to define a #emph[native representation of product behavior for
-design itself];, while retaining enough formal structure for static
+design itself], while retaining enough formal structure for static
 checking, simulation, and eventual implementation.
 
-We call the proposed system #strong[BDL];, a Behavior Design Language.
+We call the proposed system #strong[BDL], a Behavior Design Language.
 BDL is organized around a working hypothesis: when a behavioral
 relationship is first specified, #emph[what kind of relationship should
 exist] is frequently settled before its exact implementation is. A
@@ -53,11 +52,11 @@ deciding the transfer function; that #strong[CupPickedUp] should
 activate a behavior before deciding which sensor and threshold detect
 pickup; or that a safety condition should suppress an actuator before
 choosing the device driver. Therefore the primary design artifact should
-be the #emph[typed relationship];, not the procedure that computes it.
+be the #emph[typed relationship], not the procedure that computes it.
 
 The central example is a Mapping Block. Instead of decomposing a design
-into procedural steps such as "read tilt," "calculate brightness," and
-"set the LED," BDL represents one mapping:
+into procedural steps such as “read tilt,” “calculate brightness,” and
+“set the LED,” BDL represents one mapping:
 
 $ ? f : upright("Tilt") arrow.r upright("Brightness") . $
 
@@ -65,7 +64,7 @@ The mapping may exist before its body. A formula, curve, examples, or a
 fitted function can later be attached as a definition of the same block.
 Once a formula is supplied, for example
 
-$ f (theta) = op("clamp")(0.2 + 0.8 theta / 60^circle.stroked.tiny , 0 , 1) , $
+$ f\(theta\)= "clamp" (0.2 + 0.8 theta / 60^compose \, 0 \, 1)\, $
 
 it inhabits the previously declared signature. This
 #strong[signature-first authoring] model is not merely a user-interface
@@ -73,12 +72,12 @@ convenience. It is the foundation of progressive formalization: an
 unresolved typed mapping is a meaningful design artifact rather than a
 malformed program.
 
-#figure([#box(width: 95%, image("assets/mapping_block.png"));],
+#figure(image("assets/mapping_block.png", width: 95.0%, alt: "A signature-first Mapping Block. The flow graph contains one semantic relationship, Tilt -> Brightness; the formula is attached to the block rather than represented as an additional execution step."),
   caption: [
     A signature-first Mapping Block. The flow graph contains one
-    semantic relationship, `Tilt -> Brightness`; the formula is attached
-    to the block rather than represented as an additional execution
-    step.
+    semantic relationship, `Tilt -> Brightness`\; the formula is
+    attached to the block rather than represented as an additional
+    execution step.
   ]
 )
 <fig:mapping>
@@ -117,16 +116,16 @@ preserving the underlying computational ontology: variables,
 assignments, loops, callbacks, functions, transitions, and scheduling.
 For software developers this can be convenient. For industrial
 designers, however, the dominant difficulty is often not syntax but
-#emph[semantic translation];. The designer begins with a product
-statement such as "while the cup is held, brightness follows tilt" and
+#emph[semantic translation]. The designer begins with a product
+statement such as “while the cup is held, brightness follows tilt” and
 must translate it into implementation machinery.
 
 BDL therefore follows a stronger criterion: a surface primitive should
 be exposed only when it corresponds to a concept that is independently
 meaningful in the design task. A mutable accumulator used to count
-samples is generally not such a concept; "three pickup events within ten
-minutes" is. A polling loop is generally not; "while the product is
-held" is. A callback is not; "when the button is pressed" is.
+samples is generally not such a concept; “three pickup events within ten
+minutes” is. A polling loop is generally not; “while the product is
+held” is. A callback is not; “when the button is pressed” is.
 
 The language should directly expose the following concepts: semantic
 properties, continuous signals, discrete events, typed mappings,
@@ -139,8 +138,8 @@ an expert or debugging view, but they are not the primary design medium.
 == A flow graph is a dependency view, not a program counter
 <a-flow-graph-is-a-dependency-view-not-a-program-counter>
 BDL uses a flow-like canvas because causal and functional paths are
-useful visual structures. The arrows do #strong[not] mean "execute the
-left node and then the right node." They mean that the target
+useful visual structures. The arrows do #strong[not] mean “execute the
+left node and then the right node.” They mean that the target
 relationship depends on the source relationship or value.
 
 Consider the procedural decomposition:
@@ -156,7 +155,7 @@ Consider the procedural decomposition:
 ```
 
 This decomposition is rejected as a primary design representation
-because the "read," "compute," and "set" nodes are artifacts of an
+because the “read,” “compute,” and “set” nodes are artifacts of an
 execution model. The corresponding BDL view is a `Held` context
 containing a mapping from `Tilt` to `Brightness`. The formula is a
 property of that mapping, and the realization layer later binds
@@ -173,10 +172,10 @@ surrounding product logic.
 The surface language must remain intentionally small. Each additional
 primitive has a cost in learnability, visibility, consistency, and
 error-proneness, all familiar concerns in the Cognitive Dimensions
-tradition #cite(<green1996cognitive>);. BDL therefore uses a
-#emph[cognitive budget];: a new visible construct is justified only when
-it captures a distinct design concept that cannot be expressed cleanly
-as a property of an existing construct.
+tradition @green1996cognitive. BDL therefore uses a #emph[cognitive
+budget]: a new visible construct is justified only when it captures a
+distinct design concept that cannot be expressed cleanly as a property
+of an existing construct.
 
 This yields several design rules. Formulas are attached to mappings
 rather than represented as separate nodes. Time is expressed through
@@ -215,7 +214,7 @@ unless those details are semantically necessary to continue.
 <surface-language>
 == Semantic properties and signatures
 <semantic-properties-and-signatures>
-The first-class visual object in BDL is a #emph[semantic property];, not
+The first-class visual object in BDL is a #emph[semantic property], not
 a raw scalar. Examples include `Tilt`, `Brightness`, `Temperature`,
 `CupContact`, and `MotorAngle`. Each semantic property has a
 representation type and may carry units, ranges, and documentation, but
@@ -224,11 +223,11 @@ angular dimension without being interchangeable design concepts.
 
 A Mapping Block is created from a signature
 
-$ m : (A_1 , dots.h , A_n) arrow.r B . $
+$ m :\(A_1\,dots.h\,A_n\)arrow.r B . $
 
 At creation time the implementation may be an unresolved metavariable:
 
-$ ? m : (A_1 , dots.h , A_n) arrow.r B . $
+$ ? m :\(A_1\,dots.h\,A_n\)arrow.r B . $
 
 This is a valid partial artifact. The editor can already reject wires
 with incompatible domains, propagate semantic types downstream, show
@@ -245,10 +244,10 @@ into the main canvas.
 <mapping-blocks>
 A Mapping Block has the surface record
 
-$ upright("Mapping") = { & italic(i d) , #h(0em) italic(n a m e) , #h(0em) overline(x : A) , #h(0em) B ,\
- & italic(d e f i n i t i o n s) : sans(D e f)^(\*) ,\
- & italic(a c t i v e) : sans(I n d e x ?) ,\
- & italic(p r o p e r t i e s) : upright("Prop")^(\*) } . $
+$ upright("Mapping") = { & italic(i d)\,thick italic(n a m e)\,thick overline(x : A)\,thick B\,\
+ & italic(d e f i n i t i o n s) : sans(D e f)^(*)\,\
+ & italic(a c t i v e) : sans(I n d e x ?)\,\
+ & italic(p r o p e r t i e s) : upright("Prop")^(*) } . $
 
 A definition may be a mathematical expression, a piecewise curve, a set
 of input-output examples to be fitted, or a reference to an external
@@ -259,7 +258,7 @@ model.
 Three consequences follow from separating identity from definition.
 
 #strong[Identity belongs to the signature.] The pair
-$(italic(i d) , italic(n a m e))$ is stable across every change to
+$\(italic(i d)\,italic(n a m e)\)$ is stable across every change to
 $italic(d e f i n i t i o n s)$. $italic(i d)$ is the internal referent;
 $italic(n a m e)$ is a mutable display name, so renaming is a
 refactoring that updates all reference sites rather than a textual edit.
@@ -291,11 +290,11 @@ nothing.
 
 For signal-valued ports, a pure mapping is lifted pointwise. If
 
-$ f : A arrow.r B , $
+$ f : A arrow.r B\, $
 
 then in domain $d$ the reactive lifting has type
 
-$ upright("map")_d (f) : upright("Signal") [d] A arrow.r upright("Signal") [d] B . $
+$ upright("map")_d\(f\): upright("Signal")\[d\]A arrow.r upright("Signal")\[d\]B . $
 
 The designer need not see this lifting. It is an elaboration rule
 implied by connecting a signal-valued property to a Mapping Block.
@@ -304,13 +303,13 @@ implied by connecting a signal-valued property to a Mapping Block.
 <signals-and-events>
 BDL distinguishes time-varying values from discrete occurrences,
 following a long line of reactive-language work
-#cite(<elliott1997fran>);#cite(<cooper2006frtime>);.
+@elliott1997fran@cooper2006frtime.
 
 A `Signal<T>` denotes a value available at each tick of a clock.
 Examples are tilt angle, temperature, or estimated distance. An
 `Event<T>` denotes an occurrence that may or may not be present at a
-tick, optionally carrying a payload. Examples are "button pressed,"
-"pickup detected," or "overheat warning."
+tick, optionally carrying a payload. Examples are “button pressed,”
+“pickup detected,” or “overheat warning.”
 
 This distinction removes common hidden state. A rising-edge operator can
 convert a Boolean signal into an event without requiring the designer to
@@ -324,13 +323,13 @@ The surface language avoids `wait(300 ms)` as a primary construct
 because `wait` suggests a suspended sequential thread. Instead, BDL uses
 temporal modifiers that describe relationships:
 
-- `p for 300 ms`;
-- `after e by 2 s`;
-- `while p`;
-- `until e`;
-- `within 5 s`;
-- `since e`;
-- `once`;
+- `p for 300 ms`\;
+- `after e by 2 s`\;
+- `while p`\;
+- `until e`\;
+- `within 5 s`\;
+- `since e`\;
+- `once`\;
 - `every 1 s`.
 
 These modifiers elaborate to finite-state stream transducers. The
@@ -357,9 +356,9 @@ threshold.
 Nested handlers form a tree, avoiding the need to flatten every
 orthogonal concern into a Cartesian-product state machine. BDL still
 borrows the proven value of hierarchical state models
-#cite(<harel1987statecharts>);, but the surface metaphor is a
-#emph[context containing behavior];, not a transition diagram that the
-user must manually maintain.
+@harel1987statecharts, but the surface metaphor is a #emph[context
+containing behavior], not a transition diagram that the user must
+manually maintain.
 
 == Actions and effect requests
 <actions-and-effect-requests>
@@ -370,12 +369,12 @@ temporal structure; neither is modeled as an arbitrary side effect.
 
 The design is inspired by the separation between effectful operations
 and their interpretation in algebraic-effect systems
-#cite(<plotkin2013handlers>);, but the first BDL kernel intentionally
-implements a smaller request-and-policy model rather than claiming a
-fully general algebraic-effect calculus. A StateHandler can allow,
-suppress, transform, cap, prioritize, or arbitrate action requests. This
-is sufficient for important design concerns such as low-power mode,
-safety overrides, and mutually exclusive actuator access while keeping
+@plotkin2013handlers, but the first BDL kernel intentionally implements
+a smaller request-and-policy model rather than claiming a fully general
+algebraic-effect calculus. A StateHandler can allow, suppress,
+transform, cap, prioritize, or arbitrate action requests. This is
+sufficient for important design concerns such as low-power mode, safety
+overrides, and mutually exclusive actuator access while keeping
 continuations and generic effect handlers out of the surface language.
 
 == Typed holes as design artifacts
@@ -383,9 +382,9 @@ continuations and generic effect handlers out of the surface language.
 Typed holes are essential to BDL because incompleteness is normal during
 design. Work on typed structure editing, notably Hazelnut, shows that
 statically meaningful incomplete programs can be treated rigorously
-#cite(<omar2017hazelnut>);. BDL adapts the idea to product behavior: an
+@omar2017hazelnut. BDL adapts the idea to product behavior: an
 unresolved mapping is not a syntax error and not necessarily an
-"unfinished program." It can be a deliberate statement that a
+“unfinished program.” It can be a deliberate statement that a
 relationship exists while its concrete realization remains open.
 
 A hole is always constrained by an expected type. The surface editor may
@@ -399,7 +398,7 @@ therefore show
 while allowing the rest of the model to be authored and checked around
 it.
 
-A BDL hole is #emph[named];. The identifier is carried by the signature
+A BDL hole is #emph[named]. The identifier is carried by the signature
 rather than by the position at which the hole occurs, so
 `?pickupDetector` is a referent: other parts of the model may consume
 it, compose with it, and carry declared obligations about it while
@@ -435,7 +434,7 @@ designer places
 ?smooth : Signal<d, Distance> -> Signal<d, Distance>
 ```
 
-and the hole’s type is the specification the engineer works against. The
+and the hole's type is the specification the engineer works against. The
 same interface is used by the standard library that ships with the
 system, deliberately, so that first-party components cannot rely on
 facilities denied to third-party ones.
@@ -456,7 +455,7 @@ be reset may only appear at the top level. A block must also declare the
 update rate it was designed for, because a recursive filter transplanted
 from one rate to another does not fail, it silently acquires a different
 cutoff frequency. This last condition is checked against the bound rate
-of the block’s domain, and is the most common error in this class that
+of the block's domain, and is the most common error in this class that
 can be caught statically.
 
 These declarations enter $Phi$ rather than the core type system, and the
@@ -473,8 +472,8 @@ emitted as separate validation obligations.
 
 == Time, domains, and clocks
 <time-domains-and-clocks>
-BDL separates #emph[temporal identity];, which is fixed while the design
-is authored, from #emph[temporal rate];, which is fixed only at
+BDL separates #emph[temporal identity], which is fixed while the design
+is authored, from #emph[temporal rate], which is fixed only at
 realization binding.
 
 === Domains are declared, not inferred
@@ -491,11 +490,11 @@ that are updated together, which is a product-level statement a designer
 can make before any hardware has been chosen. Reactive types are indexed
 by a domain name rather than by a clock variable:
 
-$ upright("Signal") [d] thin tau , #h(2em) upright("Event") [d] thin tau . $
+$ upright("Signal")\[d\]thin tau\,#h(2em) upright("Event")\[d\]thin tau . $
 
-Domain equality is #strong[syntactic];. There are no domain
+Domain equality is #strong[syntactic]. There are no domain
 metavariables, no unification, and no domain inference. Clock domains
-are introduced only by explicit declarations \(or by rank-1 domain
+are introduced only by explicit declarations (or by rank-1 domain
 parameters in reusable component definitions). A `StateHandler` does
 #strong[not] create a new clock domain: it gates behavior within its
 enclosing domain while preserving the domain index of every signal and
@@ -506,7 +505,7 @@ needs to distinguish update rates never mentions a domain at all.
 
 This is a deliberate departure from the synchronous-language tradition,
 in which clocks are recovered by a dedicated clock calculus
-#cite(<colaco2003clocks>);. BDL adopts clocks-as-types and rejects
+@colaco2003clocks. BDL adopts clocks-as-types and rejects
 clocks-as-inference; the argument is developed in the discussion of
 nominal identity.
 
@@ -519,28 +518,28 @@ $ bb(T) = bb(R)_(gt.eq 0) . $
 At realization binding each domain $d$ receives a rate, that is, a
 strictly increasing sequence
 
-$ kappa_d : bb(N) arrow.r bb(T) , #h(2em) forall n . #h(0em) kappa_d (n + 1) > kappa_d (n) . $
+$ kappa_d : bb(N) arrow.r bb(T)\,#h(2em) forall n . thick kappa_d\(n + 1\)> kappa_d\(n\). $
 
 For value type $tau$,
 
-$ upright("Signal") [d] thin tau = bb(N) arrow.r tau $
+$ upright("Signal")\[d\]thin tau = bb(N) arrow.r tau $
 
 and
 
-$ upright("Event") [d] thin tau = bb(N) arrow.r upright("Option") thin tau . $
+$ upright("Event")\[d\]thin tau = bb(N) arrow.r upright("Option") thin tau . $
 
 For a finite set of bound domains, BDL also assumes that the union of
-their tick times is #strong[locally finite];: every bounded
-physical-time interval contains only finitely many domain ticks. The
-distinct physical instants can therefore be enumerated by a strictly
-increasing global schedule
+their tick times is #strong[locally finite]: every bounded physical-time
+interval contains only finitely many domain ticks. The distinct physical
+instants can therefore be enumerated by a strictly increasing global
+schedule
 
-$ kappa_G : bb(N) arrow.r bb(T) , $
+$ kappa_G : bb(N) arrow.r bb(T)\, $
 
-whose range is $union.big_d "range" (kappa_d)$. At global step $g$, the
+whose range is $union.big_d "range"\(kappa_d\)$. At global step $g$, the
 set of domains that fire is
 
-$ "Fire" (g) = { d divides exists i . #h(0em) kappa_d (i) = kappa_G (g) } . $
+$ "Fire"\(g\)= { d divides exists i . thick kappa_d\(i\)= kappa_G\(g\)} . $
 
 The global schedule is an execution device, not a new domain visible to
 the designer. It exists only to give a precise order to multi-domain
@@ -585,12 +584,12 @@ Declared domains give up principal typing. A reusable component such as
 a debounce filter would otherwise have to be duplicated per domain, so
 component definitions may be quantified:
 
-$ upright("debounce") : forall delta . #h(0em) upright("Signal") [delta] upright("Bool") arrow.r upright("Signal") [delta] upright("Bool") . $
+$ upright("debounce") : forall delta . thick upright("Signal")\[delta\]upright("Bool") arrow.r upright("Signal")\[delta\]upright("Bool") . $
 
 Quantification is prenex and rank-1, and instantiation is substitution
 of a domain name at the use site. There is deliberately no solving: the
-system supports domain-polymorphic #emph[definitions];, not domain
-#emph[inference];. This is the same arrangement as region annotation in
+system supports domain-polymorphic #emph[definitions], not domain
+#emph[inference]. This is the same arrangement as region annotation in
 languages with explicit lifetimes, where the annotation is written,
 locally elided, and never globally solved.
 
@@ -615,17 +614,17 @@ $ bb(D) = bb(Z)^m . $
 
 A physical quantity with dimension vector $d$ has representation type
 
-$ sans(Q) [d] . $
+$ sans(Q)\[d\]. $
 
 The standard dimensional rules apply:
 
-$ sans(Q) [d] + sans(Q) [d] arrow.r sans(Q) [d] , $
+$ sans(Q)\[d\]+ sans(Q)\[d\]arrow.r sans(Q)\[d\]\, $
 
-$ sans(Q) [d_1] times sans(Q) [d_2] arrow.r sans(Q) [d_1 + d_2] , $
+$ sans(Q)\[d_1\]times sans(Q)\[d_2\]arrow.r sans(Q)\[d_1 + d_2\]\, $
 
 and
 
-$ sans(Q) [d_1] \/ sans(Q) [d_2] arrow.r sans(Q) [d_1 - d_2] . $
+$ sans(Q)\[d_1\]\/sans(Q)\[d_2\]arrow.r sans(Q)\[d_1 - d_2\]. $
 
 === Units live at the boundary, not in the kernel
 <units-live-at-the-boundary-not-in-the-kernel>
@@ -655,7 +654,7 @@ emit a validation obligation.
 <semantic-types>
 BDL additionally supports #emph[nominal semantic types]
 
-$ upright("Sem") [n , d] , $
+$ upright("Sem")\[n\,d\]\, $
 
 where $n$ is a semantic name and $d$ is its physical dimension. Their
 representation can be accessed inside a mapping through an explicit
@@ -679,22 +678,22 @@ differently, so BDL distinguishes them.
 fully in the dimensional rules: ratios, gains, probabilities, and
 normalized quantities such as `Brightness`. Discrete event counts are
 ordinary integers rather than physical quantities. Scaling relies on
-$sans(Q) [0] times sans(Q) [d] arrow.r sans(Q) [d]$.
+$sans(Q)\[0\]times sans(Q)\[d\]arrow.r sans(Q)\[d\]$.
 
 #emph[Quantities that appear dimensionless but are not] must carry their
-dimension. Frequency is $sans(T)^(- 1)$; when plane angle is retained as
-a design dimension, angular velocity is
-$sans(A n g l e) dot.op sans(T)^(- 1)$; acceleration is
+dimension. Frequency is $sans(T)^(- 1)$\; when plane angle is retained
+as a design dimension, angular velocity is
+$sans(A n g l e) dot.op sans(T)^(- 1)$\; acceleration is
 $sans(L) dot.op sans(T)^(- 2)$. Recording these as dimensionless
 collapses distinctions that the design and the checker may need later.
 
 #emph[Non-physical semantic properties] are written
-$upright("Sem") [n , tack.t]$ and have no projection into $sans(Q)$.
+$upright("Sem")\[n\,tack.t\]$ and have no projection into $sans(Q)$.
 `Comfort`, `Urgency`, `Mode`, and `SoundId` are design concepts with no
-dimensional content. Encoding them as $sans(Q) [0]$ would admit
+dimensional content. Encoding them as $sans(Q)\[0\]$ would admit
 expressions such as a comfort multiplied by a gain, which pass
 dimensional checking and are meaningless. A value of type
-$upright("Sem") [n , tack.t]$ may be mapped, compared, and stored, but
+$upright("Sem")\[n\,tack.t\]$ may be mapped, compared, and stored, but
 not entered into dimensional arithmetic.
 
 This distribution has a consequence for where checking pressure falls.
@@ -710,7 +709,7 @@ between a well-formed model and a semantically wrong one.
 
 Construction of a semantic value uses
 
-$ upright("mk")_n : sans(Q) [d] arrow.r upright("Sem") [n , d] $
+$ upright("mk")_n : sans(Q)\[d\]arrow.r upright("Sem")\[n\,d\] $
 
 and may emit a validation obligation, for example $0 lt.eq b lt.eq 1$
 for normalized brightness. The surface formula editor can insert this
@@ -723,13 +722,13 @@ nominal coercion.
 The construction $upright("mk")_n$ takes a physical quantity to a
 semantic one, but a sensor does not produce a physical quantity. It
 produces a device representation. BDL therefore uses a separate
-representation type $sans(R a w) [r]$, where $r$ names the
+representation type $sans(R a w)\[r\]$, where $r$ names the
 representation or sensor channel. `Raw` values do not participate in
 dimensional arithmetic merely because their storage happens to be
 numeric. The full path from device to design is
 
-$ sans(R a w) [r] & arrow.r^(#h(0em) upright("calib") #h(0em)) sans(Q) [d] arrow.r^(#h(0em) upright("mk")_n #h(0em)) upright("Sem") [n , d]\
- & arrow.r^(#h(0em) upright("lift") #h(0em)) upright("Signal") [d prime] thin upright("Sem") [n , d] . $
+$ sans(R a w)\[r\] & arrow.r^(thick upright("calib") thick) sans(Q)\[d\]arrow.r^(thick upright("mk")_n thick) upright("Sem")\[n\,d\]\
+ & arrow.r^(thick upright("lift") thick) upright("Signal")\[d'\]thin upright("Sem")\[n\,d\]. $
 
 Here the stages are respectively device representation, physical
 quantity, design property, and reactive design property.
@@ -739,13 +738,13 @@ and the output path is its mirror image, ending in a device write.
 The first arrow deserves a name because it is where several distinct
 concerns actually live. A #strong[calibration]
 
-$ upright("calib") : sans(R a w) [r] arrow.r sans(Q) [d] $
+$ upright("calib") : sans(R a w)\[r\]arrow.r sans(Q)\[d\] $
 
 is a pure function, authored in the same modes as a Mapping definition
 and carrying the same kinds of declared property. A realization module
 may expose an explicit decoder for the underlying numeric code of
-$sans(R a w) [r]$, but there is no general coercion
-$sans(R a w) [r] arrow.r sans(Q) [0]$. This keeps representation
+$sans(R a w)\[r\]$, but there is no general coercion
+$sans(R a w)\[r\]arrow.r sans(Q)\[0\]$. This keeps representation
 arithmetic confined to the calibration boundary instead of granting raw
 ADC counts the algebra of physical dimensionless quantities. Calibration
 belongs to realization binding and does not appear on the intent canvas.
@@ -778,13 +777,13 @@ calibration rather than a behavior.
 <value-and-reactive-types>
 Core value types are
 
-$ tau : :=  & upright("Unit") divides upright("Bool") divides upright("Int") divides upright("Real") divides sans(R a w) [r] divides sans(Q) [d]\
- & divides upright("Sem") [n , d] divides upright("Enum") #h(0em) K divides tau_1 times tau_2\
- & divides { ell_i : tau_i }_(i in I) divides upright("Option") #h(0em) tau . $
+$ tau : :=  & upright("Unit") divides upright("Bool") divides upright("Int") divides upright("Real") divides sans(R a w)\[r\]divides sans(Q)\[d\]\
+ & divides upright("Sem")\[n\,d\]divides upright("Enum") thick K divides tau_1 times tau_2\
+ & divides { ell_i : tau_i }_(i in I) divides upright("Option") thick tau . $
 
 Reactive types are
 
-$ rho : := upright("Signal") [d] thin tau divides upright("Event") [d] thin tau . $
+$ rho : := upright("Signal")\[d\]thin tau divides upright("Event")\[d\]thin tau . $
 
 Effect capabilities are tracked separately by an effect row $epsilon$,
 not embedded in ordinary value types.
@@ -794,7 +793,7 @@ not embedded in ordinary value types.
 Pure expressions contain variables, constants, records, projections,
 conditionals, and registered pure operators:
 
-$ e : := x divides c divides p (e_1 , dots.h , e_n) divides upright("if") #h(0em) e #h(0em) upright("then") #h(0em) e_1 #h(0em) upright("else") #h(0em) e_2 divides { ell_i = e_i } divides e . ell . $
+$ e : := x divides c divides p\(e_1\,dots.h\,e_n\)divides upright("if") thick e thick upright("then") thick e_1 thick upright("else") thick e_2 divides { ell_i = e_i } divides e . ell . $
 
 They contain no assignment, I/O, general recursion, implicit clock
 reads, or arbitrary mutable state. This restriction is deliberate.
@@ -804,7 +803,7 @@ pointwise evaluation.
 
 The typing judgment is
 
-$ Delta , Gamma tack.r e : tau gt.closed Phi , $
+$ Delta\,Gamma tack.r e : tau gt.closed Phi\, $
 
 where $Delta$ is the device and primitive environment, $Gamma$ is the
 value environment, and $Phi$ is a set of non-core validation
@@ -812,19 +811,19 @@ obligations. Core typing does not depend on discharging $Phi$.
 
 Representative rules include
 
-$ x : tau in Gamma arrow.r.double Delta , Gamma tack.r x : tau . $
+$ x : tau in Gamma arrow.r.double Delta\,Gamma tack.r x : tau . $
 
 and
 
-$ (Gamma tack.r e_1 : sans(Q) [d]) and (Gamma tack.r e_2 : sans(Q) [d]) arrow.r.double Gamma tack.r e_1 + e_2 : sans(Q) [d] . $
+$ \(Gamma tack.r e_1 : sans(Q)\[d\]\)and\(Gamma tack.r e_2 : sans(Q)\[d\]\)arrow.r.double Gamma tack.r e_1 + e_2 : sans(Q)\[d\]. $
 
 For multiplication,
 
-$ (Gamma tack.r e_1 : sans(Q) [d_1]) and (Gamma tack.r e_2 : sans(Q) [d_2]) arrow.r.double Gamma tack.r e_1 e_2 : sans(Q) [d_1 + d_2] . $
+$ \(Gamma tack.r e_1 : sans(Q)\[d_1\]\)and\(Gamma tack.r e_2 : sans(Q)\[d_2\]\)arrow.r.double Gamma tack.r e_1 e_2 : sans(Q)\[d_1 + d_2\]. $
 
 A trigonometric primitive may have type
 
-$ sin : sans(Q) [upright("Angle")] arrow.r sans(Q) [bold(0)] . $
+$ sin : sans(Q)\[upright("Angle")\]arrow.r sans(Q)\[upright(bold(0))\]. $
 
 Whether angle is treated as its own design dimension or as dimensionless
 at the lowest numerical layer is a language-policy choice. BDL
@@ -835,19 +834,19 @@ prevents a class of semantically meaningless connections.
 <reactive-nodes>
 The kernel graph contains a small set of node forms:
 
-$ N : :=  & upright("source") divides upright("map") (f) divides upright("emap") (f) divides upright("filter") (p)\
- & divides upright("rise") divides upright("fall") divides upright("delay") (v_0) divides upright("temporal") (T)\
- & divides upright("resample") (R) divides upright("action") (o p) divides upright("scope") (H) . $
+$ N : :=  & upright("source") divides upright("map")\(f\)divides upright("emap")\(f\)divides upright("filter")\(p\)\
+ & divides upright("rise") divides upright("fall") divides upright("delay")\(v_0\)divides upright("temporal")\(T\)\
+ & divides upright("resample")\(R\)divides upright("action")\(o p\)divides upright("scope")\(H\). $
 
 A pure mapping rule is
 
-$  & (forall i . #h(0em) s_i : upright("Signal") [d] tau_i) and (x_1 : tau_1 , dots.h , x_n : tau_n tack.r f : tau_o)\
- & #h(2em) arrow.r.double upright("map") (f) (s_1 , dots.h , s_n) : upright("Signal") [d] tau_o . $
+$  & (forall i . thick s_i : upright("Signal") \[ d \] tau_i) and (x_1 : tau_1 \, dots.h \, x_n : tau_n tack.r f : tau_o)\
+ & #h(2em) arrow.r.double upright("map")\(f\)\(s_1\,dots.h\,s_n\): upright("Signal")\[d\]tau_o . $
 
 Its denotation is pointwise:
 
-$  & bracket.l.stroked upright("map") (f) (s_1 , dots.h , s_n) bracket.r.stroked (i)\
- & #h(2em) = bracket.l.stroked f bracket.r.stroked (bracket.l.stroked s_1 bracket.r.stroked (i) , dots.h , bracket.l.stroked s_n bracket.r.stroked (i)) . $
+$  & bracket.l.stroked upright("map")\(f\)\(s_1\,dots.h\,s_n\)bracket.r.stroked\(i\)\
+ & #h(2em) = bracket.l.stroked f bracket.r.stroked\(bracket.l.stroked s_1 bracket.r.stroked\(i\)\,dots.h\,bracket.l.stroked s_n bracket.r.stroked\(i\)\). $
 
 This is the formal basis of the surface-level `Tilt -> Brightness`
 Mapping Block.
@@ -856,13 +855,13 @@ Mapping Block.
 <event-extraction>
 For a Boolean signal, `rise` has type
 
-$ upright("rise") : upright("Signal") [d] upright("Bool") arrow.r upright("Event") [d] upright("Unit") . $
+$ upright("rise") : upright("Signal")\[d\]upright("Bool") arrow.r upright("Event")\[d\]upright("Unit") . $
 
 For $i > 0$,
 
-$ upright("rise") (s) (i) = upright("Some") (()) $
+$ upright("rise")\(s\)\(i\)= upright("Some")\(\(\)\) $
 
-iff $not s (i - 1) and s (i)$. The initial tick follows an explicit
+iff $not s\(i - 1\)and s\(i\)$. The initial tick follows an explicit
 initialization policy. This primitive replaces the common procedural
 pattern of maintaining a previous Boolean value manually.
 
@@ -876,27 +875,27 @@ design.
 <signals-zero-order-hold>
 If
 
-$ s : upright("Signal") [d_1] tau , $
+$ s : upright("Signal")\[d_1\]tau\, $
 
 then using it in $d_2$ requires
 
-$ upright("hold")_(d_1 arrow.r.double d_2) (v_0 , s) : upright("Signal") [d_2] tau . $
+$ upright("hold")_(d_1 arrow.r.double d_2)\(v_0\,s\): upright("Signal")\[d_2\]tau . $
 
 Once both domains are bound, let the target tick occur at physical time
-$t = kappa_(d_2) (j)$. BDL defines synchronization as a #strong[causal
-boundary];: the target may observe only source values committed strictly
+$t = kappa_(d_2)\(j\)$. BDL defines synchronization as a #strong[causal
+boundary]: the target may observe only source values committed strictly
 before $t$. Let
 
-$ i^(\*) = max { i divides kappa_(d_1) (i) < t } . $
+$ i^(*) = max { i divides kappa_(d_1)\(i\)< t } . $
 
-If such an $i^(\*)$ exists, the result is $s (i^(\*))$; otherwise it is
+If such an $i^(*)$ exists, the result is $s\(i^(*)\)$\; otherwise it is
 the explicit initial value $v_0$. A source tick that happens at the same
 physical timestamp as the target tick is committed only after the
 current global step and therefore becomes visible at a later target
 tick. This strict inequality prevents a cross-domain zero-time
 dependency from reintroducing an algebraic cycle through
 synchronization. The initial value is required, not defaulted, because
-it states the product’s behavior before the source has ever reported. In
+it states the product's behavior before the source has ever reported. In
 a safety context this is a design decision, not an implementation
 detail.
 
@@ -910,11 +909,11 @@ inside one target tick, which of them are observed, and when.
 
 A cross-domain event node carries an explicit policy
 
-$ pi : := upright("buffer") divides upright("coalesce") (mu) divides upright("latest") divides upright("drop") , $
+$ pi : := upright("buffer") divides upright("coalesce")\(mu\)divides upright("latest") divides upright("drop")\, $
 
 with
 
-$ upright("sync")_(d_1 arrow.r.double d_2)^pi (e) : upright("Event") [d_2] tau . $
+$ upright("sync")_(d_1 arrow.r.double d_2)^pi\(e\): upright("Event")\[d_2\]tau . $
 
 The synchronizer is stateful. Occurrences produced at source times
 strictly earlier than a target tick are first accumulated in its pending
@@ -925,7 +924,7 @@ target tick and preserves order and count. `latest` releases the most
 recent pending occurrence and discards older ones. `drop` releases the
 earliest pending occurrence and discards the rest. `coalesce` is not
 defined for an arbitrary payload type: it requires a deterministic
-explicit merge function $mu : tau^(+) arrow.r tau$ \(for `Unit`, the
+explicit merge function $mu : tau^(+) arrow.r tau$ (for `Unit`, the
 canonical merge simply returns `()`).
 
 The mathematical kernel may model the pending buffer as unbounded. A
@@ -947,7 +946,7 @@ is not user-visible unless inspected.
 
 A temporal primitive has a transition form
 
-$ T : (sigma , I_i , Delta t_i) arrow.r.bar (sigma prime , O_i) , $
+$ T :\(sigma\,I_i\,Delta t_i\)mapsto\(sigma'\,O_i\)\, $
 
 where $sigma$ is private local state. The primitive is deterministic and
 total for well-typed inputs.
@@ -955,33 +954,33 @@ total for well-typed inputs.
 == StateHandler activation
 <statehandler-activation>
 A StateHandler $H$ has an activation stream
-$a_H : upright("Signal") [d] upright("Bool")$, a local graph $G_H$,
+$a_H : upright("Signal")\[d\]upright("Bool")$, a local graph $G_H$,
 local machine state $Sigma_H$, child handlers, and an action policy. A
 condition-scoped handler simply uses
 
-$ a_H (i) = p (i) . $
+$ a_H\(i\)= p\(i\). $
 
 An event-latched handler with entry event $e n_H$ and exit event $e x_H$
 uses an explicit deterministic policy. Under the default
 #strong[exit-wins] policy,
 
-$ a_H (0) = upright("has") (e n_H (0)) and not upright("has") (e x_H (0)) , $
+$ a_H\(0\)= upright("has")\(e n_H\(0\)\)and not upright("has")\(e x_H\(0\)\)\, $
 
 and
 
-$ a_H (i + 1) = not upright("has") (e x_H (i + 1)) and #scale(x: 120%, y: 120%)[\(] a_H (i) or upright("has") (e n_H (i + 1)) #scale(x: 120%, y: 120%)[\)] . $
+$ a_H\(i + 1\)= not upright("has")\(e x_H\(i + 1\)\)and #scale(x: 120%, y: 120%)[\(] a_H\(i\)or upright("has")\(e n_H\(i + 1\)\)#scale(x: 120%, y: 120%)[\)] . $
 
 If same-tick exit and re-entry is desired, the designer must choose a
 separate `reenter` policy. The runtime does not infer it.
 
 If $H_c$ is a child of $H_p$, effective activation is
 
-$ a_(H_c)^(\*) (i) = a_(H_p)^(\*) (i) and a_(H_c) (i) . $
+$ a_(H_c)^(*)\(i\)= a_(H_p)^(*)\(i\)and a_(H_c)\(i\). $
 
 == Activation stratification
 <activation-stratification>
-A handler’s activation condition is authored in its #strong[parent
-scope];. It may depend on sampled or synchronized inputs, pure mappings
+A handler's activation condition is authored in its #strong[parent
+scope]. It may depend on sampled or synchronized inputs, pure mappings
 available in the parent, and committed pre-tick temporal state, but it
 may not depend on a same-tick value whose evaluation is guarded by that
 handler or by one of its descendants. Equivalently, if the elaborated
@@ -992,18 +991,18 @@ needing to be active in order to compute whether it is active.
 
 == Reset-on-entry local state
 <reset-on-entry-local-state>
-The default local-state policy is #strong[reset on entry];. A temporal
+The default local-state policy is #strong[reset on entry]. A temporal
 operator placed inside `Held` should not continue counting while the
 product is not held. All values inside the handler retain the enclosing
-reactive type $upright("Signal") [d] thin tau$ or
-$upright("Event") [d] thin tau$; activation does not manufacture a new
+reactive type $upright("Signal")\[d\]thin tau$ or
+$upright("Event")\[d\]thin tau$\; activation does not manufacture a new
 nominal clock domain. Define the active-tick set
 
-$ "ActiveTicks" (H) = { i in bb(N) divides a_H^(\*) (i) = upright("true") } . $
+$ "ActiveTicks"\(H\)= { i in bb(N) divides a_H^(*)\(i\)= upright("true") } . $
 
-This set is an #strong[operational subclock view];, not a domain index
+This set is an #strong[operational subclock view], not a domain index
 and never appears in a reactive type. Local temporal state advances only
-on ticks in $"ActiveTicks" (H)$ and is reset at each inactive-to-active
+on ticks in $"ActiveTicks"\(H\)$ and is reset at each inactive-to-active
 boundary. On inactive ticks the handler emits no local action requests
 and its resettable local state does not advance. Persistent history is
 available only through an explicit `persistent` memory declaration. This
@@ -1014,12 +1013,12 @@ residue.
 <controlled-history-primitives>
 BDL exposes a small vocabulary of semantic history operators:
 
-$ upright("previous") , #h(0em) upright("count") , #h(0em) upright("since") , #h(0em) upright("average") , #h(0em) upright("hold") , #h(0em) upright("latch") . $
+$ upright("previous")\,thick upright("count")\,thick upright("since")\,thick upright("average")\,thick upright("hold")\,thick upright("latch") . $
 
-For example, "picked up more than three times within ten minutes" can be
+For example, “picked up more than three times within ten minutes” can be
 represented as
 
-$ upright("count") (upright("PickedUp") , 10 thin upright("min")) > 3 $
+$ upright("count")\(upright("PickedUp")\,10 thin upright("min")\)> 3 $
 
 without exposing an integer counter, reset branch, or timer variable to
 the designer.
@@ -1031,13 +1030,13 @@ the designer.
 The device environment $Delta$ assigns each request operation a
 parameter type,
 
-$ Delta (o p) = P_(o p) . $
+$ Delta\(o p\)= P_(o p) . $
 
-The first kernel is deliberately #strong[request-only];: issuing an
+The first kernel is deliberately #strong[request-only]: issuing an
 operation does not synchronously return a value. A well-typed runtime
 request is therefore a dependent pair
 
-$ upright("Request")_Delta = Sigma_(o p in "dom" (Delta)) thin P_(o p) . $
+$ upright("Request")_Delta = Sigma_(o p in "dom"\(Delta\)) thin P_(o p) . $
 
 For example, the surface capability declarations may be written
 
@@ -1050,11 +1049,11 @@ request play_sound(SoundId)
 An action node consumes a signal or event carrying the corresponding
 operation parameter and emits a request on the same logical clock.
 Acknowledgement, failure, and asynchronous completion are represented
-neither by a phantom synchronous result type nor by `Unit`; they are a
+neither by a phantom synchronous result type nor by `Unit`\; they are a
 separate extension discussed under formal limits. The behavior judgment
 tracks a row of possible operations:
 
-$ Gamma tack.r b : tau #h(0em) ! #h(0em) epsilon . $
+$ Gamma tack.r b : tau thick ! thick epsilon . $
 
 == Policy interpretation
 <policy-interpretation>
@@ -1068,7 +1067,7 @@ Dynamically, it is a total deterministic transformer on the finite
 request multiset produced at one tick. Nested policies are applied
 inside-out:
 
-$ upright("Resolve")_(H_p circle.stroked.tiny H_c) (R) = upright("Resolve")_(H_p) (upright("Resolve")_(H_c) (R)) . $
+$ upright("Resolve")_(H_p compose H_c)\(R\)= upright("Resolve")_(H_p)\(upright("Resolve")_(H_c)\(R\)\). $
 
 This ordering permits local context to modify behavior while ensuring
 that outer safety policies still see every forwarded request.
@@ -1078,7 +1077,7 @@ resumable continuations and does not claim that `StateHandler` #emph[is]
 a general algebraic-effect handler. The semantic relationship is
 narrower: both separate a request from its interpretation, and a future
 calculus may adopt scoped algebraic effects if it becomes necessary to
-model richer context-sensitive interactions #cite(<yang2022scoped>);.
+model richer context-sensitive interactions @yang2022scoped.
 
 == Actuator conflicts
 <actuator-conflicts>
@@ -1092,7 +1091,7 @@ following holds:
   composition law.
 
 Otherwise the checker reports `UnresolvedEffectConflict`. There is no
-"last wire wins" rule.
+“last wire wins” rule.
 
 = Static Semantics and Typechecking
 <static-semantics-and-typechecking>
@@ -1101,17 +1100,17 @@ Otherwise the checker reports `UnresolvedEffectConflict`. There is no
 BDL uses bidirectional typing because Mapping Blocks almost always
 supply an expected codomain. Algorithmic judgments are
 
-$ Delta , Gamma tack.r e arrow.r.double tau tack.l C $
+$ Delta\,Gamma tack.r e arrow.r.double tau tack.l C $
 
 for synthesis and
 
-$ Delta , Gamma tack.r e arrow.l.double tau tack.l C $
+$ Delta\,Gamma tack.r e arrow.l.double tau tack.l C $
 
 for checking. Here $C$ contains decidable structural constraints.
 
 A typed hole has only a checking rule:
 
-$ Delta , Gamma tack.r ?_m arrow.l.double tau tack.l { ?_m : tau } . $
+$ Delta\,Gamma tack.r ?_m arrow.l.double tau tack.l { ?_m : tau } . $
 
 and no unconstrained synthesis rule. A hole therefore cannot invent a
 universal type. It is always constrained by a signature, port, or
@@ -1121,20 +1120,20 @@ explicit annotation.
 <signature-first-mapping-checking>
 Suppose the designer has declared
 
-$ m : (A_1 , dots.h , A_n) arrow.r B . $
+$ m :\(A_1\,dots.h\,A_n\)arrow.r B . $
 
 The editor constructs
 
-$ Gamma_m = x_1 : A_1 , dots.h , x_n : A_n . $
+$ Gamma_m = x_1 : A_1\,dots.h\,x_n : A_n . $
 
 If the mapping definition is a hole, the checker records
 
-$ ? m : (A_1 , dots.h , A_n) arrow.r B . $
+$ ? m :\(A_1\,dots.h\,A_n\)arrow.r B . $
 
 If a formula $e$ is supplied, the preferred rule is expected-type
 checking:
 
-$ Delta , Gamma_m tack.r e arrow.l.double B tack.l C . $
+$ Delta\,Gamma_m tack.r e arrow.l.double B tack.l C . $
 
 For nominal semantic outputs, the surface elaborator may insert the
 explicit kernel constructor implied by $B$ and emit any associated range
@@ -1170,9 +1169,9 @@ types match after representation-preserving unit normalization, and when
 their domain indices are syntactically equal. The following are never
 inserted implicitly:
 
-- `Signal -> Event`;
-- `Event -> Signal`;
-- a direct cross-domain signal or event wire when $d_1 eq.not d_2$;
+- `Signal -> Event`\;
+- `Event -> Signal`\;
+- a direct cross-domain signal or event wire when $d_1 eq.not d_2$\;
 - a dimension-changing conversion;
 - a stateful temporal conversion;
 - actuator arbitration.
@@ -1191,7 +1190,7 @@ contain a declared delay boundary before the graph is accepted.
 This excludes instantaneous algebraic loops from the executable kernel
 and gives a topological evaluation order per tick. It follows the
 synchronous-language tradition of making causality a static property
-#cite(<colaco2005state>);.
+@colaco2005state.
 
 == Model acceptance levels
 <model-acceptance-levels>
@@ -1201,24 +1200,24 @@ The checker distinguishes three claims:
   expected type and the surrounding graph is structurally type-correct.
 - #strong[Executable.] No runtime-required hole remains; domain rates,
   causality, effect policies, and device capabilities are resolved.
-- #strong[Verified\(P).] The model is executable and the selected
+- #strong[Verified(P).] The model is executable and the selected
   validation obligations $P$ have been discharged.
 
-A green check mark should never collapse these claims into one. "The
-model can run" is weaker than "the model satisfies the chosen physical
-and safety properties."
+A green check mark should never collapse these claims into one. “The
+model can run” is weaker than “the model satisfies the chosen physical
+and safety properties.”
 
 = Validation Obligations
 <validation-obligations>
-Core typing answers questions such as "is this value a brightness rather
-than a temperature?", "do these signals share a domain?", and "can this
-action be issued in this scope?" It should not attempt to decide every
+Core typing answers questions such as “is this value a brightness rather
+than a temperature?”, “do these signals share a domain?”, and “can this
+action be issued in this scope?” It should not attempt to decide every
 engineering property.
 
 The elaborator therefore produces a set $Phi$ of proof or analysis
 obligations. Typical obligations include
 
-- semantic range preservation, e.g.~$0 lt.eq L lt.eq 1$;
+- semantic range preservation, e.g.~$0 lt.eq L lt.eq 1$\;
 - monotonicity of a Mapping;
 - maximum response latency;
 - actuator update-rate limits;
@@ -1236,7 +1235,7 @@ obligation established by interval analysis over a normalized
 expression, one established by a million randomized cases, and one
 asserted by a component vendor are three different epistemic situations.
 
-$upright("Verified") (P)$ must therefore report how $P$ was obtained. A
+$upright("Verified")\(P\)$ must therefore report how $P$ was obtained. A
 model whose safety property rests on a declared worst-case execution
 time is not in the same state as one whose property was proved, and
 presenting both with the same indication would reintroduce exactly the
@@ -1248,12 +1247,12 @@ false confidence the acceptance levels are meant to prevent.
 <machine-configuration>
 Let $g$ index the global schedule $kappa_G$, and let
 
-$ F_g = "Fire" (g) $
+$ F_g = "Fire"\(g\) $
 
 be the set of domains whose local clocks tick at physical time
-$kappa_G (g)$. A runtime configuration is
+$kappa_G\(g\)$. A runtime configuration is
 
-$ cal(M)_g = chevron.l I_g , Sigma_g , A_g chevron.r , $
+$ cal(M)_g = chevron.l I_g\,Sigma_g\,A_g chevron.r\, $
 
 where $I_g$ contains sampled inputs and synchronized event deliveries
 for the firing domains, $Sigma_g$ contains temporal state, synchronizer
@@ -1264,7 +1263,7 @@ One global step proceeds in five phases:
 
 + #strong[Sample.] For each $d in F_g$, acquire external inputs for that
   domain and expose synchronizer outputs computed only from source data
-  committed at physical times strictly earlier than $kappa_G (g)$.
+  committed at physical times strictly earlier than $kappa_G\(g\)$.
 + #strong[Activate.] Evaluate stratified StateHandler activation
   predicates in the firing domains and apply reset-on-entry boundaries.
 + #strong[Evaluate.] Evaluate the instantaneous DAGs of the firing
@@ -1278,8 +1277,8 @@ One global step proceeds in five phases:
 
 The ordering of `Sample` before `Commit` is semantically important. If a
 source and target domain tick at the same physical timestamp, the target
-observes the source’s previously committed value or pending events,
-never the source’s just-computed value from the same global step. This
+observes the source's previously committed value or pending events,
+never the source's just-computed value from the same global step. This
 gives every explicit cross-domain synchronizer a causal boundary and
 prevents simultaneous cross-domain dependencies from forming an
 instantaneous cycle. State updates are otherwise committed only after
@@ -1310,7 +1309,7 @@ firing-domain set $F_g$. Synchronizer outputs are functions only of
 committed pre-step state, so simultaneous source and target ticks cannot
 introduce a scheduling choice. Stratified activation is a deterministic
 function of sampled inputs and prior state. Acyclicity of $G_0$ gives a
-unique topological evaluation of every firing domain’s pure and reactive
+unique topological evaluation of every firing domain's pure and reactive
 instantaneous nodes; deterministic primitives therefore produce unique
 node values. Temporal nodes compute unique pending state updates from
 the pre-step state. Total deterministic policy composition yields a
@@ -1319,22 +1318,22 @@ state. No phase depends on arbitrary node scheduling.
 
 == Type preservation across a tick
 <type-preservation-across-a-tick>
-Let $upright("WT") (cal(M) , G)$ mean that all runtime cells,
+Let $upright("WT")\(cal(M)\,G\)$ mean that all runtime cells,
 active-handler states, synchronizer cells, and bound device values
 conform to the types assigned by the elaborated graph. If
 
-$ upright("StaticAccept") (G) , quad upright("WT") (cal(M)_g , G) , quad upright("WTInput") (I_g , G) , $
+$ upright("StaticAccept")\(G\)\,quad upright("WT")\(cal(M)_g\,G\)\,quad upright("WTInput")\(I_g\,G\)\, $
 
 and
 
-$ upright("Step")_G (cal(M)_g , I_g) = (cal(M)_(g + 1) , R_g) , $
+$ upright("Step")_G\(cal(M)_g\,I_g\)=\(cal(M)_(g + 1)\,R_g\)\, $
 
 then
 
-$ upright("WT") (cal(M)_(g + 1) , G) $
+$ upright("WT")\(cal(M)_(g + 1)\,G\) $
 
-and every request $(o p , p)$ in $R_g$ satisfies $p : P_(o p)$ for the
-corresponding declaration $Delta (o p) = P_(o p)$ and names an operation
+and every request $\(o p\,p\)$ in $R_g$ satisfies $p : P_(o p)$ for the
+corresponding declaration $Delta\(o p\)= P_(o p)$ and names an operation
 present in the inferred effect row.
 
 The proof follows by induction over the topological node order plus
@@ -1382,27 +1381,28 @@ bottom-up traversal rather than a constraint-solving problem. Every
 `source` node states its domain. Every other node derives one:
 
 - `map`, `emap`, `filter`, `rise`, `fall`, `delay`, and `temporal` with
-  a single reactive input inherit that input’s domain;
+  a single reactive input inherit that input's domain;
 - a node with several reactive inputs requires all of them to carry the
   same domain, and reports a diagnostic otherwise;
 - `hold` and `sync` are the only nodes that change a domain, and both
   are explicit;
-- `scope(H)` preserves the enclosing domain $d$; it adds an activation
+- `scope(H)` preserves the enclosing domain $d$\; it adds an activation
   mask and reset policy but does not change the reactive type index.
 
-A node’s domain is therefore fixed when the traversal reaches it, with
+A node's domain is therefore fixed when the traversal reaches it, with
 no backtracking, no constraint set, and no provenance reconstruction.
 The diagnostic for a domain mismatch is located at the multi-input node
 itself, which is the wire the designer drew, and it is phrased in the
 names the designer chose:
 
 #quote(block: true)[
-`critical` is updated in `ambient`; heating control is in `interaction`.
-Hold the last temperature verdict, or move heating control to `ambient`?
+`critical` is updated in `ambient`\; heating control is in
+`interaction`. Hold the last temperature verdict, or move heating
+control to `ambient`?
 ]
 
 A useful diagnostic states #emph[what behavioral consequence each option
-has];, and both options above are legitimate designs rather than error
+has], and both options above are legitimate designs rather than error
 recoveries.
 
 == State and temporal lowering
@@ -1432,8 +1432,8 @@ than part of typechecking.
 
 It pays for itself in three places. Nominal wrappers introduced by
 elaboration are eliminated: with
-$upright("mk")_n (upright("rep") (x)) arrow.r.squiggly x$ and
-$upright("rep") (upright("mk")_n (e)) arrow.r.squiggly e$, the semantic
+$upright("mk")_n\(upright("rep")\(x\)\)arrow.r.squiggly x$ and
+$upright("rep")\(upright("mk")_n\(e\)\)arrow.r.squiggly e$, the semantic
 layer disappears from the residual term. Interval analysis becomes
 sharper, because interval arithmetic is sensitive to syntactic form and
 a normalized expression yields tighter bounds than the form the designer
@@ -1474,7 +1474,7 @@ engineering burden it is intended to remove. The editor should therefore
 be layered around the sequence in which product intent normally becomes
 precise.
 
-#figure([#box(width: 95%, image("assets/authoring_layers.png"));],
+#figure(image("assets/authoring_layers.png", width: 95.0%, alt: "Recommended progressive authoring layers. Each layer adds semantic commitment without invalidating the higher-level design artifact."),
   caption: [
     Recommended progressive authoring layers. Each layer adds semantic
     commitment without invalidating the higher-level design artifact.
@@ -1507,7 +1507,7 @@ relationship is semantically declared but not yet defined.
 <layer-2-signature-and-property-inspector>
 Opening the block reveals domain and codomain documentation, units,
 ranges, clock expectations, and optional semantic properties. At this
-stage the user may state "monotonically increasing" or add input-output
+stage the user may state “monotonically increasing” or add input-output
 examples without writing a formula.
 
 This layer is important because it allows a middle ground between a
@@ -1525,13 +1525,13 @@ The designer can choose one of several equivalent authoring modes:
 - reference to a reusable component.
 
 All modes elaborate to the same typed mapping boundary. The formula is
-an #emph[attachment to the relationship];. It never becomes another box
+an #emph[attachment to the relationship]. It never becomes another box
 on the main flow path.
 
 For expert users, the formula editor can display inferred units and the
 expected type continuously. For novice users, unit errors should be
-phrased in product terms, e.g.~"This expression produces angular
-velocity, but this block promises brightness," rather than exposing a
+phrased in product terms, e.g.~“This expression produces angular
+velocity, but this block promises brightness,” rather than exposing a
 unification trace.
 
 == Layer 4: Temporal and StateHandler detail
@@ -1617,19 +1617,19 @@ statement.
 
 Later, the mapping is refined:
 
-$ f (theta) = upright("mk")_(upright("Brightness"))(op("clamp") (0.2 + 0.8 frac(upright("rep") (theta), 60^circle.stroked.tiny) , 0 , 1)) . $
+$ f\(theta\)= upright("mk")_(upright("Brightness")) ("clamp" (0.2 + 0.8 frac(upright("rep")\(theta\), 60^compose) \, 0 \, 1)) . $
 
 The surface editor may display only the scalar formula and infer the
 nominal constructor from the signature. The kernel records the
 constructor and emits the brightness range obligation.
 
-Pickup detection may then be specified as "contact false for 300 ms,"
+Pickup detection may then be specified as “contact false for 300 ms,”
 which elaborates to a temporal transducer and rising-edge event. When
 the concrete contact sensor is later bound at 20 Hz, the timing is
 representable. If the designer instead binds a 1 Hz sampled source, the
 core graph remains type-correct, but a feasibility obligation for the
 300 ms detector fails. This distinction is intentional: #emph[type
-correctness and physical adequacy are different claims];.
+correctness and physical adequacy are different claims].
 
 The safety rule is represented as an outer policy that suppresses
 heater-enabling actions while critical temperature holds. Because outer
@@ -1639,7 +1639,7 @@ of state explosion and makes the safety intent visibly global.
 
 That rule also crosses a domain boundary, and this is where the
 treatment of time becomes visible. The critical-temperature predicate is
-computed in `ambient`; the heating action it suppresses is issued in
+computed in `ambient`\; the heating action it suppresses is issued in
 `interaction`. The checker rejects the direct connection at Level 3,
 while the designer still holds every piece of information needed to
 resolve it and still lacks none of it, and asks which behavior is
@@ -1764,7 +1764,7 @@ defaults.
 Formula authoring must therefore coexist with curves, examples, and
 direct manipulation.
 
-#strong[False confidence.] A formally typed diagram can look "verified"
+#strong[False confidence.] A formally typed diagram can look “verified”
 even when no physical feasibility property has been checked. The UI must
 preserve the acceptance-level distinction. The risk is sharpest for
 obligations discharged by declaration rather than by analysis: a model
@@ -1789,11 +1789,11 @@ or Arduino-style implementation workflow. Participants should be
 industrial-design students and practitioners with limited professional
 software-engineering experience.
 
-Tasks should include: \(1) specifying a sensor-to-actuator mapping; \(2)
-adding temporal qualification such as "for 300 ms"; \(3) adding an
-orthogonal safety override; \(4) replacing a sensor with a different
-sample rate; \(5) relating a slowly updated quantity to a fast
-interaction, which forces a cross-domain decision; and \(6) modifying a
+Tasks should include: (1) specifying a sensor-to-actuator mapping; (2)
+adding temporal qualification such as “for 300 ms”; (3) adding an
+orthogonal safety override; (4) replacing a sensor with a different
+sample rate; (5) relating a slowly updated quantity to a fast
+interaction, which forces a cross-domain decision; and (6) modifying a
 mapping late in the task.
 
 Primary outcomes should not be limited to task time or SUS. More
@@ -1821,7 +1821,7 @@ defaults is considerably cheaper than the full study and can be run
 during Stage 1.
 
 A particularly important test is whether BDL increases #emph[design
-agency];: can participants directly specify and revise behaviors that
+agency]: can participants directly specify and revise behaviors that
 they would otherwise delegate or avoid because the implementation
 representation is too costly?
 
@@ -1835,7 +1835,7 @@ they request escape hatches, and how often engineers reinterpret or
 replace BDL artifacts during implementation.
 
 This field evidence is necessary before claiming that the language is
-"native" to industrial design rather than merely pleasant to its
+“native” to industrial design rather than merely pleasant to its
 authors.
 
 = Relationship to Prior Work
@@ -1844,19 +1844,18 @@ authors.
 <physical-prototyping-and-design-tools>
 Phidgets reduced the implementation cost of physical interaction by
 presenting hardware components through a uniform software abstraction
-#cite(<greenberg2001phidgets>);. d.tools went further by integrating
-physical prototyping, statechart-based behavior, testing, and analysis
-for designers #cite(<hartmann2006dtools>);. BDL shares the goal of
-keeping designers focused on behavior rather than low-level
-implementation, but shifts the primary representation from statechart
-execution structure to typed semantic relationships with progressively
-supplied definitions.
+@greenberg2001phidgets. d.tools went further by integrating physical
+prototyping, statechart-based behavior, testing, and analysis for
+designers @hartmann2006dtools. BDL shares the goal of keeping designers
+focused on behavior rather than low-level implementation, but shifts the
+primary representation from statechart execution structure to typed
+semantic relationships with progressively supplied definitions.
 
 Exemplar addressed the same authoring cost from the opposite direction,
 letting designers demonstrate sensor behavior and having the system
-infer the recognizer #cite(<hartmann2007exemplar>);. In BDL that
-technique is one of several ways to supply a definition, attached to a
-signature that already fixes the relationship’s semantic boundary.
+infer the recognizer @hartmann2007exemplar. In BDL that technique is one
+of several ways to supply a definition, attached to a signature that
+already fixes the relationship's semantic boundary.
 
 The difference is not that prior systems could not represent behavior.
 They could. The claim is narrower: their dominant representation still
@@ -1873,14 +1872,14 @@ graphical dataflow instrument-control paradigm; Simulink with Stateflow
 combines dataflow blocks with hierarchical state machines and dominates
 control-system practice; Modelica models physical systems through
 acausal equations with units and dimensions
-#cite(<national2024labview>);#cite(<mathworks2024simulink>);#cite(<modelica2023spec>);.
-These systems are considerably more capable than what is proposed here,
-and BDL should not be read as competing with them on coverage.
+@national2024labview@mathworks2024simulink@modelica2023spec. These
+systems are considerably more capable than what is proposed here, and
+BDL should not be read as competing with them on coverage.
 
 The distinction is in the primary artifact and the intended author. In
 each of these systems the artifact is an executable model whose blocks
 denote computation, and the author is expected to hold an engineering
-model of the system. BDL’s artifact is a set of typed semantic
+model of the system. BDL's artifact is a set of typed semantic
 relationships that need not yet compute anything, and the author is
 expected to hold a product model. Whether this is a difference worth a
 new system, rather than a interface layer over an existing one, is
@@ -1888,7 +1887,7 @@ exactly what the evaluation below is meant to determine.
 
 It should also be stated plainly that the kernel is assembled from
 established components rather than invented. Dimensional typing follows
-the units-of-measure line begun by Kennedy #cite(<kennedy1997units>);;
+the units-of-measure line begun by Kennedy @kennedy1997units\;
 clocks-as-types, causality as a static property, and synchronous tick
 semantics come from the synchronous dataflow tradition; signals and
 events come from functional reactive programming; typed holes come from
@@ -1900,13 +1899,13 @@ identity rather than infer it. It does not concern the calculus.
 == Statecharts and synchronous reactive languages
 <statecharts-and-synchronous-reactive-languages>
 Statecharts provide hierarchy, concurrency, and communication for
-complex reactive systems #cite(<harel1987statecharts>);. Synchronous
-dataflow languages and their state-machine extensions provide precise
-clock and causality semantics suitable for safety-critical
-implementation #cite(<colaco2003clocks>);#cite(<colaco2005state>);, and
-Zélus extends the same lineage to hybrid systems combining discrete and
-continuous dynamics #cite(<bourke2013zelus>);, which is the direction in
-which the limitations noted above would have to be addressed.
+complex reactive systems @harel1987statecharts. Synchronous dataflow
+languages and their state-machine extensions provide precise clock and
+causality semantics suitable for safety-critical implementation
+@colaco2003clocks@colaco2005state, and Zélus extends the same lineage to
+hybrid systems combining discrete and continuous dynamics
+@bourke2013zelus, which is the direction in which the limitations noted
+above would have to be addressed.
 
 BDL borrows these semantic strengths while refusing to make their
 operational concepts the default designer-facing notation. The refusal
@@ -1919,38 +1918,38 @@ the point at which the designer is least able to make it.
 == Functional reactive programming
 <functional-reactive-programming>
 FRP established behaviors/signals and events as compositional
-abstractions for time-varying computation #cite(<elliott1997fran>);.
-FrTime demonstrated a dynamic dataflow embedding with formal semantics
-#cite(<cooper2006frtime>);. BDL uses a much more restricted reactive
-core because product-behavior tooling benefits from explicit clocks,
-bounded temporal state, and predictable causality.
+abstractions for time-varying computation @elliott1997fran. FrTime
+demonstrated a dynamic dataflow embedding with formal semantics
+@cooper2006frtime. BDL uses a much more restricted reactive core because
+product-behavior tooling benefits from explicit clocks, bounded temporal
+state, and predictable causality.
 
 == Typed holes and structure editing
 <typed-holes-and-structure-editing>
 Hazelnut demonstrates that incomplete structured terms can remain
-statically meaningful under bidirectional typing
-#cite(<omar2017hazelnut>);. BDL treats this idea as directly relevant to
-design. A typed hole represents an intentional open design decision.
-Unlike a conventional programming environment, the incompleteness may
-persist across significant portions of the design process and is part of
-the workflow rather than merely a temporary editing state.
+statically meaningful under bidirectional typing @omar2017hazelnut. BDL
+treats this idea as directly relevant to design. A typed hole represents
+an intentional open design decision. Unlike a conventional programming
+environment, the incompleteness may persist across significant portions
+of the design process and is part of the workflow rather than merely a
+temporary editing state.
 
 == Algebraic and scoped effects
 <algebraic-and-scoped-effects>
 Algebraic effects separate operation requests from handlers that
-interpret them #cite(<plotkin2013handlers>);. Scoped-effect work
-explores operations whose meaning extends over structured regions
-#cite(<yang2022scoped>);. BDL borrows the separation principle for
-actuator requests and StateHandler policies but currently defines a
-simpler deterministic request transformation semantics. A stronger
-effect calculus should be adopted only if concrete product-design use
-cases require resumable control or more general scoped operations.
+interpret them @plotkin2013handlers. Scoped-effect work explores
+operations whose meaning extends over structured regions
+@yang2022scoped. BDL borrows the separation principle for actuator
+requests and StateHandler policies but currently defines a simpler
+deterministic request transformation semantics. A stronger effect
+calculus should be adopted only if concrete product-design use cases
+require resumable control or more general scoped operations.
 
 == Model-based systems engineering
 <model-based-systems-engineering>
 SysML and MBSE address precise system structure, requirements, behavior,
-and verification at a broader engineering level #cite(<omg2025sysml>);.
-BDL is not intended to replace them. Its research question is whether a
+and verification at a broader engineering level @omg2025sysml. BDL is
+not intended to replace them. Its research question is whether a
 substantially smaller, design-native behavioral notation can serve as
 the #emph[front end] of early industrial design and later elaborate or
 export into engineering representations.
@@ -1979,11 +1978,11 @@ exploration rather than merely police a finished implementation.
 BDL makes the same choice twice, on two axes, and the symmetry is not
 accidental.
 
-On the axis of quantity, $upright("Sem") [n , d]$ makes semantic
+On the axis of quantity, $upright("Sem")\[n\,d\]$ makes semantic
 identity nominal. Two quantities of equal dimension are not
 interchangeable, equality is decided by name, and moving between them
 requires an explicit constructor. On the axis of time,
-$upright("Signal") [d] tau$ makes temporal identity nominal. Two signals
+$upright("Signal")\[d\]tau$ makes temporal identity nominal. Two signals
 in different domains cannot be combined, equality is decided by name,
 and moving between them requires an explicit synchronization operator.
 Under this correspondence $upright("hold")$ is the temporal counterpart
@@ -2000,7 +1999,7 @@ This is where BDL departs from the tradition it otherwise draws on.
 Synchronous dataflow languages also treat clocks as types, and then
 recover them by inference, which is appropriate for their setting:
 programs are textual, users are control engineers, and annotating every
-clock would overwhelm the source. BDL’s setting differs in three ways.
+clock would overwhelm the source. BDL's setting differs in three ways.
 Programs are graphs, in which every edge is already a positioned object,
 so annotation is nearly free. The relevant notion is a periodic rate
 rather than a Boolean subclock, which requires much less machinery. And
@@ -2127,6 +2126,6 @@ The research question is therefore not whether designers can be taught a
 simpler programming language. It is whether product behavior can become
 a #emph[design material] whose structure is intuitive at the surface and
 rigorous underneath. If that succeeds, designers can express and
-validate a larger portion of a product’s functional logic while it is
+validate a larger portion of a product's functional logic while it is
 still a design problem, rather than discovering it only after it has
 become an engineering problem.

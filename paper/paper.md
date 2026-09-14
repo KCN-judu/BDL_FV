@@ -19,7 +19,7 @@ $$
 The mapping may exist before its body. A formula, curve, examples, or a fitted function can later be attached as a definition of the same block. Once a formula is supplied, for example
 
 $$
- f(\theta)=\operatorname{clamp}\!\left(0.2+0.8\frac{\theta}{60^\circ},0,1\right),
+ f(\theta)=\operatorname{clamp}\left(0.2+0.8\frac{\theta}{60^\circ},0,1\right),
 $$
 
 it inhabits the previously declared signature. This **signature-first authoring** model is not merely a user-interface convenience. It is the foundation of progressive formalization: an unresolved typed mapping is a meaningful design artifact rather than a malformed program.
@@ -1043,7 +1043,7 @@ The two domain declarations record a product judgment, not an engineering one: c
 Later, the mapping is refined:
 
 $$
- f(\theta)=\text{mk}_{Brightness}\!\left(
+ f(\theta)=\text{mk}_{\text{Brightness}}\left(
  \operatorname{clamp}\left(0.2+0.8\frac{\text{rep}(\theta)}{60^\circ},0,1\right)
  \right).
 $$

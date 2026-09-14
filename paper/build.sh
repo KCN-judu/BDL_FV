@@ -12,9 +12,6 @@ if command -v pandoc >/dev/null 2>&1; then
     -e 's/angle\.l/chevron.l/g' \
     -e 's/angle\.r/chevron.r/g' \
     -e 's/gt\.tri/gt.closed/g' \
-    -e 's/ #h(-1em) //g' \
-    -e 's/"clamp"/op("clamp")/g' \
-    -e 's/_(B r i g h t n e s s)/_(upright("Brightness"))/g' \
     body.typ
 else
   echo "pandoc not found; using existing body.typ" >&2
