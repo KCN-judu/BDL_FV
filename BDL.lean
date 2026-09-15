@@ -8,6 +8,14 @@ import BDL.Core.Dependency
 import BDL.Core.Reactive
 import BDL.Core.Clock
 import BDL.Core.Output
+import BDL.Behavior.Rename
+import BDL.Behavior.Interface
+import BDL.Behavior.Component
+import BDL.Behavior.Instantiate
+import BDL.Behavior.System
+import BDL.Behavior.Preservation
+import BDL.Behavior.Semantics
+import BDL.Behavior.Substitution
 import BDL.Experiments.DeclCounterexamples
 import BDL.Experiments.SemanticTypeAlternatives
 import BDL.Experiments.RepresentationBindingAlternatives
@@ -17,3 +25,4 @@ import BDL.Experiments.ClockAlternatives
 import BDL.Experiments.OutputAlternatives
 import BDL.Validation.Hardware
 import BDL.Experiments.HardwareAlternatives
+import BDL.Experiments.BehaviorAlternatives

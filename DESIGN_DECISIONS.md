@@ -468,3 +468,70 @@ layers that are never merged.
 Voltage, current, thermal, memory, CPU, deadlines, bandwidth, torque,
 travel, power, PWM frequency values remain outside; the architecture leaves
 room for set-level constraints but establishes nothing about them.
+
+## Phase 8a
+
+**D-64. Behaviour components are surface objects; the kernel is unchanged.**
+Rejected: a kernel term for components/instances; a second typing judgment
+for components.
+Reason: every property the milestone needs is a property of the flattened
+design under the *existing* judgments (`flatten_WF`, `union_globalWF`);
+`BDL/Core` is untouched.
+
+**D-65. A port is a template declaration by identity, with its public interface and clock.**
+Rejected: ports by display name; ports as a separate kernel sort; physical
+sinks as ports.
+Reason: bindings must respect `tyView` and commitments (Phase 1), so the
+port *is* the declaration's interface; sinks are resources, not
+relationships (Phase 6), and stay in `Ω`/`β` (`ExternalSingleDriver`).
+
+**D-66. Instantiation renames every identity the template owns; concepts and sinks are partitioned into internal (fresh) and global (shared).**
+Rejected: identity by name; a global concept table per component; renaming
+globals.
+Reason: Counterexample 3 (`identity_renaming_aliases`,
+`internal_concept_not_shared`); `Tilt` must be the same concept in every
+instance, a private accumulator concept must not be.  The encoding
+`W·(k+1)+n` is a device; only injectivity, decodability, and disjointness
+from globals `< W` are used.
+
+**D-67. Binding is a Phase-1 realization step.**
+Rejected: a binding relation in the kernel; substitution of the source
+body into the destination.
+Reason: `binding_satisfies` + `local_refinement_preserves_global_wf`
+give Theorem C/D for free; write-once realization means a port is bound at
+most once (`dstNodup`).  Transport bindings elaborate to `sync` with an
+explicit initial value (Phase 5); the source must be clocked.
+
+**D-68. Composition well-formedness is stated on interfaces, never on bodies.**
+Reason: substitutability (`substitute_composeWF`) is then a consequence of
+`IfaceRefines`.  The two conditions beyond existing judgments are
+`dstNodup` and `ExternalSingleDriver` (Counterexample 5).
+
+**D-69. Causality across instances is a validation condition on the inter-instance direct-binding graph.**
+Rejected: "causal components compose causally" (Counterexample 1);
+port-level graphs (finer; deferred).
+Reason: `flatten_causal`; self-edges are treated conservatively.
+
+**D-70. Clock parameters are nominal variables substituted by κ at instantiation; rates never enter.**
+Rejected: clock-indexed component types; frequency matching.
+Reason: `Clocked.rename` holds for any κ, including one that merges two
+parameters into one system domain; mismatch without `sync` is rejected
+(Counterexample 2).
+
+**D-71. Evidence must be equivariant and port-sound.**
+Reason: `Evidence.Equivariant` is what "template validity is independent of
+instance identity" means for commitments; `Evidence.PortSound` is what
+makes binding by reference inherit commitments.  Both are conditions on
+the validation layer, like `Evidence.Monotone`.
+
+**D-72. Hierarchy is packaging, not a tree constructor.**
+Rejected: an inductive `BehaviorSystem` tree with offset threading.
+Reason: a flattened system is a design over identities `< flatWidth`, hence
+a template (`toComponent`); nesting is instantiating packages.  The
+`Realizes` proof for a package is a decidable side condition, not yet
+discharged.
+
+**D-73. Theorem J is proved on the single-domain wiring fragment with direct/constant bindings.**
+Reason: the precedent of `unfolds_preserves_eval`; the multi-domain case
+needs a domain-indexed input for transported ports, which `Input` cannot
+express.  Recorded as an open item.

@@ -112,6 +112,19 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | range / latency / rate / feasibility obligations | no | — | yes | — | Phase 7 (expected: V) |
 | elaboration Surface → Core; reusable stateful components by instantiation | — | — | — | — | Phase 8 |
 | five-phase tick (Sample/Activate/Evaluate/Resolve/Commit) | ? | — | — | ? | Phase 8 — to be derived, not copied |
+| `BehaviorInterface` / `Port` | no | yes (composition metadata) | checked by `ComposeWF` | no | Phase 8a (D-65): a port is a template declaration's public interface |
+| `BehaviorComponent` + `Realizes` | no | yes (template) | — | no | Phase 8a (D-64): a design over local ids + a predicate over existing judgments |
+| instantiation (`Ren.inst`, `fresh`/`decode`) | no — elaboration | yes | — | no | Phase 8a (D-66): Theorem A; encoding is a device |
+| internal vs global concepts/sinks | no | yes (flags on the template) | — | no | Counterexample 3 |
+| `Binding` (port / const / via `sync`) | no | yes → Phase-1 `realize` step | `BindingWF` | no | Phase 8a (D-67): `binding_satisfies` |
+| `BehaviorSystem` + `flatten` | no | yes | — | no | output is an ordinary `Design` (`flatten_WF`) |
+| `ComposeWF` | no | — | **yes** (structural) | no | interfaces only; `dstNodup`, `ExternalSingleDriver` |
+| `InstAcyclic` | no | — | **yes** | no | sufficient for existing `Causal` (`flatten_causal`); Counterexample 1 |
+| clock parameters | no — substitution | yes | — | no | `Clocked.rename` for any κ |
+| `Evidence.Equivariant`, `Evidence.PortSound` | constraints imposed on V | — | yes | no | D-71 |
+| hierarchical tree constructor | no | no | — | **yes** | D-72: packaging (`toComponent`) suffices |
+| component-level typing judgment | no | no | — | **yes** | D-64 |
+| modular semantics `instΔ`/`Consistent` | no — derived | — | — | — | Theorem J: agrees with flattened `Ev` on the wiring fragment |
 
 ## Feature entries (accepted constructs)
 

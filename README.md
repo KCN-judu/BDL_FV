@@ -13,12 +13,17 @@ lake build
 * `DESIGN_DECISIONS.md` — every model choice and rejected alternative
 * `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table
 
-Status: Phases 0–7 complete (lifecycle/refinement; cross-declaration
+Status: Phases 0–7 and 8a complete (lifecycle/refinement; cross-declaration
 preservation; semantic identity; representation binding + dimensions;
 reactive core; clock domains + synchronization; physical outputs +
 single-driver discipline; hardware constraint validation + resource
-allocation). Remaining: Phase 8 surface elaboration + executable semantics;
-final minimality audit.
+allocation; behaviour systems — reusable components, fresh instantiation,
+port binding, hierarchical composition, flattening). Remaining: Phase 8b
+surface elaboration + executable semantics; final minimality audit.
+
+* `BDL/Behavior/` — Phase 8a: behaviour as a first-class design object
+  (`BEHAVIOR_NOTE.md` is the design note; `BEHAVIOR_SYSTEM_REQUIREMENTS.md`
+  the production requirements report)
 
 Kernel in one line: `DeclEnv : DeclId → Option DesignDecl`, where a
 `DesignDecl` is a stable id, a `DeclInterface` (expected type + monotone
@@ -40,7 +45,11 @@ hardware; all combination is ordinary computation (Phase 6). A separate
 validation layer (`BDL/Validation/`) decides whether a design is realizable
 on a declared target board — a finite resource/capability table with a
 sound and complete solver — without the design ever depending on the board
-(Phase 7). Typing sees only the
+(Phase 7). A behaviour is a template design behind an interface of
+semantic ports and clock parameters; instantiation freshens every identity
+the template owns, binding is a realization step, and a system flattens to
+an ordinary design accepted by the same judgments — the kernel is unchanged
+(Phase 8a). Typing sees only the
 expected type; validation may rely on commitments and evidence; monotone
 refinement preserves earlier commitments; anything else is an edit that
 requires rechecking dependents.
