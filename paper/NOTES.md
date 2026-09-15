@@ -61,3 +61,21 @@
   Typst-native diagrams (`authoring_layers.png` no longer used).
 - References added (Lean 4, Lustre, Esterel, Hazel live holes, Dechter);
   none fabricated.
+
+## Interaction chapter and prose pass (2026-09-15, second pass)
+
+- New section "Designer Interaction Model" between the surface vocabulary and
+  the formal architecture: a running tilt-lamp scenario (Tilt, Brightness,
+  Temperature, Held; heater with warning/critical thresholds; Arduino Nano
+  chosen last) carried through intent, local refinement, temporal phrases,
+  contexts, the single-driver diagnostic and its repair, cross-domain
+  transport, board selection with SAT/UNSAT and manual pins, workspace
+  states, an explanation view, and the workflow as a whole. Diagnostics are
+  phrased in product terms; all user-side statements remain hypotheses.
+- The former "Interaction Model" layer section is absorbed; the acceptance
+  level figure now lists workspace states and lives in the new section.
+- Prose pass over the whole manuscript to remove report-style
+  meta-language ("the development proves/shows…", "tested formulation…"),
+  vary paragraph openings, and restore ordinary prose where lists had been
+  used for conceptual material. No technical claims changed; formulas,
+  tables and figures kept verbatim.
