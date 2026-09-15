@@ -15,3 +15,5 @@ import BDL.Experiments.DimensionAlternatives
 import BDL.Experiments.ReactiveAlternatives
 import BDL.Experiments.ClockAlternatives
 import BDL.Experiments.OutputAlternatives
+import BDL.Validation.Hardware
+import BDL.Experiments.HardwareAlternatives

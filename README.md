@@ -13,11 +13,12 @@ lake build
 * `DESIGN_DECISIONS.md` — every model choice and rejected alternative
 * `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table
 
-Status: Phases 0–6 complete (lifecycle/refinement; cross-declaration
+Status: Phases 0–7 complete (lifecycle/refinement; cross-declaration
 preservation; semantic identity; representation binding + dimensions;
 reactive core; clock domains + synchronization; physical outputs +
-single-driver discipline). Remaining: Phase 7 validation + invalidation;
-Phase 8 surface elaboration + executable semantics; final minimality audit.
+single-driver discipline; hardware constraint validation + resource
+allocation). Remaining: Phase 8 surface elaboration + executable semantics;
+final minimality audit.
 
 Kernel in one line: `DeclEnv : DeclId → Option DesignDecl`, where a
 `DesignDecl` is a stable id, a `DeclInterface` (expected type + monotone
@@ -35,7 +36,11 @@ multi-domain semantics; the single-domain one embeds exactly (Phase 5).
 Physical sinks are nominal resources with an accepted type and clock; a
 write-once drive edge per declaration, checked by type and clock equality,
 and one global invariant — at most one driver per sink — connect values to
-hardware; all combination is ordinary computation (Phase 6). Typing sees only the
+hardware; all combination is ordinary computation (Phase 6). A separate
+validation layer (`BDL/Validation/`) decides whether a design is realizable
+on a declared target board — a finite resource/capability table with a
+sound and complete solver — without the design ever depending on the board
+(Phase 7). Typing sees only the
 expected type; validation may rely on commitments and evidence; monotone
 refinement preserves earlier commitments; anything else is an edit that
 requires rechecking dependents.

@@ -94,7 +94,21 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | device-specific command types | no — another `SemanticId` + explicit mapping, or a representation sink | — | — | — | Phase 6: `representation_sink_needs_explicit_rep` |
 | output clock metadata (`OutputSpec.clock`) | **yes** (in `Ω`) | shown | — | no | Phase 6: `output_binding_respects_clock_domain` |
 | StateHandler output policies | no | yes → state-local target choice in one driver | — | **yes** (as a mechanism) | Phase 6: `statehandler_output_cases` |
-| physical limits (range, torque, thermal, travel, PWM, bus, deadlines) | no | — | **yes** | — | Phase 7 |
+| `ResourceId` / `Resource` (caps + per-capability units) | no | — | **yes** (validation) | no | Phase 7 (D-58) |
+| `Capability` vocabulary | no | device descriptions | **yes** | no | Phase 7: opaque to the solver |
+| `RequirementId` / `Requirement` | no | generated from device kinds | **yes** | no | Phase 7 (D-59) |
+| `Hardware` (target table + sharing policy) | no | — | **yes** | no | Phase 7 (D-57) |
+| `Assignment` | no | IDE result | **yes** (derived artifact) | no | Phase 7 (D-60) |
+| exclusivity | no | — | **yes** | no | Counterexample D |
+| shareability (per capability) | no | — | **yes** | no | Counterexample E |
+| grouped peripheral requirements (`UnitRel.same`) | no | — | **yes** | no | `grouped_peripheral_same_unit` |
+| secondary-resource footprints (units: timers) | no | — | **yes** | no | `timers_matter` |
+| fixed assignment (manual pin) | no | designer choice | **yes** | no | Counterexample F |
+| generic CSP constraints (unary + binary) | no | — | **yes** | no | `solve_complete` |
+| SMT integration | no | — | — | not needed for tested scope | D-60 |
+| numeric electrical constraints | no | — | later validation | — | D-63 |
+| unsat-core explanation | no | IDE | first dead end kept; minimal core pending | — | `diagnose` |
+| physical limits (range, torque, thermal, travel, PWM values, bus, deadlines) | no | — | later validation | — | D-63 |
 | range / latency / rate / feasibility obligations | no | — | yes | — | Phase 7 (expected: V) |
 | elaboration Surface → Core; reusable stateful components by instantiation | — | — | — | — | Phase 8 |
 | five-phase tick (Sample/Activate/Evaluate/Resolve/Commit) | ? | — | — | ? | Phase 8 — to be derived, not copied |
@@ -331,3 +345,27 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - CAN IT BE DESUGARED: not into typing (`two_direct_drivers_locally_fine`)
 - OBSERVABLE DIFFERENCE: determinism of the physical output
 - LEAN THEOREM / COUNTEREXAMPLE: `multiple_direct_drivers_rejected`, `single_driver_output_deterministic`, `executable_design_requires_complete_outputs`
+
+### FEATURE: hardware target table (`Hardware`, `Resource`)
+- LAYER: validation (never kernel)
+- WHY IT EXISTS: feasibility is a property of Design × Target
+- WHAT BREAKS WITHOUT IT: nothing in the semantics; deployment cannot be checked
+- CAN IT BE DESUGARED: no; and it must not enter `Ty` (D-57)
+- VALIDATION DIFFERENCE: SAT/UNSAT per board (`seven_pwm_unsat_on_nano` vs `seven_pwm_sat_on_big`)
+- LEAN THEOREM / COUNTEREXAMPLE: A, B, `hardware_extension_preserves_satisfiability`
+
+### FEATURE: requirements with fixed resource and unit relation
+- LAYER: validation; generated from Phase-6 sinks through device kinds
+- WHY IT EXISTS: what a design needs, independent of any board
+- WHAT BREAKS WITHOUT UNITS: `timers_matter`; WITHOUT FIXED: manual routing impossible (F)
+- CAN IT BE DESUGARED: the pipeline `OutputId → DeviceKind → Requirements` is the desugaring
+- VALIDATION DIFFERENCE: C, D, E, H
+- LEAN THEOREM / COUNTEREXAMPLE: as named
+
+### FEATURE: exhaustive solver with soundness and completeness
+- LAYER: validation
+- WHY IT EXISTS: decidable feasibility with a concrete mapping or a conflict
+- WHAT BREAKS WITHOUT COMPLETENESS: an UNSAT answer would not be a proof of infeasibility
+- CAN IT BE DESUGARED: n/a
+- VALIDATION DIFFERENCE: `motor_control_assignment`, `seven_pwm_explanation`
+- LEAN THEOREM / COUNTEREXAMPLE: `solve_sound`, `solve_complete`, `satisfiable_iff_solve`

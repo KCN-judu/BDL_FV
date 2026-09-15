@@ -430,3 +430,41 @@ philosophy as realizations (D-07) with one global side condition.
 **D-56. Sinks are terminal.**
 Physical feedback is another input declaration through ordinary clocks and
 delays; no instantaneous world edge.
+
+## Phase 7
+
+**D-57. Hardware feasibility is a validation layer over `Design × Target`, not typing.**
+Rejected: `Ty.pwm`/`Ty.pin`/…; feasibility as a semantic commitment.
+Reason: `seven_pwm_design_semantically_valid ∧ seven_pwm_unsat_on_nano`; the
+same requirements are SAT on a larger board; the solver's type never
+mentions `Δ`.
+
+**D-58. Resources carry capabilities and per-capability units; sharing is a per-capability policy.**
+Rejected: `allDifferent` (Counterexample E); capability counts (C); pin
+capability without units (`timers_matter`); protocol-specific solver logic
+(board tables carry pin sets and units; grouping is generic `UnitRel.same`).
+
+**D-59. Requirements are independent variables with nominal `RequirementId`, optional fixed resource, optional unit relation.**
+Rejected: reusing `DeclId`/`OutputId` (one sink ⇒ several requirements);
+composite peripheral requirements (independent + `same` unit suffices);
+pins as `OutputId` (swapping boards must not change the design).
+
+**D-60. Validity is unary support plus pairwise compatibility; the solver is exhaustive DFS, proved sound and complete.**
+Rejected for now: SMT integration; minimal unsat cores.
+Reason: all tested constraints are unary/binary, so pruning on prefixes is
+complete (`solve_complete`); `decide` runs the instances in seconds;
+`diagnose` gives a first dead end.  Claim strength: for the tested
+pin/peripheral scope.
+
+**D-61. Hardware extension is monotone; requirement extension, strengthening, fixing, and resource removal are revalidation triggers.**
+`hardware_extension_preserves_satisfiability`; G, H, F, A.
+
+**D-62. Deployment feasibility is environment-sensitive evidence, not `Evidence.Monotone`.**
+`feasibility_not_monotone_under_extension`: a monotone design extension can
+falsify it.  Phase 1's stable/sensitive distinction is realized as two
+layers that are never merged.
+
+**D-63. Numeric electrical/timing constraints deferred.**
+Voltage, current, thermal, memory, CPU, deadlines, bandwidth, torque,
+travel, power, PWM frequency values remain outside; the architecture leaves
+room for set-level constraints but establishes nothing about them.

@@ -1,8 +1,8 @@
 # REPORT — formal results so far
 
-Project state: **Phase 6 complete** (physical outputs + single-driver
-discipline).  Remaining: Phase 7 validation + invalidation; Phase 8 surface
-elaboration + executable semantics; final minimality audit.  Everything builds
+Project state: **Phase 7 complete** (hardware constraint validation +
+resource allocation).  Remaining: Phase 8 surface elaboration + executable
+semantics; final minimality audit.  Everything builds
 with `lake build`; no `sorry`; axioms used are `propext` and `Quot.sound`
 (the latter only through `funext` in `DeclEnv.update_update_same` and
 standard `simp` lemmas).  No `Classical.choice` anywhere.
@@ -33,6 +33,9 @@ OutputEnv Ω     maps OutputId ↦ (accepted Ty, ClockId): what each physical si
 DriveEnv β      maps DeclId ↦ Option OutputId: the drive edges; write-once               (Phase 6)
 DriveWF         driver type = accepted type ∧ driver clock = sink clock; no coercion, no sync in the binding
 SingleDriver β  at most one driver per sink — global, not typing; CompleteOutputs: every required sink driven
+validation      (Phase 7, outside the kernel) Hardware = resources with capabilities + per-capability units + sharing policy;
+                Requirements from device bindings; ValidFor H R A decidable by an exhaustive solver (sound and complete);
+                feasibility is a relation Design × Target and is not monotone under design refinement
 validation      may rely on commitments and evidence (Satisfies, GlobalWF)
 monotone refinement (DeclLeq / DeclRefines / EnvRefines)   preserves every earlier commitment
 arbitrary edit  (retype, drop commitment, detach/replace realization, re-identify)
@@ -55,6 +58,7 @@ Layout:
 | `BDL/Core/Env.lean` | `GlobalWF`, **`local_refinement_preserves_global_typing`**, **`local_refinement_preserves_global_wf`**, multi-step version |
 | `BDL/Core/Dependency.lean` | `DependsOn`, `Reaches`, `Cyclic`/`Acyclic`, `InstDependsOn`, `Causal`, unfolding semantics `Unfolds` (timeless), cycle theorems |
 | `BDL/Core/Reactive.lean` | Phase 4: `Value`, `Ev`, `Ev.det`, `evalF`+soundness, strict cycles, logical relation (generic in the application relation), `fundamental`/`reactive_total`, `Ev.tag_provenance`, `unfolds_preserves_eval` |
+| `BDL/Validation/Hardware.lean` | Phase 7: `Capability`, `Resource`/`Hardware`, `Requirement` (fixed, unit-relation group), `Assignment`, `PartialValid`/`ValidFor`, `solve` with `solve_sound`/`solve_complete`, `Hardware.Extends` + preservation, `diagnose` |
 | `BDL/Core/Output.lean` | Phase 6: `OutputId`, `OutputSpec`/`OutputEnv`, `DriveEnv`, `DriveWF`, `SingleDriver`, `CompleteOutputs`, `first_output_binding_is_monotone`, `PartialOutputWF`/`ExecutableOutputs`, `PhysicalOutput`, `single_driver_output_deterministic` |
 | `BDL/Core/Clock.lean` | Phase 5: `Sched`/`prevAct`, `ClockEnv`, `Clocked`/`WellClocked`, `MEv`, `MEv.det`, `mevalF`+soundness, `single_domain_embedding`, `delay_is_sync_own`, `MEv.tag_provenance`, `mfundamental`/`multi_domain_total`, window model, `buffer_from_log_and_cursor` |
 | `BDL/Experiments/DeclCounterexamples.lean` | Phase-0 examples; Phase-1 probes 1–6; cycle examples |
@@ -62,6 +66,7 @@ Layout:
 | `BDL/Experiments/RepresentationBindingAlternatives.lean` | Phase 3.1: policies free/none/grant over a local `RExpr`; bypass counterexample; provenance theorem; the surviving grant model |
 | `BDL/Experiments/DimensionAlternatives.lean` | Phase 3.2: dimension mismatch, erasure baseline, units as elaboration, semantic ⟂ dimension, rebinding is an edit |
 | `BDL/Experiments/ReactiveAlternatives.lean` | Phase 4: cycle examples, derived operators with executed traces, initialization and Event alternatives, delay vs dimensions/semantics/refinement |
+| `BDL/Experiments/HardwareAlternatives.lean` | Phase 7: the Arduino Nano table, device kinds → requirements, the motor example with its produced mapping, Counterexamples A–H, timers, grouped UART, explanations, evidence sensitivity |
 | `BDL/Experiments/OutputAlternatives.lean` | Phase 6: identity alternatives (D), Counterexamples A/B/C/E/F/G, explicit priority/blend/max, effect-row and action-value toys, StateHandler remainder, two drivers → two outputs |
 | `BDL/Experiments/ClockAlternatives.lean` | Phase 5: the multi-rate design, counterexamples A/B/C/E/F, direct wire vs transport, typing across domains, same-tick-order toy, event policies, clocked-type toy |
 
@@ -1304,6 +1309,146 @@ the single-driver invariant.
 
 Among tested designs.
 
+
+## Phase 7 — Hardware constraint validation and resource allocation
+
+### 7.1 The model
+
+A **validation layer** (`BDL/Validation/Hardware.lean`), outside the kernel:
+nothing in it touches `Ty`, `HasType`, `MEv`, or the drive edges.
+
+| Concept | Formal object |
+|---|---|
+| resource | `Resource = (id : ResourceId, caps : List Capability, units : List (Capability × Nat))` — a pin, with its capabilities and, per capability, the *unit* backing it (a timer, a peripheral controller) |
+| target | `Hardware = (resources, shareable : List Capability)` — a finite table plus a capability-specific sharing policy (buses shareable, everything else exclusive) |
+| capability | `Capability` — a shared vocabulary between board tables and device descriptions; the solver treats it as an opaque decidable type |
+| requirement | `Requirement = (id : RequirementId, cap, fixed : Option ResourceId, group : Option (Nat × UnitRel))` — one capability need, optionally a manual pin, optionally a *same-unit* or *distinct-unit* relation to other requirements |
+| assignment | `Assignment = List (Requirement × ResourceId)` |
+| validity | `PartialValid H A`: every entry `ReqOK` (capability supported, manual choice respected) and every pair `Compatible` (same resource ⇒ same shareable capability; same group ⇒ units equal / distinct).  `ValidFor H R A`: partial-valid and covering exactly `R` |
+| feasibility | `HardwareSatisfiable H R := ∃ A, ValidFor H R A` |
+
+Every constraint is unary or binary, so validity is prefix-closed, so an
+exhaustive DFS that prunes on unary and pairwise-with-prefix checks is
+complete as well as sound.
+
+### 7.2 Results (claim strength in brackets)
+
+| Result | Lean | Strength |
+|---|---|---|
+| **`solve_sound`**, **`solve_complete`**, hence feasibility of a finite instance is *decidable* (`satisfiable_iff_solve`, `Decidable` instance) | as named | formally proved |
+| `valid_assignment_implies_capabilities_satisfied`, `partial_assignment_accepted` (prefix of a valid assignment), `complete_assignment_covers_requirements` | as named | formally proved |
+| **`hardware_extension_preserves_satisfiability`**: `H₁.Extends H₂` (same resources with ⊇ capabilities, same units, ⊇ sharing) preserves every valid assignment; `nano.Extends big` | `hardware_extension_preserves_validity`, `nano_extends_big` | formally proved |
+| **Motor-control example** (four H-bridge channels + I2C IMU): SAT on the Nano, with the produced mapping `M1 → D3/D0, M2 → D5/D1, M3 → D6/D2, M4 → D9/D4, IMU → A4/A5` | `motor_control_sat_on_nano`, `motor_control_assignment` | formally proved by execution |
+| **Counterexample A / `semantic_validity_does_not_imply_hardware_satisfiable`**: seven independent PWM actuators pass `GlobalWF`, `WellClocked`, `Causal`, `DriveWF`, `SingleDriver`, `CompleteOutputs` — and are UNSAT on the Nano (six PWM pins) | `seven_pwm_design_semantically_valid`, `seven_pwm_unsat_on_nano` | formally proved |
+| **Counterexample B / `hardware_satisfiability_is_target_relative`, `board_swap_preserves_design_semantics`**: the same `reqs7` is SAT on the larger board; the solver's type never mentions `Δ` | `seven_pwm_sat_on_big` | formally proved |
+| **Counterexample C**: two interrupt lines + six PWM lines — every capability *count* is met (2 = 2, 6 = 6) and D3 is needed twice | `capability_counts_suffice`, `multifunction_overlap_unsat` | formally proved |
+| **Counterexample D / `exclusive_resources_not_double_allocated`**: two PWM requirements pinned to D3 | `exclusive_cannot_share` | formally proved |
+| **Counterexample E / `shared_bus_allocation_accepted`**: two I2C sensors both on A4/A5 — allocation is not `allDifferent` | `shared_bus_allocation_accepted` | formally proved |
+| **Counterexample F / `fixed_assignment_respected`**: encoder + PWM is SAT; pinning the PWM to D3 by hand makes it UNSAT; a consistent manual choice is honoured | `fixed_pin_turns_unsat`, `fixed_assignment_respected` | formally proved |
+| **Counterexample G**: removing D3 invalidates the motor assignment and makes the encoder UNSAT | `resource_removal_invalidates` | formally proved |
+| **Counterexample H**: strengthening D4's line from DigitalOut to PWM invalidates it | `requirement_strengthening_invalidates` | formally proved |
+| **timers**: four PWM lines on independent timers — six PWM pins but three timers — UNSAT; SAT without the independence constraint; SAT on the larger board | `timers_matter` | formally proved |
+| grouped peripheral: TX/RX on one UART unit, with TX fixed, the solver keeps RX on the same unit | `grouped_peripheral_same_unit` | formally proved |
+| explanation: the seven-PWM dead end names the seventh actuator and, for each PWM pin, the actuator blocking it; an unsupported fixed request is reported as such | `seven_pwm_explanation`, `no_capable_resource_explanation` | formally proved by execution (first dead end, not a minimal core) |
+| **feasibility is environment-sensitive**: six actuators SAT, the seventh — a monotone design extension — UNSAT | `feasibility_not_monotone_under_extension` | formally proved |
+
+### 7.3 The pipeline from Phase 6
+
+    OutputId  →  DeviceKind  →  requirements  →  solve  →  assignment
+
+`DeviceKind.requirements o` generates a sink's needs (`hBridgeChannel` ⇒
+PWM + DigitalOut; `i2cSensor` ⇒ SDA + SCL in one *same-unit* group;
+`quadratureEncoder` ⇒ two interrupts).  `OutputId` never enumerates pins;
+swapping the board is re-solving the same requirements (Counterexample B).
+Device descriptions are a small closed vocabulary here; a reusable
+component library is Phase-8 surface material.
+
+### 7.4 What the alternatives cost or lack
+
+| Alternative | Verdict |
+|---|---|
+| exclusive-only allocation (`allDifferent`) | rejected: Counterexample E needs sharing |
+| capability counts as feasibility | rejected: Counterexample C |
+| pin capability without units | rejected for independent PWM frequencies: `timers_matter`; sufficient for the plain motor example |
+| protocol-specific solver branches | not needed: I2C/SPI/UART pin sets and units are board facts in the table; grouping is the generic `UnitRel.same` |
+| `Ty.pwm` / `Ty.pin` | not needed: `MotorAngle` is `MotorAngle` on any board (§35) — nothing in the kernel changed |
+| pins as `OutputId` | rejected: a sink may need several resources (`hBridgeChannel`), and swapping boards must not change the design |
+| `RequirementId = DeclId` / `OutputId` | rejected: one sink generates several requirements; two identical PWM needs must be distinct variables |
+| SMT | not needed for the tested scope: every constraint is unary or binary and the exhaustive solver is proved complete; `decide` runs the seven-PWM UNSAT search in seconds |
+| minimal unsat core | deferred: `diagnose` reports the first dead end of a greedy prefix (Model B/C of §30), meaningful only when `solve` returned `none` |
+
+### 7.5 Invalidation and evidence
+
+| Change | Effect on an existing valid assignment |
+|---|---|
+| add a resource / capability / sharing (`Hardware.Extends`) | preserved (`hardware_extension_preserves_validity`) |
+| remove a resource | may invalidate (G) |
+| add a requirement | old entries stay `PartialValid`; completeness for the new `R` may fail (A, §9) |
+| strengthen a requirement | may invalidate (H) |
+| fix a pin | may turn SAT into UNSAT (F) |
+| switch target | re-solve; the design is untouched (B) |
+
+So "deployable on target T" is evidence about `Design × T` that is **not**
+`Evidence.Monotone` in the Phase-1 sense: a monotone design refinement
+(adding a declaration and its sink) can falsify it
+(`feasibility_not_monotone_under_extension`).  Phase 1's distinction is now
+concrete: *stable logical evidence* (commitments discharged compositionally,
+which survive `EnvRefines`) versus *deployment-sensitive evidence* (hardware
+feasibility, which must be re-solved).  The two are kept in different
+layers and never merged.
+
+### 7.6 Answers to §47
+
+| Question | Answer |
+|---|---|
+| 1. Hardware resource? | `Resource`: nominal id, capabilities, per-capability unit. |
+| 2. Capability? | An element of the shared vocabulary `Capability`; opaque to the solver. |
+| 3. Design-side requirement? | `Requirement`: one capability, optional fixed resource, optional unit relation. |
+| 4. `RequirementId` independent? | Yes: one sink ⇒ several requirements; two identical needs are two variables. |
+| 5. Assignment? | `List (Requirement × ResourceId)`. |
+| 6. Valid? | `ReqOK` per entry, `Compatible` per pair, coverage for completeness. |
+| 7. Unassigned in partial designs? | Yes (`PartialValid`, `partial_assignment_accepted`). |
+| 8. Complete deployment? | `ValidFor H R A` (covers `R`). |
+| 9. Target-relative? | Yes (B). |
+| 10. SAT on one board, UNSAT on another? | Yes: `seven_pwm_unsat_on_nano`, `seven_pwm_sat_on_big`. |
+| 11. Exclusive vs shared? | Per-capability sharing policy in `Hardware.shareable`; sharing only among equal shareable capabilities. |
+| 12. Grouped peripherals? | Independent requirements + `UnitRel.same`; board units carry the pairing. |
+| 13. Pin capability alone sufficient? | For the plain motor example yes; for independent PWM frequencies no — units (timers) are needed (`timers_matter`). |
+| 14. Solver sound? | Yes. |
+| 15. Complete? | Yes, for the finite modeled fragment (`solve_complete`). |
+| 16. Manual pins? | `Requirement.fixed`, an added unary constraint; mixed manual/automatic supported (`fixed_assignment_respected`). |
+| 17. What invalidates? | §7.5. |
+| 18. Extension preserves? | Yes (`hardware_extension_preserves_satisfiability`). |
+| 19. Stable vs hardware-sensitive evidence? | §7.5. |
+| 20. Outside this phase? | Voltage, current, thermal, memory, CPU load, deadlines, bus bandwidth, torque, travel, power budget, PWM frequency values. |
+
+### 7.7 Critical remarks
+
+* The tested Nano pin/peripheral allocation problem is captured by a finite
+  CSP with unary and binary constraints; that is a statement about this
+  scope, not about embedded allocation in general.  Numeric constraints
+  (frequency compatibility, current budgets) would need summation
+  constraints that are not binary; the architecture leaves room (a
+  `Compatible`-like predicate over sets) but nothing here establishes it.
+* `diagnose` is deliberately weak: a first dead end under greedy placement.
+  It is honest about being *a* conflict, not *the* conflict.
+* Units are one integer per capability per resource.  That models "which
+  timer" and "which UART" but not timer *modes*; PWM frequency stays a
+  later validation property, as the brief allows.
+
+### 7.8 The Phase-7 result (§50)
+
+> The smallest declarative model is: resources with capabilities and
+> per-capability units, a per-capability sharing policy, requirements with
+> one capability plus optional fixed resource and unit relation, and validity
+> as unary support plus pairwise compatibility.  On it, an exhaustive solver
+> is proved sound and complete, feasibility is decidable, hardware extension
+> preserves assignments, and the BDL design is never an input to the solver
+> — so a design is authored once, a board is chosen later, and the result is
+> either a concrete pin/peripheral mapping or a structured conflict.
+
+Among tested designs, for the discrete pin/peripheral scope.
+
 ## Open items carried to later phases
 
 * Interface-level references (commitments that mention other declarations)
@@ -1317,6 +1462,8 @@ Among tested designs.
 * ~~Event multiplicity~~ — resolved in Phase 5 (window model); merging two event *sources* is ordinary computation over the two windows (Phase 6 principle), not a kernel policy.
 * StateHandler with handler-scoped clocks / independently clocked nesting — untested.
 * `Ty.list` and list operators, to write the buffer in the object language.
+* Minimal unsat cores; numeric (summation) hardware constraints; timer modes / PWM frequency compatibility.
+* A reusable device-component library (Phase 8 surface).
 * Folding `ClockEnv` into the `DeclInterface` record (churn only).
 * Whether "several candidate definitions with one active" (§3.2) is a
   surface convenience over a write-once kernel realization.
