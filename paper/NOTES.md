@@ -26,3 +26,38 @@
 - Changed action signatures to request-only operation declarations `Delta(op) = P_op`; runtime requests are dependent pairs and no unused synchronous result type remains.
 - Fixed the `Verified(P)` typesetting typo and weakened the workshop anecdote from a causal claim to evidence suggesting a representational problem.
 - Removed the unresolved five-axis-printer TODO from the paper's claims; the example now motivates asynchronous outcomes without pretending that unreported timing data are evidence.
+
+## Revision to match the formal development through Phase 7 (2026-09-15)
+
+- Rewritten as a coherent manuscript rather than an amended draft; section
+  structure now follows the architecture that survived the Lean 4
+  design-space exploration (`../REPORT.md`, `../DESIGN_DECISIONS.md`,
+  `../MINIMALITY.md`).
+- "Typed hole" is a designer-facing metaphor only; the kernel object is a
+  `DesignDecl` with an optional realization, and the key result is client
+  stability under monotone refinement (refinement vs edit made precise).
+- Signature-first claim narrowed: an unresolved relationship is a legal
+  statically meaningful state; no claim that designers think signature-first.
+- Semantic identity: nominal `sem SemanticId`, independent of declaration
+  identity, display name, dimension and hardware; explicit mappings are
+  ordinary declarations, not casts. Representation binding via `ConceptEnv`,
+  `rep` free, `mk` licensed by the realized declaration's own signature.
+- Dimensions as `q Dim` with the algebra in primitive operator types; units
+  are surface (linear scaling only).
+- Reactive section replaced: one primitive `delay init e`, tick semantics,
+  causality on instantaneous dependency; no `Signal`/`Event` types; every
+  temporal operator derived; StateHandler reduction stated for tested cases.
+- Clock domains: nominal `ClockId`, schedule, `Clocked` judgment, `sync src
+  init e` with strictly-before reads; `delay` is `sync` at the own domain;
+  event transport via the window model.
+- Effect rows, action requests, policies and arbitration removed; physical
+  outputs are nominal sinks with one explicit driver; negative results
+  stated narrowly.
+- New section on target-specific hardware validation (Phase 7): resources,
+  capabilities, units, requirements, a sound and complete solver, the
+  Arduino Nano case study, and target-sensitive evidence.
+- Elaboration and interaction model rewritten around visible acceptance
+  levels; evaluation plan retained without results; figures replaced by
+  Typst-native diagrams (`authoring_layers.png` no longer used).
+- References added (Lean 4, Lustre, Esterel, Hazel live holes, Dechter);
+  none fabricated.
