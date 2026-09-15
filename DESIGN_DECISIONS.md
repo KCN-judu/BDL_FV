@@ -385,3 +385,48 @@ validation.
 `Red Θ A` with `A : App`, so Phase 4 (`Apply Δ I t`) and Phase 5
 (`MApply S Δ I c t`) share `Red_prim`, `Red_data`, `RedEnv`.  Refactor, no
 semantic change.
+
+## Phase 6
+
+**D-50. Physical sinks have nominal identity (`OutputId`), separate from `SemanticId` and `DeclId`.**
+Rejected: type-keyed sinks (`type_keyed_binding_collides`); `SemanticId` as
+sink (one concept, many devices); `DeclId` as sink (Counterexample A becomes
+unstatable); deployment-only binding (completeness is a design-time acceptance
+condition).
+
+**D-51. A drive edge is a per-declaration write-once projection `β`, checked by type and clock equality.**
+Rejected: an output expression primitive; output binding in `Ty` or in
+`HasType`; a binding that coerces or synchronizes.
+Reason: `output_binding_preserves_semantic_identity_and_dimension`,
+`output_binding_respects_clock_domain`; keying `β` by declaration (not by
+sink) keeps single-driver a real global check (D-52).
+
+**D-52. Single-driver is a global invariant; completeness is the executable condition.**
+`SingleDriver β` (at most one) for partial designs, `CompleteOutputs β req`
+(exactly one required) for executable ones.  Local typing is insufficient
+(`two_direct_drivers_locally_fine`).  Joins commitments, causality, clock
+consistency as global structure beyond STLC typing.
+
+**D-53. No runtime arbitration, no implicit priority, no merge policy.**
+Rejected: first/last/numeric-priority policies; effect-handler arbitration.
+Reason: hidden policies are observable (`hidden_arbitration_observable`);
+priority, max, blend, clamp are ordinary declarations of the target type
+(`explicit_priority_single_driver`).  Claim strength: unnecessary in the
+tested architecture; not a universal impossibility.
+
+**D-54. Effect rows and action values rejected for this kernel.**
+Direct effect rows are `β` (`single_driver_iff_direct_rows_disjoint`);
+propagated rows produce false positives
+(`propagated_effect_rows_false_positive`); action values relocate the
+conflict into a collector that must be a policy
+(`action_values_relocate_conflict`).  Claim strength: the tested
+formulations add no rejection or expressive capability.
+
+**D-55. First binding is a refinement; rebinding is an edit; a second driver is invalid.**
+`first_output_binding_is_monotone` (side condition: the sink is undriven),
+`second_binding_invalid`, `rebinding_invalidates_design`.  Same write-once
+philosophy as realizations (D-07) with one global side condition.
+
+**D-56. Sinks are terminal.**
+Physical feedback is another input declaration through ordinary clocks and
+delays; no instantaneous world edge.

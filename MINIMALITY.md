@@ -80,9 +80,21 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | transport initialization (`init` on `sync`) | **yes** | shown | no | no | Phase 5: deterministic first activation |
 | scheduler / staging rule | no — strictly-before makes order irrelevant | — | — | **yes** | Phase 5: `scheduling_order_observable` shows why the alternative needs one |
 | `Ty.list` and list operators | pending | — | — | — | needed only to write the buffer in the object language |
-| effect rows | ? | ? | ? | ? | Phase 6 |
-| merge policy for two event sources | ? | ? | ? | ? | Phase 6 |
-| actuator arbitration, multiple writers | ? | ? | ? | — | Phase 6 |
+| `OutputId` (sink resource identity) | **yes** | device names | — | no | Phase 6 (D-50): `type_keyed_binding_collides` |
+| output binding (drive edge `β`, `DriveWF`) | **yes** | "connect to actuator" | — | no | Phase 6 (D-51): type and clock equality only |
+| single-driver global invariant | **yes** | diagnostic | — | no | Phase 6 (D-52): `multiple_direct_drivers_rejected` |
+| exactly-one executable invariant (`CompleteOutputs`) | **yes** (acceptance level) | diagnostic | — | no | Phase 6: `executable_design_requires_complete_outputs` |
+| action values / requests | no | — | — | **yes** | Phase 6 (D-54): relocate the conflict |
+| effect rows | no | — | — | **yes** | Phase 6 (D-54): duplicate `β` or false-positive |
+| output capabilities / ownership | no | — | — | **yes** | Phase 6: ownership uniqueness *is* `SingleDriver`; no linear types needed |
+| runtime arbitration | no | — | — | **yes** | Phase 6 (D-53): `hidden_arbitration_observable` |
+| priority policy | no | yes → `ite` in the single driver | — | no | Phase 6: `explicit_priority_single_driver` |
+| merge policy (two contributors, two event sources) | no | yes → ordinary combination declaration | — | no | Phase 6: `explicit_target_composition_accepted` |
+| target values | no — ordinary declarations | — | — | — | Phase 6: nothing special about a target |
+| device-specific command types | no — another `SemanticId` + explicit mapping, or a representation sink | — | — | — | Phase 6: `representation_sink_needs_explicit_rep` |
+| output clock metadata (`OutputSpec.clock`) | **yes** (in `Ω`) | shown | — | no | Phase 6: `output_binding_respects_clock_domain` |
+| StateHandler output policies | no | yes → state-local target choice in one driver | — | **yes** (as a mechanism) | Phase 6: `statehandler_output_cases` |
+| physical limits (range, torque, thermal, travel, PWM, bus, deadlines) | no | — | **yes** | — | Phase 7 |
 | range / latency / rate / feasibility obligations | no | — | yes | — | Phase 7 (expected: V) |
 | elaboration Surface → Core; reusable stateful components by instantiation | — | — | — | — | Phase 8 |
 | five-phase tick (Sample/Activate/Evaluate/Resolve/Commit) | ? | — | — | ? | Phase 8 — to be derived, not copied |
@@ -289,3 +301,33 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - CAN IT BE DESUGARED: no (it subsumes `delay`, not the reverse)
 - OBSERVABLE DIFFERENCE: `transport_trace`, `delay_is_domain_relative`
 - LEAN THEOREM / COUNTEREXAMPLE: `delay_is_sync_own`, `single_domain_embedding`, `MEv.det`, `multi_domain_total`, `sync_preserves_semantic_identity`
+
+### FEATURE: physical sink identity (`OutputId`, `OutputEnv`)
+- KERNEL STATUS: keep (resource identity; accepted type + clock declared)
+- SURFACE STATUS: device names
+- VALIDATION STATUS: physical limits attach here (Phase 7)
+- WHY IT EXISTS: same type does not identify a sink
+- WHAT BREAKS WITHOUT IT: `type_keyed_binding_collides`
+- CAN IT BE DESUGARED: no; `SemanticId`/`DeclId` conflate concept/relationship with resource
+- OBSERVABLE DIFFERENCE: which device moves
+- LEAN THEOREM / COUNTEREXAMPLE: D, `two_drivers_two_outputs`
+
+### FEATURE: drive edge (`DriveEnv β`, `DriveWF`)
+- KERNEL STATUS: keep (write-once per declaration; type and clock equality)
+- SURFACE STATUS: the wire into the actuator
+- VALIDATION STATUS: n/a
+- WHY IT EXISTS: values do not move hardware; the edge is the only physical effect
+- WHAT BREAKS WITHOUT IT: no physical semantics; with coercing/synchronizing bindings: E, G
+- CAN IT BE DESUGARED: no
+- OBSERVABLE DIFFERENCE: `PhysicalOutput`
+- LEAN THEOREM / COUNTEREXAMPLE: `output_binding_preserves_semantic_identity_and_dimension`, `output_binding_respects_clock_domain`, `first_output_binding_is_monotone`
+
+### FEATURE: single-driver / completeness
+- KERNEL STATUS: keep (global well-formedness; completeness at the executable level)
+- SURFACE STATUS: diagnostic naming the two drivers
+- VALIDATION STATUS: no
+- WHY IT EXISTS: without it the physical output is not a function of the tick
+- WHAT BREAKS WITHOUT IT: `two_drivers_two_outputs`; with hidden arbitration: C
+- CAN IT BE DESUGARED: not into typing (`two_direct_drivers_locally_fine`)
+- OBSERVABLE DIFFERENCE: determinism of the physical output
+- LEAN THEOREM / COUNTEREXAMPLE: `multiple_direct_drivers_rejected`, `single_driver_output_deterministic`, `executable_design_requires_complete_outputs`

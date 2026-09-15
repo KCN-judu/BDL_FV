@@ -13,11 +13,11 @@ lake build
 * `DESIGN_DECISIONS.md` — every model choice and rejected alternative
 * `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table
 
-Status: Phases 0–5 complete (lifecycle/refinement; cross-declaration
+Status: Phases 0–6 complete (lifecycle/refinement; cross-declaration
 preservation; semantic identity; representation binding + dimensions;
-reactive core; clock domains + synchronization). Remaining: Phase 6
-actions / effects / arbitration; Phase 7 validation + invalidation; Phase 8
-surface elaboration + executable semantics; final minimality audit.
+reactive core; clock domains + synchronization; physical outputs +
+single-driver discipline). Remaining: Phase 7 validation + invalidation;
+Phase 8 surface elaboration + executable semantics; final minimality audit.
 
 Kernel in one line: `DeclEnv : DeclId → Option DesignDecl`, where a
 `DesignDecl` is a stable id, a `DeclInterface` (expected type + monotone
@@ -31,7 +31,11 @@ single-domain reactive semantics: deterministic, total on causal designs, and
 every designer-facing temporal operator derived (Phase 4). Nominal clock
 domains with a schedule, a domain judgment, and one transport primitive
 `sync src init e` (of which `delay` is the own-domain instance) give the
-multi-domain semantics; the single-domain one embeds exactly (Phase 5). Typing sees only the
+multi-domain semantics; the single-domain one embeds exactly (Phase 5).
+Physical sinks are nominal resources with an accepted type and clock; a
+write-once drive edge per declaration, checked by type and clock equality,
+and one global invariant — at most one driver per sink — connect values to
+hardware; all combination is ordinary computation (Phase 6). Typing sees only the
 expected type; validation may rely on commitments and evidence; monotone
 refinement preserves earlier commitments; anything else is an edit that
 requires rechecking dependents.
