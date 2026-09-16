@@ -125,6 +125,16 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | hierarchical tree constructor | no | no | — | **yes** | D-72: packaging (`toComponent`) suffices |
 | component-level typing judgment | no | no | — | **yes** | D-64 |
 | modular semantics `instΔ`/`Consistent` | no — derived | — | — | — | Theorem J: agrees with flattened `Ev` on the wiring fragment |
+| `BehaviorGroup` / membership / `GroupedDesign` | no | authoring metadata | — | no | Phase 8b (D-74): Theorems A–G by `rfl` |
+| group / ungroup / move / merge / split | no | semantic no-op | — | no | Phase 8b (D-75) |
+| collapse / expand | no | UI/layout only | — | — | not modelled |
+| aggregate input/output sockets | no | derived projection (`externalInputs`/`externalOutputs`) | — | **yes** as declarations | Phase 8b (D-76); Counterexample 6 |
+| nested groups | no | relation on the flat list | — | **yes** as a recursive type | D-82 |
+| boundary inference (`crossIn`/`crossOut`/`privateMembers`/`clocksOf`) | no | analysis/elaboration | — | no | Phase 8b (D-77); Counterexamples 1–3 |
+| `restrict` / `template` / `Extract` | no | surface elaboration → Phase-8a system | — | no | Phase 8b (D-78); `flat_WF`, `orig_iff_flat` |
+| `Evidence.InterfaceLocal` | constraint imposed on V | — | yes | no | D-80 |
+| tuple-return / `MultiOutputMapping` | no | no | — | **yes** | Counterexample 5 |
+| physical sink as semantic port | no | no | — | **yes** | Counterexample 4; `drive_stays_with_member` |
 
 ## Feature entries (accepted constructs)
 

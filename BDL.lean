@@ -16,6 +16,10 @@ import BDL.Behavior.System
 import BDL.Behavior.Preservation
 import BDL.Behavior.Semantics
 import BDL.Behavior.Substitution
+import BDL.Behavior.Group
+import BDL.Behavior.Boundary
+import BDL.Behavior.Extract
+import BDL.Behavior.ExtractPreservation
 import BDL.Experiments.DeclCounterexamples
 import BDL.Experiments.SemanticTypeAlternatives
 import BDL.Experiments.RepresentationBindingAlternatives
@@ -26,3 +30,4 @@ import BDL.Experiments.OutputAlternatives
 import BDL.Validation.Hardware
 import BDL.Experiments.HardwareAlternatives
 import BDL.Experiments.BehaviorAlternatives
+import BDL.Experiments.GroupAlternatives

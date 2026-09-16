@@ -535,3 +535,54 @@ discharged.
 Reason: the precedent of `unfolds_preserves_eval`; the multi-domain case
 needs a domain-indexed input for transported ports, which `Input` cannot
 express.  Recorded as an open item.
+
+## Phase 8b
+
+**D-74. A behaviour group is authoring metadata; `eraseGroups` is a projection.**
+Rejected: a group as a kernel term; a group as a declaration; groups
+carrying types, clocks, outputs or formulas.
+Reason: Theorems A–G of `Group.lean` are `rfl`/`Iff.rfl` — the group never
+enters the design, so nothing it could carry would be semantic.
+
+**D-75. Group operations are semantic no-ops, not refinements or edits.**
+Every operation (`group`, `ungroup`, `addMember`, `removeMember`, `move`,
+`merge`, `split`) is the identity on `design`
+(`group_is_identity_on_design`).  They are a fourth invalidation class
+below "validation-only": nothing is rechecked.
+
+**D-76. Aggregate sockets are projections of `DependsOn`.**
+Rejected: socket declarations; fan-out edges; "union of input concepts".
+Reason: Counterexample 6 (`fanout_false_dependency`); `socket_no_fanout`.
+The dependency model is declaration-based, so the socket is
+`crossIn`/`crossOut` over it.
+
+**D-77. Boundary inference: required = crossing-in, provided = crossing-out, private = the rest without a sink, clocks = all clocks.**
+Rejected: required = all member references (Counterexample 1); required =
+own open declarations only (Counterexample 2); no clock parameters
+(Counterexample 3).  Physical sinks are never semantic ports
+(Counterexample 4); the drive edge stays with the member.
+
+**D-78. Extraction = two restrictions of the design reconnected by Phase-8a bindings.**
+Rejected: translating members into a new calculus; a tuple-returning
+declaration (Counterexample 5); body substitution across the boundary.
+Reason: the component body *is* the members' declarations; the
+reconnection is Phase-1 realization; `flat_WF` reuses Phase 8a.
+
+**D-79. Extraction causality is proved by subdividing the original graph, not by `InstAcyclic`.**
+Reason: a group with both inputs and outputs has instance edges both ways;
+`flat_causal` uses the rank `2·rank` / `2·rank + 1`.  Phase 8a's condition
+is recorded as too coarse for extraction.
+
+**D-80. Template realization needs interface-local evidence.**
+`Evidence.InterfaceLocal`: a discharged commitment depends only on the
+interfaces of the referenced declarations.  Without it a member's
+commitment discharged in the whole design could not be carried into the
+template, where its dependencies are unresolved port copies.
+
+**D-81. Identity: templates keep original identities; instances are fresh; the group id is never a component id.**
+Before packaging nothing is renamed (D-74).  After packaging the flattened
+system uses `W + n` and `2W + n`; further instances `3W + n`, ….
+
+**D-82. Nested groups are a relation on the flat group list.**
+Rejected: a recursive group type.  Reason: no kernel significance to
+represent (`nested_no_semantics`).

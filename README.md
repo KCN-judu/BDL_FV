@@ -18,12 +18,14 @@ preservation; semantic identity; representation binding + dimensions;
 reactive core; clock domains + synchronization; physical outputs +
 single-driver discipline; hardware constraint validation + resource
 allocation; behaviour systems — reusable components, fresh instantiation,
-port binding, hierarchical composition, flattening). Remaining: Phase 8b
-surface elaboration + executable semantics; final minimality audit.
+port binding, hierarchical composition, flattening; behaviour grouping and
+component extraction). Remaining: Phase 8c surface elaboration + executable
+semantics; final minimality audit.
 
 * `BDL/Behavior/` — Phase 8a: behaviour as a first-class design object
   (`BEHAVIOR_NOTE.md` is the design note; `BEHAVIOR_SYSTEM_REQUIREMENTS.md`
-  the production requirements report)
+  the production requirements report); Phase 8b: grouping and extraction
+  (`BEHAVIOR_GROUPING_NOTE.md`: design note and IDE implications)
 
 Kernel in one line: `DeclEnv : DeclId → Option DesignDecl`, where a
 `DesignDecl` is a stable id, a `DeclInterface` (expected type + monotone
