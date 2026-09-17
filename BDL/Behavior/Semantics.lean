@@ -213,6 +213,17 @@ theorem eval_flat_to_inst (c : ComposeWF ev S) (mono : ev.Monotone) (eq : ev.Equ
     intro hw' k hown
     simp only [Expr.refs, List.mem_append] at hown
     exact .syncSucc (ih hw'.2 k fun d hd => hown d (Or.inr hd))
+  | foldNil _ _ _ ihf ihz ihl =>
+    intro hw' k hown
+    simp only [Expr.refs, List.mem_append] at hown
+    exact .foldNil (ihf hw'.1 k fun d hd => hown d (Or.inl (Or.inl hd)))
+      (ihz hw'.2.1 k fun d hd => hown d (Or.inl (Or.inr hd))) (ihl hw'.2.2 k fun d hd => hown d (Or.inr hd))
+  | foldCons hf hz hl hr hv ihf ihz ihl _ _ =>
+    intro hw' k hown
+    simp only [Expr.refs, List.mem_append] at hown
+    exact Ev.foldCons_move (ihf hw'.1 k fun d hd => hown d (Or.inl (Or.inl hd)))
+      (ihz hw'.2.1 k fun d hd => hown d (Or.inl (Or.inr hd))) (ihl hw'.2.2 k fun d hd => hown d (Or.inr hd))
+      hr hv hw hI (Ev.noClo hw hI hf hw'.1) (Ev.noClo hw hI hz hw'.2.1) (Ev.noClo hw hI hl hw'.2.2)
 
 
 /-! ## Theorem J, converse: modular ⇒ flattened, given totality -/
@@ -314,6 +325,18 @@ theorem eval_inst_to_flat (c : ComposeWF ev S) (mono : ev.Monotone) (eq : ev.Equ
     intro hw' hown
     simp only [Expr.refs, List.mem_append] at hown
     exact .syncSucc (ih hw'.2 fun d hd => hown d (Or.inr hd))
+  | foldNil _ _ _ ihf ihz ihl =>
+    intro hw' hown
+    simp only [Expr.refs, List.mem_append] at hown
+    exact .foldNil (ihf hw'.1 fun d hd => hown d (Or.inl (Or.inl hd)))
+      (ihz hw'.2.1 fun d hd => hown d (Or.inl (Or.inr hd))) (ihl hw'.2.2 fun d hd => hown d (Or.inr hd))
+  | foldCons hf hz hl hr hv ihf ihz ihl _ _ =>
+    intro hw' hown
+    simp only [Expr.refs, List.mem_append] at hown
+    have hwk := instΔ_wiring c mono eq ps hw k
+    exact Ev.foldCons_move (ihf hw'.1 fun d hd => hown d (Or.inl (Or.inl hd)))
+      (ihz hw'.2.1 fun d hd => hown d (Or.inl (Or.inr hd))) (ihl hw'.2.2 fun d hd => hown d (Or.inr hd))
+      hr hv hwk hI' (Ev.noClo hwk hI' hf hw'.1) (Ev.noClo hwk hI' hz hw'.2.1) (Ev.noClo hwk hI' hl hw'.2.2)
 
 /-- **Theorem J (restricted).**  Under a consistent modular input, the
     modular and the flattened semantics agree on every declaration of every

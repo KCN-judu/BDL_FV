@@ -457,6 +457,12 @@ theorem Expr.instRefs_subset_refs : ∀ (e : Expr) (b : DeclId), b ∈ e.instRef
     simp only [Expr.instRefs] at h
     simp only [Expr.refs, List.mem_append]
     exact Or.inl (Expr.instRefs_subset_refs i x h)
+  | .fold f z l, x, h => by
+    simp only [Expr.instRefs, Expr.refs, List.mem_append] at h ⊢
+    rcases h with (h | h) | h
+    · exact Or.inl (Or.inl (Expr.instRefs_subset_refs f x h))
+    · exact Or.inl (Or.inr (Expr.instRefs_subset_refs z x h))
+    · exact Or.inr (Expr.instRefs_subset_refs l x h)
 
 /-- A family of rank witnesses, one per instance, from the causality of each
     template (constructive: by recursion on the instance list). -/

@@ -85,12 +85,14 @@ def _root_.BDL.Ty.eraseDim : Ty → Ty
   | .arr a b => .arr a.eraseDim b.eraseDim
   | .opt τ => .opt τ.eraseDim
   | .list τ => .list τ.eraseDim
+  | .prod a b => .prod a.eraseDim b.eraseDim
   | τ => τ
 
 theorem _root_.BDL.Ty.eraseDim_data : ∀ {τ : Ty}, τ.Data → τ.eraseDim.Data
   | .bool, _ | .nat, _ | .q _, _ | .sem _, _ => trivial
   | .opt τ, h => Ty.eraseDim_data (τ := τ) h
   | .list τ, h => Ty.eraseDim_data (τ := τ) h
+  | .prod _ _, h => ⟨Ty.eraseDim_data h.1, Ty.eraseDim_data h.2⟩
   | .arr _ _, h => h.elim
 
 def _root_.BDL.Prim.eraseDim : Prim → Prim
@@ -99,8 +101,8 @@ def _root_.BDL.Prim.eraseDim : Prim → Prim
   | .sub _ => .sub Dim.zero
   | .mul _ _ => .mul Dim.zero Dim.zero
   | .div _ _ => .div Dim.zero Dim.zero
-  | .lt _ => .lt Dim.zero
-  | .eq _ => .eq Dim.zero
+  | .lt τ h => .lt τ.eraseDim (Ty.eraseDim_data h)
+  | .eq τ h => .eq τ.eraseDim (Ty.eraseDim_data h)
   | .ite τ => .ite τ.eraseDim
   | .none τ => .none τ.eraseDim
   | .some τ => .some τ.eraseDim
@@ -112,6 +114,11 @@ def _root_.BDL.Prim.eraseDim : Prim → Prim
   | .take τ => .take τ.eraseDim
   | .reverse τ => .reverse τ.eraseDim
   | .head τ => .head τ.eraseDim
+  | .pair a b => .pair a.eraseDim b.eraseDim
+  | .fst a b => .fst a.eraseDim b.eraseDim
+  | .snd a b => .snd a.eraseDim b.eraseDim
+  | .drop τ => .drop τ.eraseDim
+  | .toList τ => .toList τ.eraseDim
   | p => p
 
 theorem _root_.BDL.Prim.ty_eraseDim (p : Prim) : p.eraseDim.ty = p.ty.eraseDim := by
@@ -125,6 +132,7 @@ def _root_.BDL.Expr.eraseDim : Expr → Expr
   | .prim p => .prim p.eraseDim
   | .delay i e => .delay i.eraseDim e.eraseDim
   | .sync c i e => .sync c i.eraseDim e.eraseDim
+  | .fold f z l => .fold f.eraseDim z.eraseDim l.eraseDim
   | e => e
 
 def _root_.BDL.DesignDecl.eraseDim (d : DesignDecl) : DesignDecl :=
@@ -155,6 +163,7 @@ theorem _root_.BDL.HasType.eraseDim {Θ : ConceptEnv} {Δ : DeclEnv} {G : Grant}
   | prim => exact (Prim.ty_eraseDim _) ▸ HasType.prim
   | delay hd _ _ ihi ihe => exact .delay (Ty.eraseDim_data hd) ihi ihe
   | sync hd _ _ ihi ihe => exact .sync (Ty.eraseDim_data hd) ihi ihe
+  | fold _ _ _ ihf ihz ihl => exact .fold ihf ihz ihl
 
 /-- **Counterexample B.**  After erasure `length + time` is accepted, and the
     erased environment cannot tell the sensors apart. -/

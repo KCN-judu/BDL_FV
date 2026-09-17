@@ -35,3 +35,8 @@ import BDL.Core.ListData
 import BDL.Surface.Buffer
 import BDL.Validation.Capacity
 import BDL.Experiments.BufferAlternatives
+import BDL.Surface.Poly
+import BDL.Surface.Stdlib
+import BDL.Surface.Generic
+import BDL.Experiments.PolyAlternatives
+import BDL.Experiments.EquationExamples

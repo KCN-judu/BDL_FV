@@ -157,7 +157,7 @@ def getD' (τ : Ty) (o d : Expr) : Expr := .app (.app (.prim (.getD τ)) o) d
 def and' (a b : Expr) : Expr := .app (.app (.prim .and) a) b
 def or' (a b : Expr) : Expr := .app (.app (.prim .or) a) b
 def not' (a : Expr) : Expr := .app (.prim .not) a
-def eq0 (a b : Expr) : Expr := .app (.app (.prim (.eq Dim.zero)) a) b
+def eq0 (a b : Expr) : Expr := .app (.app (.prim (.eq (.q Dim.zero) trivial)) a) b
 
 /-- `previous x` with an initial value **is** `delay`. -/
 def dPrev  : DesignDecl := ⟨prevD, ⟨Q0, []⟩, some (.delay lit0 (.declRef xIn))⟩

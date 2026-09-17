@@ -629,3 +629,76 @@ kernel.
 A sensor component provides both its event and its log; binding the log
 through `sync nil` yields the window (`transport_trace`), binding the
 event yields `latest` (`latest_transport_loses`).  No new binding kind.
+
+## Phase 9b
+
+**D-88. Products enter the kernel as value composition: `prod`, `pair`, `fst`, `snd`.**
+Rejected: Church/function encodings (arrows are not data —
+`arrow_not_delayable`; first-class use needs rank 2 — `church_fst_rank`);
+tuples as component interfaces or output bundles (Phases 6, 8 unchanged).
+Reason: paired state must be delayable (`pair_state_delayable`).
+
+**D-89. The list recursor `fold` is a term former, not a registered operator.**
+Rejected: a `fold` primitive (operators never apply closures; a
+closure-applying operator would need the evaluation relation inside
+`Prim.compute`); per-operation primitives `map`/`any`/`all`/…; bounded
+unrolling.  Reason: one eliminator derives every collection operation
+(`Stdlib`); evaluation is syntactic unrolling through the environment
+(`Ev.foldCons`), so `Ev` stays an ordinary inductive and every earlier
+proof extends by one case.  Totality by `fold_total`.
+
+**D-90. `eq`/`lt` at every data type, with the data proof in the syntax.**
+Rejected: equality on quantities only (boolean equality had to be
+encoded); a typing side condition (would change the `prim` rule);
+Θ-dependent orderability of concepts.  Reason: structural equality and
+lexicographic order are defined on all data values (`Value.beq`, `blt`);
+typing already forbids comparing two concepts.  The proof field makes
+`eq (arr ..)` unwritable — the closed capability vocabulary is {Data}.
+
+**D-91. `toList : opt τ → list τ` and `drop` are registered operators.**
+Reason: without `toList` an option has no eliminator that does not need a
+default value; with it `fold` eliminates options (`optElimF`, `mapOptF`).
+`drop` is the dual of `take`, needed by `zip`.
+
+**D-92. Rank-1 polymorphism is definitional: families instantiated by matching; no type variable in the kernel.**
+Rejected: kernel type variables (open declaration types would be
+meaningless); System F terms (`Λ`, `[τ]`) — their prenex fragment is family
+instantiation (`PolyAlternatives`); higher rank — every candidate is rank
+≥ 2 with a rank-1 replacement (`applyBoth_rank`, `applyBoth_replacement`);
+let-generalization and principal-type search — use sites have closed
+argument types, so instantiation is one-way matching (`matchTy_sound`,
+`matchTy_complete`).
+
+**D-93. Constraints: the closed vocabulary {Data}; no user-defined classes.**
+Rejected: hardcoded per-operator admissibility (subsumed), an open class
+system, dictionary passing.  Reason: `eq`, `lt`, `delay`, `sync` are the
+only constrained operations and all need exactly `Data`; a designer's
+custom order is a comparator argument (`minByF`).  Dimension genericity
+is a pattern variable over `Dim` (`PDim.dvar`); no kind system.
+
+**D-94. The equation library is a set of combinators, inlined at use sites.**
+`Comb`: no reference, state, transport, `rep` or `mk`.  Proved once:
+typing independent of Δ, Θ, G (`HasType.comb_irrelevant`), evaluation
+context-free (`lib_eval_context_free` from `Ev.pure`), clocked everywhere
+(`lib_clocked`), no construction (`Comb.noConstruct`), and the combined
+expansion statement (`lib_expansion`).  Rejected: library functions as
+declarations (would be monomorphic and would enter the dependency graph).
+
+**D-95. Sets, intervals, records, predicates, finite quantifiers are surface.**
+`x ∈ {…}` is `contains` over a list literal (`oneOf_mem`; duplicates
+irrelevant); an interval is a pair with a convention (`inIntervalF`); a
+record is a right-nested pair with positional projections (`recTy`,
+`projE_typed`); a predicate is `α → bool`; `forall/exists x in xs` are
+`all`/`any` (`forall_in_list`, `exists_in_list`).  Rejected: a `Set`
+type, a record type, row polymorphism, quantifiers in expressions.
+
+**D-96. Sums are encoded; a kernel `sum` is deferred.**
+`enum LampMode { Off, Automatic, Manual(Brightness) }` is a tag paired
+with an optional payload; `match` is conditionals on the tag (`exM`).  A
+kernel `sum` would need one more eliminator term former; deferred until a
+case needs exhaustiveness beyond the encoding.
+
+**D-97. Existentials are not needed: hiding is Phase-8a instantiation.**
+Private concepts and identities are freshened per instance; the public
+contract is the interface.  The type-theoretic encoding is rank 2
+(`existential_rank`).

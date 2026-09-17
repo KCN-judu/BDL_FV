@@ -56,6 +56,10 @@ theorem HasType.mono_env_refs {Θ : ConceptEnv} {Δ₁ Δ₂ : DeclEnv} {G : Gra
   | sync hd _ _ ihi ihe =>
     simp only [Expr.refs, List.mem_append] at hv
     exact .sync hd (ihi fun d hd => hv d (Or.inl hd)) (ihe fun d hd => hv d (Or.inr hd))
+  | fold _ _ _ ihf ihz ihl =>
+    simp only [Expr.refs, List.mem_append] at hv
+    exact .fold (ihf fun d hd => hv d (Or.inl (Or.inl hd))) (ihz fun d hd => hv d (Or.inl (Or.inr hd)))
+      (ihl fun d hd => hv d (Or.inr hd))
 
 /-- The domain judgment depends on the clocks of the referenced declarations only. -/
 theorem Clock.clockedB_congr {Κ Κ' : ClockEnv} :
@@ -79,6 +83,11 @@ theorem Clock.clockedB_congr {Κ Κ' : ClockEnv} :
     simp only [clockedB, Clock.clockedB_congr (some c) i (fun d hd => h d (Or.inl hd)),
       Clock.clockedB_congr (some c') e (fun d hd => h d (Or.inr hd))]
   | none, .sync _ _ _, _ => rfl
+  | c, .fold f z l, h => by
+    simp only [Expr.refs, List.mem_append] at h
+    simp only [clockedB, Clock.clockedB_congr c f (fun d hd => h d (Or.inl (Or.inl hd))),
+      Clock.clockedB_congr c z (fun d hd => h d (Or.inl (Or.inr hd))),
+      Clock.clockedB_congr c l (fun d hd => h d (Or.inr hd))]
 
 namespace Extract
 
@@ -800,9 +809,12 @@ theorem renOf_s (k : Nat) : (X.renOf k).s = fun s => s := by
   funext s; unfold renOf instOf; split <;> rfl
 
 theorem _root_.BDL.Prim.rename_id : ∀ p : Prim, p.rename (fun s => s) = p
-  | .lit _ _ | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ | .eq _ | .not | .and | .or => rfl
+  | .lit _ _ | .add _ | .sub _ | .mul _ _ | .div _ _ | .not | .and | .or => rfl
+  | .lt τ _ | .eq τ _ => by simp [Prim.rename, Ty.rename_id]
   | .ite τ | .none τ | .some τ | .isSome τ | .getD τ => by simp [Prim.rename, Ty.rename_id]
   | .nil τ | .cons τ | .length τ | .take τ | .reverse τ | .head τ => by simp [Prim.rename, Ty.rename_id]
+  | .pair a b | .fst a b | .snd a b => by simp [Prim.rename, Ty.rename_id]
+  | .drop τ | .toList τ => by simp [Prim.rename, Ty.rename_id]
 
 /-- `d` is visible on side `k`: it is declared on that side, either as its
     home copy or as a port copy. -/
@@ -964,6 +976,17 @@ theorem eval_orig_to_flat (mono : ev.Monotone) (eq : ev.Equivariant) (ps : ev.Po
     intro hw k hk hvis
     simp only [Expr.refs, List.mem_append] at hvis
     exact .syncSucc (ih hw.2 k hk fun d hd => hvis d (Or.inr hd))
+  | foldNil _ _ _ ihf ihz ihl =>
+    intro hw k hk hvis
+    simp only [Expr.refs, List.mem_append] at hvis
+    exact .foldNil (ihf hw.1 k hk fun d hd => hvis d (Or.inl (Or.inl hd)))
+      (ihz hw.2.1 k hk fun d hd => hvis d (Or.inl (Or.inr hd))) (ihl hw.2.2 k hk fun d hd => hvis d (Or.inr hd))
+  | foldCons hf hz hl hr hv ihf ihz ihl _ _ =>
+    intro hw k hk hvis
+    simp only [Expr.refs, List.mem_append] at hvis
+    exact Ev.foldCons_move (ihf hw.1 k hk fun d hd => hvis d (Or.inl (Or.inl hd)))
+      (ihz hw.2.1 k hk fun d hd => hvis d (Or.inl (Or.inr hd))) (ihl hw.2.2 k hk fun d hd => hvis d (Or.inr hd))
+      hr hv hwir hI (Ev.noClo hwir hI hf hw.1) (Ev.noClo hwir hI hz hw.2.1) (Ev.noClo hwir hI hl hw.2.2)
 
 /-- **Theorem R (observational equivalence on declarations).**  Under
     totality of the original design, an original declaration and its home

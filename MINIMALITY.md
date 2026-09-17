@@ -85,6 +85,24 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | fixed-size event tuple | no | — | — | **yes** | Phase 9a Model D: `modelD_not_lossless` |
 | buffer capacity | no | annotation | **yes** (`CapacitySufficient`, `requiredCapacity`, periodic bound) | no | Phase 9a (D-86) |
 | overflow policy (`dropOldest`/`dropNewest`) | no | explicit computation over the window | reject-deployment preserves semantics | no | Phase 9a (D-86): `sufficient_capacity_preserves`, `negE` |
+| `Ty.prod` / `pair` / `fst` / `snd` | **yes** (value composition only) | tuples, records | — | no | Phase 9b (D-88): `arrow_not_delayable`, `pair_state_delayable` |
+| `fold` (list recursor, term former) | **yes** | `map`/`any`/`all`/`contains`/`filter`/… are definitions | — | no | Phase 9b (D-89): `fold_total`; `any_spec`, `map_spec` |
+| `eq`/`lt` at every data type | **yes** (generalized; proof field) | `==`, `<`, `min`, `max`, `clamp`, `contains` | — | no | Phase 9b (D-90): closed capability {Data} |
+| `drop`, `toList` | **yes** (registered operators) | option elimination, `zip` | — | no | Phase 9b (D-91) |
+| rank-1 parametric polymorphism | no — families of monomorphic terms | generic definitions instantiated by matching | — | no | Phase 9b (D-92): `matchTy_sound`/`_complete`; `instances_are_monomorphic` |
+| type variables / `∀` in kernel types; `Λ`/`[τ]` in terms | no | — | — | **yes** | Phase 9b (D-92): prenex = instantiation; higher rank unused (`applyBoth_rank`) |
+| capability constraints | no | closed {Data} on scheme variables | — | user classes: **yes** | Phase 9b (D-93): `Scheme.instantiate_sound`, `minByF` |
+| definitional library (`min`…`zip`) | no | combinators inlined at use sites | — | no | Phase 9b (D-94): `lib_expansion`, `lib_eval_context_free` |
+| `fn` helper declarations | no | closed lambdas, inlined | — | no | Phase 9b (D-94) |
+| finite-set literal `x ∈ {…}` / `Set` type | no | `contains` over a list literal | — | `Set` type: **yes** | Phase 9b (D-95): `oneOf_mem`, `oneOf_dup_irrelevant` |
+| intervals / ranges | no | pair + `inRange`/`clamp` | — | no | Phase 9b (D-95): `inRange_spec`, `clamp_spec` |
+| records | no | nested pairs, positional projection | — | record type / row polymorphism: **yes** | Phase 9b (D-95): `projE_typed`, `records_are_pairs` |
+| `Predicate α` | no | `α → bool` | — | **yes** as a type | Phase 9b (D-95) |
+| finite `forall`/`exists x in xs` | no | `all`/`any` folds | — | general quantifiers in expressions: **yes** | Phase 9b (D-95): `forall_in_list`, `exists_in_list` |
+| unbounded logical quantification, symbolic obligations | no | — | **future commitment layer** | — | Phase 9b: not built |
+| enumerations / sum types | pending (deferred) | tag × optional payload | — | — | Phase 9b (D-96): `exM` |
+| existential types | no | — | — | **yes** | Phase 9b (D-97): Phase-8a instantiation hides |
+| GADTs, dependent types, impredicativity, effect systems | no | — | — | **yes** | Phase 9b: no behaviour-design case |
 | `OutputId` (sink resource identity) | **yes** | device names | — | no | Phase 6 (D-50): `type_keyed_binding_collides` |
 | output binding (drive edge `β`, `DriveWF`) | **yes** | "connect to actuator" | — | no | Phase 6 (D-51): type and clock equality only |
 | single-driver global invariant | **yes** | diagnostic | — | no | Phase 6 (D-52): `multiple_direct_drivers_rejected` |
@@ -405,6 +423,30 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - CAN IT BE DESUGARED: it *is* the desugaring; `buffer_window_correspondence` proves it equals the Phase-5 window
 - VALIDATION DIFFERENCE: capacity (`CapacitySufficient`); overflow is explicit and only reject-deployment preserves semantics
 - LEAN THEOREM / COUNTEREXAMPLE: `buffer_elaboration_well_typed`, `buffer_elaboration_well_clocked`, `buffer_window_correspondence`, `buffer_lossless`, `sufficient_capacity_preserves`, `negE`
+
+### FEATURE: products (`prod`, `pair`, `fst`, `snd`)
+- LAYER: kernel (value composition only)
+- WHY IT EXISTS: paired state and structured intermediate values must be data
+- WHAT BREAKS WITHOUT IT: a function encoding is not data and cannot be delayed or transported (`arrow_not_delayable`)
+- CAN IT BE DESUGARED: no (rank-2 for first-class Church pairs: `church_fst_rank`)
+- VALIDATION DIFFERENCE: none
+- LEAN THEOREM / COUNTEREXAMPLE: `prod_data`, `pair_state_delayable`, `pair_projections_keep_concepts`
+
+### FEATURE: the list recursor `fold`
+- LAYER: kernel (term former)
+- WHY IT EXISTS: the only eliminator for lists (and, through `toList`, options) in a language without recursion
+- WHAT BREAKS WITHOUT IT: `map`, `any`, `all`, `contains`, `filter`, `zip` each become primitives, or are unwritable
+- CAN IT BE DESUGARED: no; everything else is desugared *to* it
+- VALIDATION DIFFERENCE: none (a bounded window is still validation, 9a)
+- LEAN THEOREM / COUNTEREXAMPLE: `fold_total`, `any_spec`, `all_spec`, `map_spec`, `forall_in_list`
+
+### FEATURE: rank-1 definitional polymorphism
+- LAYER: surface/elaborator (families + matching)
+- WHY IT EXISTS: one definition of `min`/`map`/`any` for all data types
+- WHAT BREAKS WITHOUT IT: per-type duplication in the library (Model B)
+- CAN IT BE DESUGARED: it *is* the desugaring; the kernel sees monomorphic instances (`instances_are_monomorphic`)
+- VALIDATION DIFFERENCE: none
+- LEAN THEOREM / COUNTEREXAMPLE: `matchTy_sound`, `matchTy_complete`, `generic_preserves_identity`, `lib_expansion`
 
 ### FEATURE: exhaustive solver with soundness and completeness
 - LAYER: validation

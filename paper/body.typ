@@ -1785,6 +1785,10 @@ the tested designs.
   [`list τ` with six operators], [kernel], [a lossless window is unbounded sequence data; no new typing, evaluation, or domain rule],
   [buffer primitive, `Event τ` across domains], [removed], [buffer = five declarations over `delay`/`sync`/lists; proved equal to the window],
   [event policies, capacity], [surface; validation], [policies are computations over the window; only reject-deployment preserves semantics],
+  [products `A × B`, list recursor `fold`, `eq`/`lt` on every data type], [kernel], [function encodings are not data and cannot be state; one eliminator derives every collection operation; the closed capability is `Data`],
+  [rank-1 generic definitions], [surface], [families of monomorphic terms instantiated by matching; no type variable, `∀` or `Λ` in the kernel],
+  [sets, intervals, records, finite quantifiers, `min`/`clamp`/`any`/`all`/`map`], [surface], [definitions over pairs, lists and `fold`; `x ∈ {…}` is list membership; `forall x in xs` is `all`],
+  [higher-rank types, typeclasses, existentials, row polymorphism], [removed], [every candidate use is rank ≥ 2 with a rank-1 replacement; hiding is component instantiation; the constraint vocabulary is {`Data`}],
   [`OutputId`, drive edge, `DriveWF`, `SingleDriver`], [kernel], [two drivers make the output non-functional; hidden policy observable],
   [effect rows, action values, arbitration], [removed], [rows duplicate edges or false-positive; values relocate the conflict],
   [hardware resources, requirements, solver], [validation], [feasibility is target-relative and not monotone],
@@ -2058,11 +2062,14 @@ semantics. These are substantial extensions, not footnotes.
 
 Several boundaries are internal to what was formalized. Causality is
 conservative for lambda-guarded cycles. The buffer correspondence
-assumes an input source; the list operators are the six the buffer and
-the tested policies need. The agreement between unfolding and
-tick-by-tick evaluation is proved for first-order designs only. The
-StateHandler reduction covers the tested cases and not contexts with
-their own clocks. Hardware validation covers discrete pin and peripheral
+assumes an input source. The equation language is total first-order-data
+computation with higher-order functions and one list recursor; sum types
+are encoded as a tag with an optional payload rather than added, and the
+library's evaluation lemmas assume the predicate argument implements a
+Boolean function. The agreement between unfolding and tick-by-tick
+evaluation is proved for first-order designs only. The StateHandler
+reduction covers the tested cases and not contexts with their own
+clocks. Hardware validation covers discrete pin and peripheral
 allocation with unary and binary constraints, and no numeric electrical
 or timing property. The explanation facility reports a first dead end,
 not a minimal core. Interface-level references --- commitments that

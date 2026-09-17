@@ -60,6 +60,10 @@ inductive Ty where
       occurrences is a `list τ` at the destination; `Event` is still not a
       type, and buffering is surface elaboration over `delay`/`sync`. -/
   | list (τ : Ty)
+  /-- Phase 9b: a product — value-level composition only.  A pair is data
+      when both components are; it is never a component interface, an
+      output bundle, or a system boundary. -/
+  | prod (a b : Ty)
   deriving DecidableEq, Repr
 
 /-- A type mentioning no semantic concept. -/
@@ -68,6 +72,7 @@ def Ty.SemFree : Ty → Prop
   | .arr a b => a.SemFree ∧ b.SemFree
   | .opt τ => τ.SemFree
   | .list τ => τ.SemFree
+  | .prod a b => a.SemFree ∧ b.SemFree
   | _ => True
 
 instance : ∀ τ : Ty, Decidable τ.SemFree
@@ -81,6 +86,10 @@ instance : ∀ τ : Ty, Decidable τ.SemFree
     have := instDecidableSemFree a
     have := instDecidableSemFree b
     inferInstanceAs (Decidable (a.SemFree ∧ b.SemFree))
+  | .prod a b =>
+    have := instDecidableSemFree a
+    have := instDecidableSemFree b
+    inferInstanceAs (Decidable (a.SemFree ∧ b.SemFree))
 
 /-- A *data* type: no function type inside.  Phase 4: only data may be
     delayed — temporal state stores values, not behaviour. -/
@@ -88,6 +97,7 @@ def Ty.Data : Ty → Prop
   | .arr _ _ => False
   | .opt τ => τ.Data
   | .list τ => τ.Data
+  | .prod a b => a.Data ∧ b.Data
   | _ => True
 
 instance : ∀ τ : Ty, Decidable τ.Data
@@ -98,11 +108,20 @@ instance : ∀ τ : Ty, Decidable τ.Data
   | .opt τ => instDecidableData τ
   | .list τ => instDecidableData τ
   | .arr _ _ => inferInstanceAs (Decidable False)
+  | .prod a b =>
+    have := instDecidableData a
+    have := instDecidableData b
+    inferInstanceAs (Decidable (a.Data ∧ b.Data))
 
 /-- **`list_data`** (Phase 9a): a list is data exactly when its elements
     are, so lists may be delayed and transported like any other data. -/
 theorem Ty.list_data (τ : Ty) : (Ty.list τ).Data ↔ τ.Data := Iff.rfl
 theorem Ty.list_semFree (τ : Ty) : (Ty.list τ).SemFree ↔ τ.SemFree := Iff.rfl
+
+/-- **`prod_data`** (Phase 9b): a pair is data exactly when both components
+    are — so paired state may be delayed and transported. -/
+theorem Ty.prod_data (a b : Ty) : (Ty.prod a b).Data ↔ a.Data ∧ b.Data := Iff.rfl
+theorem Ty.prod_semFree (a b : Ty) : (Ty.prod a b).SemFree ↔ a.SemFree ∧ b.SemFree := Iff.rfl
 
 /-- Registered pure operators (the paper's `p(e₁,…,eₙ)`).  Dimension algebra
     lives entirely in their types; typing an application is ordinary STLC. -/
@@ -113,9 +132,13 @@ inductive Prim where
   | sub (d : Dim)
   | mul (d₁ d₂ : Dim)
   | div (d₁ d₂ : Dim)
-  -- Phase 4: comparisons, booleans, conditionals, options (plain STLC data)
-  | lt (d : Dim)
-  | eq (d : Dim)
+  -- Phase 4: comparisons, booleans, conditionals, options (plain STLC data).
+  -- Phase 9b generalizes `lt`/`eq` from quantities to every *data* type:
+  -- the closed capability vocabulary is {Data}; structural order and
+  -- equality are defined on data values, never on closures.  The proof
+  -- field makes an inadmissible instance unwritable.
+  | lt (τ : Ty) (h : τ.Data)
+  | eq (τ : Ty) (h : τ.Data)
   | not
   | and
   | or
@@ -133,6 +156,14 @@ inductive Prim where
   | take (τ : Ty)
   | reverse (τ : Ty)
   | head (τ : Ty)
+  -- Phase 9b: products — construction and the two projections.
+  | pair (a b : Ty)
+  | fst (a b : Ty)
+  | snd (a b : Ty)
+  -- Phase 9b: `drop` (dual of `take`) and `toList` — an option is a list of
+  -- length at most one, so `fold` eliminates options too.
+  | drop (τ : Ty)
+  | toList (τ : Ty)
   deriving DecidableEq, Repr
 
 def Prim.ty : Prim → Ty
@@ -141,8 +172,8 @@ def Prim.ty : Prim → Ty
   | .sub d => .arr (.q d) (.arr (.q d) (.q d))
   | .mul d₁ d₂ => .arr (.q d₁) (.arr (.q d₂) (.q (d₁.add d₂)))
   | .div d₁ d₂ => .arr (.q d₁) (.arr (.q d₂) (.q (d₁.sub d₂)))
-  | .lt d => .arr (.q d) (.arr (.q d) .bool)
-  | .eq d => .arr (.q d) (.arr (.q d) .bool)
+  | .lt τ _ => .arr τ (.arr τ .bool)
+  | .eq τ _ => .arr τ (.arr τ .bool)
   | .not => .arr .bool .bool
   | .and => .arr .bool (.arr .bool .bool)
   | .or => .arr .bool (.arr .bool .bool)
@@ -157,6 +188,11 @@ def Prim.ty : Prim → Ty
   | .take τ => .arr (.q Dim.zero) (.arr (.list τ) (.list τ))
   | .reverse τ => .arr (.list τ) (.list τ)
   | .head τ => .arr (.list τ) (.opt τ)
+  | .pair a b => .arr a (.arr b (.prod a b))
+  | .fst a b => .arr (.prod a b) a
+  | .snd a b => .arr (.prod a b) b
+  | .drop τ => .arr (.q Dim.zero) (.arr (.list τ) (.list τ))
+  | .toList τ => .arr (.opt τ) (.list τ)
 
 /-- Stable identity of a design declaration — an ordinary declaration name,
     not a novel abstraction (Phase 1, REPORT §1.5).  A wrapper rather than a
@@ -181,6 +217,12 @@ inductive Expr where
       `src`) at the last activation of `src` strictly before now; `init` if
       there was none.  `delay init e` is `sync own init e`. -/
   | sync (src : ClockId) (init e : Expr)
+  /-- Phase 9b: the list recursor, `fold f z [x₁, …, xₙ] = f x₁ (… (f xₙ z))`.
+      The one term former that applies a function value in the course of
+      evaluation; registered operators never do.  Every generic collection
+      operation (`map`, `any`, `all`, `contains`, `filter`) is a definition
+      over it (`Surface/Stdlib.lean`). -/
+  | fold (f z l : Expr)
   deriving DecidableEq, Repr
 
 /-- Typing context: the type of de Bruijn index `i` is `Γ[i]?`. -/
@@ -196,6 +238,7 @@ def Expr.refs : Expr → List DeclId
   | .mk _ e => e.refs
   | .delay i e => i.refs ++ e.refs
   | .sync _ i e => i.refs ++ e.refs
+  | .fold f z l => f.refs ++ z.refs ++ l.refs
 
 /-- The declarations a term refers to *instantaneously*: those not under a
     `delay`.  (The initial value of a delay is read at tick 0, so it is
@@ -209,6 +252,7 @@ def Expr.instRefs : Expr → List DeclId
   | .mk _ e => e.instRefs
   | .delay i _ => i.instRefs
   | .sync _ i _ => i.instRefs   -- a transport reads strictly earlier: never instantaneous
+  | .fold f z l => f.instRefs ++ z.instRefs ++ l.instRefs
 
 /-- Does the term contain a `delay`?  The timeless fragment is delay-free. -/
 def Expr.DelayFree : Expr → Prop
@@ -218,6 +262,7 @@ def Expr.DelayFree : Expr → Prop
   | .mk _ e => e.DelayFree
   | .delay _ _ => False
   | .sync _ _ _ => False
+  | .fold f z l => f.DelayFree ∧ z.DelayFree ∧ l.DelayFree
   | _ => True
 
 instance : ∀ e : Expr, Decidable e.DelayFree
@@ -231,6 +276,11 @@ instance : ∀ e : Expr, Decidable e.DelayFree
   | .mk _ e => instDecidableDelayFree e
   | .delay _ _ => inferInstanceAs (Decidable False)
   | .sync _ _ _ => inferInstanceAs (Decidable False)
+  | .fold f z l =>
+    have := instDecidableDelayFree f
+    have := instDecidableDelayFree z
+    have := instDecidableDelayFree l
+    inferInstanceAs (Decidable (f.DelayFree ∧ z.DelayFree ∧ l.DelayFree))
 
 theorem Expr.instRefs_of_delayFree : ∀ {e : Expr}, e.DelayFree → e.instRefs = e.refs
   | .var _, _ | .boolLit _, _ | .natLit _, _ | .prim _, _ | .declRef _, _ => rfl
@@ -240,6 +290,9 @@ theorem Expr.instRefs_of_delayFree : ∀ {e : Expr}, e.DelayFree → e.instRefs 
   | .mk _ e, h => Expr.instRefs_of_delayFree (e := e) h
   | .delay _ _, h => h.elim
   | .sync _ _ _, h => h.elim
+  | .fold f z l, h => by
+    simp [Expr.instRefs, Expr.refs, Expr.instRefs_of_delayFree h.1, Expr.instRefs_of_delayFree h.2.1,
+      Expr.instRefs_of_delayFree h.2.2]
 
 /-- A term that refers to no declaration: an ordinary program whose typing is
     independent of any environment. -/

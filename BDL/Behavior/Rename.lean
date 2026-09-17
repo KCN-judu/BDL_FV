@@ -38,17 +38,22 @@ def Ty.rename (σ : SemanticId → SemanticId) : Ty → Ty
   | .q d => .q d
   | .opt τ => .opt (τ.rename σ)
   | .list τ => .list (τ.rename σ)
+  | .prod a b => .prod (a.rename σ) (b.rename σ)
 
 theorem Ty.rename_data (σ : SemanticId → SemanticId) : ∀ τ : Ty, τ.Data → (τ.rename σ).Data
   | .bool, h | .nat, h | .q _, h | .sem _, h => h
   | .opt τ, h => Ty.rename_data σ τ h
   | .list τ, h => Ty.rename_data σ τ h
+  | .prod a b, h => ⟨Ty.rename_data σ a h.1, Ty.rename_data σ b h.2⟩
   | .arr _ _, h => h.elim
 
 theorem Ty.rename_data_iff (σ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.rename σ).Data ↔ τ.Data
   | .bool | .nat | .q _ | .sem _ => Iff.rfl
   | .opt τ => Ty.rename_data_iff σ τ
   | .list τ => Ty.rename_data_iff σ τ
+  | .prod a b => by
+    simp only [Ty.rename, Ty.Data]
+    exact and_congr (Ty.rename_data_iff σ a) (Ty.rename_data_iff σ b)
   | .arr _ _ => Iff.rfl
 
 theorem Ty.rename_semFree (σ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.rename σ).SemFree ↔ τ.SemFree
@@ -59,6 +64,9 @@ theorem Ty.rename_semFree (σ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.re
   | .arr a b => by
     simp only [Ty.rename, Ty.SemFree]
     exact and_congr (Ty.rename_semFree σ a) (Ty.rename_semFree σ b)
+  | .prod a b => by
+    simp only [Ty.rename, Ty.SemFree]
+    exact and_congr (Ty.rename_semFree σ a) (Ty.rename_semFree σ b)
 
 /-- A sem-free type is fixed by every renaming. -/
 theorem Ty.rename_of_semFree (σ : SemanticId → SemanticId) : ∀ τ : Ty, τ.SemFree → τ.rename σ = τ
@@ -67,9 +75,10 @@ theorem Ty.rename_of_semFree (σ : SemanticId → SemanticId) : ∀ τ : Ty, τ.
   | .opt τ, h => by simp [Ty.rename, Ty.rename_of_semFree σ τ h]
   | .list τ, h => by simp [Ty.rename, Ty.rename_of_semFree σ τ h]
   | .arr a b, h => by simp [Ty.rename, Ty.rename_of_semFree σ a h.1, Ty.rename_of_semFree σ b h.2]
+  | .prod a b, h => by simp [Ty.rename, Ty.rename_of_semFree σ a h.1, Ty.rename_of_semFree σ b h.2]
 
 theorem Ty.rename_grant (σ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.rename σ).grant = τ.grant.map σ
-  | .bool | .nat | .q _ | .opt _ | .list _ => rfl
+  | .bool | .nat | .q _ | .opt _ | .list _ | .prod _ _ => rfl
   | .sem _ => rfl
   | .arr _ b => Ty.rename_grant σ b
 
@@ -78,12 +87,14 @@ theorem Ty.rename_comp (σ₁ σ₂ : SemanticId → SemanticId) : ∀ τ : Ty, 
   | .opt τ => by simp [Ty.rename, Ty.rename_comp σ₁ σ₂ τ]
   | .list τ => by simp [Ty.rename, Ty.rename_comp σ₁ σ₂ τ]
   | .arr a b => by simp [Ty.rename, Ty.rename_comp σ₁ σ₂ a, Ty.rename_comp σ₁ σ₂ b]
+  | .prod a b => by simp [Ty.rename, Ty.rename_comp σ₁ σ₂ a, Ty.rename_comp σ₁ σ₂ b]
 
 theorem Ty.rename_id : ∀ τ : Ty, τ.rename (fun s => s) = τ
   | .bool | .nat | .q _ | .sem _ => rfl
   | .opt τ => by simp [Ty.rename, Ty.rename_id τ]
   | .list τ => by simp [Ty.rename, Ty.rename_id τ]
   | .arr a b => by simp [Ty.rename, Ty.rename_id a, Ty.rename_id b]
+  | .prod a b => by simp [Ty.rename, Ty.rename_id a, Ty.rename_id b]
 
 def Prim.rename (σ : SemanticId → SemanticId) : Prim → Prim
   | .lit d n => .lit d n
@@ -91,8 +102,8 @@ def Prim.rename (σ : SemanticId → SemanticId) : Prim → Prim
   | .sub d => .sub d
   | .mul d₁ d₂ => .mul d₁ d₂
   | .div d₁ d₂ => .div d₁ d₂
-  | .lt d => .lt d
-  | .eq d => .eq d
+  | .lt τ h => .lt (τ.rename σ) (Ty.rename_data σ τ h)
+  | .eq τ h => .eq (τ.rename σ) (Ty.rename_data σ τ h)
   | .not => .not
   | .and => .and
   | .or => .or
@@ -107,13 +118,19 @@ def Prim.rename (σ : SemanticId → SemanticId) : Prim → Prim
   | .take τ => .take (τ.rename σ)
   | .reverse τ => .reverse (τ.rename σ)
   | .head τ => .head (τ.rename σ)
+  | .pair a b => .pair (a.rename σ) (b.rename σ)
+  | .fst a b => .fst (a.rename σ) (b.rename σ)
+  | .snd a b => .snd (a.rename σ) (b.rename σ)
+  | .drop τ => .drop (τ.rename σ)
+  | .toList τ => .toList (τ.rename σ)
 
 /-- Dimension algebra is untouched by renaming: the type of a renamed
     primitive is the renamed type. -/
 theorem Prim.rename_ty (σ : SemanticId → SemanticId) : ∀ p : Prim, (p.rename σ).ty = p.ty.rename σ
-  | .lit _ _ | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ | .eq _ | .not | .and | .or => rfl
+  | .lit _ _ | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ _ | .eq _ _ | .not | .and | .or => rfl
   | .ite _ | .none _ | .some _ | .isSome _ | .getD _ => rfl
   | .nil _ | .cons _ | .length _ | .take _ | .reverse _ | .head _ => rfl
+  | .pair _ _ | .fst _ _ | .snd _ _ | .drop _ | .toList _ => rfl
 
 /-! ## Terms -/
 
@@ -129,6 +146,7 @@ def Expr.rename (r : Ren) : Expr → Expr
   | .prim p => .prim (p.rename r.s)
   | .delay i e => .delay (i.rename r) (e.rename r)
   | .sync c i e => .sync (r.c c) (i.rename r) (e.rename r)
+  | .fold f z l => .fold (f.rename r) (z.rename r) (l.rename r)
 
 theorem Expr.rename_refs (r : Ren) : ∀ e : Expr, (e.rename r).refs = e.refs.map r.d
   | .var _ | .boolLit _ | .natLit _ | .prim _ => rfl
@@ -139,6 +157,7 @@ theorem Expr.rename_refs (r : Ren) : ∀ e : Expr, (e.rename r).refs = e.refs.ma
   | .mk _ e => Expr.rename_refs r e
   | .delay i e => by simp [Expr.rename, Expr.refs, Expr.rename_refs r i, Expr.rename_refs r e]
   | .sync _ i e => by simp [Expr.rename, Expr.refs, Expr.rename_refs r i, Expr.rename_refs r e]
+  | .fold f z l => by simp [Expr.rename, Expr.refs, Expr.rename_refs r f, Expr.rename_refs r z, Expr.rename_refs r l]
 
 theorem Expr.rename_instRefs (r : Ren) : ∀ e : Expr, (e.rename r).instRefs = e.instRefs.map r.d
   | .var _ | .boolLit _ | .natLit _ | .prim _ => rfl
@@ -149,6 +168,8 @@ theorem Expr.rename_instRefs (r : Ren) : ∀ e : Expr, (e.rename r).instRefs = e
   | .mk _ e => Expr.rename_instRefs r e
   | .delay i _ => Expr.rename_instRefs r i
   | .sync _ i _ => Expr.rename_instRefs r i
+  | .fold f z l => by
+    simp [Expr.rename, Expr.instRefs, Expr.rename_instRefs r f, Expr.rename_instRefs r z, Expr.rename_instRefs r l]
 
 theorem Expr.rename_delayFree (r : Ren) : ∀ e : Expr, (e.rename r).DelayFree ↔ e.DelayFree
   | .var _ | .boolLit _ | .natLit _ | .prim _ | .declRef _ => Iff.rfl
@@ -160,6 +181,10 @@ theorem Expr.rename_delayFree (r : Ren) : ∀ e : Expr, (e.rename r).DelayFree �
   | .mk _ e => Expr.rename_delayFree r e
   | .delay _ _ => Iff.rfl
   | .sync _ _ _ => Iff.rfl
+  | .fold f z l => by
+    simp only [Expr.rename, Expr.DelayFree]
+    exact and_congr (Expr.rename_delayFree r f)
+      (and_congr (Expr.rename_delayFree r z) (Expr.rename_delayFree r l))
 
 theorem Expr.rename_refFree {r : Ren} {e : Expr} (h : e.RefFree) : (e.rename r).RefFree := by
   unfold Expr.RefFree at *
@@ -220,6 +245,7 @@ theorem HasType.rename {r : Ren} {Θ Θ' : ConceptEnv} {Δ Δ' : DeclEnv} {G G' 
   | prim => rw [← Prim.rename_ty]; exact .prim
   | delay hd _ _ ihi ihe => exact .delay (Ty.rename_data _ _ hd) ihi ihe
   | sync hd _ _ ihi ihe => exact .sync (Ty.rename_data _ _ hd) ihi ihe
+  | fold _ _ _ ihf ihz ihl => exact .fold ihf ihz ihl
 
 /-- The grant of a renamed signature is the renamed grant. -/
 theorem Grant.of_rename (σ : SemanticId → SemanticId) (τ : Ty) (s : SemanticId) :
@@ -288,6 +314,12 @@ theorem Clock.clockedB_rename {P : DeclId → Prop} {r : Ren} {Κ Κ' : ClockEnv
     exact ⟨Clock.clockedB_rename hK (some c) i (fun d hd => hP d (Or.inl hd)) h.1,
            Clock.clockedB_rename hK (some c') e (fun d hd => hP d (Or.inr hd)) h.2⟩
   | none, .sync _ _ _, _, h => by simp [clockedB] at h
+  | c, .fold f z l, hP, h => by
+    simp only [clockedB, Expr.rename, Bool.and_eq_true] at h ⊢
+    simp only [Expr.refs, List.mem_append] at hP
+    exact ⟨⟨Clock.clockedB_rename hK c f (fun d hd => hP d (Or.inl (Or.inl hd))) h.1.1,
+            Clock.clockedB_rename hK c z (fun d hd => hP d (Or.inl (Or.inr hd))) h.1.2⟩,
+           Clock.clockedB_rename hK c l (fun d hd => hP d (Or.inr hd)) h.2⟩
   | _, .var _, _, _ | _, .boolLit _, _, _ | _, .natLit _, _, _ | _, .prim _, _, _ => by simp [clockedB, Expr.rename]
 
 theorem Clock.Clocked.rename {P : DeclId → Prop} {r : Ren} {Κ Κ' : ClockEnv} (hK : ClockEnv.RenamedBy P r Κ Κ')
@@ -309,5 +341,11 @@ theorem Clock.clockedB_of_closed : ∀ (e : Expr), e.RefFree → e.DelayFree →
   | .mk _ e, hf, hd, c => Clock.clockedB_of_closed e hf hd c
   | .delay _ _, _, hd, _ => hd.elim
   | .sync _ _ _, _, hd, _ => hd.elim
+  | .fold f z l, hf, hd, c => by
+    simp only [clockedB, Bool.and_eq_true]
+    have h1 := List.append_eq_nil_iff.mp hf
+    have h2 := List.append_eq_nil_iff.mp h1.1
+    exact ⟨⟨Clock.clockedB_of_closed f h2.1 hd.1 c, Clock.clockedB_of_closed z h2.2 hd.2.1 c⟩,
+           Clock.clockedB_of_closed l h1.2 hd.2.2 c⟩
 
 end BDL

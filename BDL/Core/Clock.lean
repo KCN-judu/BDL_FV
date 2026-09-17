@@ -88,6 +88,7 @@ def clockedB (Κ : ClockEnv) : Option ClockId → Expr → Bool
   | Option.none, .delay _ _ => false
   | Option.some c, .sync c' i e => clockedB Κ (Option.some c) i && clockedB Κ (Option.some c') e
   | Option.none, .sync _ _ _ => false
+  | c, .fold f z l => clockedB Κ c f && clockedB Κ c z && clockedB Κ c l
   | _, _ => true
 
 def Clocked (Κ : ClockEnv) (c : Option ClockId) (e : Expr) : Prop := clockedB Κ c e = true
@@ -141,6 +142,12 @@ inductive MEv (S : Sched) (Δ : DeclEnv) (I : Input) : ClockId → Nat → List 
   | delaySome {c t t' ρ i e v} : prevAct S c t = Option.some t' → MEv S Δ I c t' ρ e v → MEv S Δ I c t ρ (.delay i e) v
   | syncNone {c c' t ρ i e v} : prevAct S c' t = Option.none → MEv S Δ I c t ρ i v → MEv S Δ I c t ρ (.sync c' i e) v
   | syncSome {c c' t t' ρ i e v} : prevAct S c' t = Option.some t' → MEv S Δ I c' t' ρ e v → MEv S Δ I c t ρ (.sync c' i e) v
+  | foldNil {c t ρ f z l vf vz} :
+      MEv S Δ I c t ρ f vf → MEv S Δ I c t ρ z vz → MEv S Δ I c t ρ l (.list []) → MEv S Δ I c t ρ (.fold f z l) vz
+  | foldCons {c t ρ f z l vf vz x xs r v} :
+      MEv S Δ I c t ρ f vf → MEv S Δ I c t ρ z vz → MEv S Δ I c t ρ l (.list (x :: xs)) →
+      MEv S Δ I c t [.list xs, vz, vf] foldVarTerm r → MEv S Δ I c t [r, x, vf] stepVarTerm v →
+      MEv S Δ I c t ρ (.fold f z l) v
 
 /-- **`multi_domain_step_deterministic`.**  No scheduler order appears in
     the semantics: cross-domain reads are strictly-before, so simultaneous
@@ -187,6 +194,15 @@ theorem MEv.det {S : Sched} {Δ : DeclEnv} {I : Input} {c : ClockId} {t : Nat} {
     cases h₂ with
     | syncNone hp' _ => rw [hp] at hp'; exact nomatch hp'
     | syncSome hp' h' => rw [hp] at hp'; cases hp'; exact ih h'
+  | foldNil _ _ _ _ ihz ihl =>
+    cases h₂ with
+    | foldNil _ hz' _ => exact ihz hz'
+    | foldCons _ _ hl' _ _ => cases ihl hl'
+  | foldCons _ _ _ _ _ ihf ihz ihl ihr ihv =>
+    cases h₂ with
+    | foldNil _ _ hl' => cases ihl hl'
+    | foldCons hf' hz' hl' hr' hv' =>
+      cases ihf hf'; cases ihz hz'; cases ihl hl'; cases ihr hr'; exact ihv hv'
 
 /-- Executable interpreter, sound for `MEv`. -/
 def mevalF (S : Sched) (Δ : DeclEnv) (I : Input) : Nat → ClockId → Nat → List Value → Expr → Option Value
@@ -223,6 +239,16 @@ def mevalF (S : Sched) (Δ : DeclEnv) (I : Input) : Nat → ClockId → Nat → 
       match prevAct S c' t with
       | Option.none => mevalF S Δ I fuel c t ρ i
       | Option.some t' => mevalF S Δ I fuel c' t' ρ e
+    | .fold f z l =>
+      (mevalF S Δ I fuel c t ρ f).bind fun vf =>
+      (mevalF S Δ I fuel c t ρ z).bind fun vz =>
+      (mevalF S Δ I fuel c t ρ l).bind fun vl =>
+      match vl with
+      | .list [] => Option.some vz
+      | .list (x :: xs) =>
+        (mevalF S Δ I fuel c t [.list xs, vz, vf] foldVarTerm).bind fun r =>
+        mevalF S Δ I fuel c t [r, x, vf] stepVarTerm
+      | _ => Option.none
 
 theorem mevalF_sound {S : Sched} {Δ : DeclEnv} {I : Input} :
     ∀ {fuel : Nat} {c : ClockId} {t : Nat} {ρ : List Value} {e : Expr} {v : Value},
@@ -244,18 +270,33 @@ theorem mevalF_sound {S : Sched} {Δ : DeclEnv} {I : Input} :
         simp only [Option.some.injEq] at hm
         subst hm
         exact .appPrim (mevalF_sound hf) (mevalF_sound ha)
-      | bool _ | nat _ | sem _ _ | none | some _ | list _ => simp at hm
+      | bool _ | nat _ | sem _ _ | none | some _ | list _ | pair _ _ => simp at hm
     | declRef d =>
       simp only [mevalF] at h
       cases hr : Δ.realizationOf d with
       | none => rw [hr] at h; exact (Option.some.inj h) ▸ MEv.refInput hr
       | some b => rw [hr] at h; exact .refRealized hr (mevalF_sound h)
+    | fold f z l =>
+      simp only [mevalF, Option.bind_eq_some_iff] at h
+      obtain ⟨vf, hf, vz, hz, vl, hl, hm⟩ := h
+      cases vl with
+      | list vs =>
+        cases vs with
+        | nil =>
+          simp only [Option.some.injEq] at hm
+          subst hm
+          exact .foldNil (mevalF_sound hf) (mevalF_sound hz) (mevalF_sound hl)
+        | cons x xs =>
+          simp only [Option.bind_eq_some_iff] at hm
+          obtain ⟨r, hr, hv⟩ := hm
+          exact .foldCons (mevalF_sound hf) (mevalF_sound hz) (mevalF_sound hl) (mevalF_sound hr) (mevalF_sound hv)
+      | bool _ | nat _ | sem _ _ | none | some _ | clo _ _ | prim _ _ | pair _ _ => simp at hm
     | rep e =>
       simp only [mevalF, Option.bind_eq_some_iff] at h
       obtain ⟨ve, he, hm⟩ := h
       cases ve with
       | sem s w => simp only [Option.some.injEq] at hm; subst hm; exact .rep (mevalF_sound he)
-      | bool _ | nat _ | none | some _ | clo _ _ | prim _ _ | list _ => simp at hm
+      | bool _ | nat _ | none | some _ | clo _ _ | prim _ _ | list _ | pair _ _ => simp at hm
     | mk s e =>
       simp only [mevalF, Option.map_eq_some_iff] at h
       obtain ⟨w, hw, rfl⟩ := h
@@ -307,6 +348,8 @@ theorem single_domain_embedding {Δ : DeclEnv} {I : Input} (c : ClockId) {t : Na
       cases t with
       | zero => rw [prevAct_always] at hp; exact nomatch hp
       | succ t => rw [prevAct_always] at hp; cases hp; exact .syncSucc ih
+    | foldNil _ _ _ ihf ihz ihl => exact .foldNil ihf ihz ihl
+    | foldCons _ _ _ _ _ ihf ihz ihl ihr ihv => exact .foldCons ihf ihz ihl ihr ihv
   · intro h
     induction h generalizing c with
     | var h => exact .var h
@@ -324,6 +367,8 @@ theorem single_domain_embedding {Δ : DeclEnv} {I : Input} (c : ClockId) {t : Na
     | delaySucc _ ih => exact .delaySome (by simp [prevAct_always]) (ih c)
     | @syncZero _ c' _ _ _ _ ih => exact .syncNone (by simp [prevAct_always]) (ih c)
     | @syncSucc _ _ c' _ _ _ _ ih => exact .syncSome (by simp [prevAct_always]) (ih c')
+    | foldNil _ _ _ ihf ihz ihl => exact .foldNil (ihf c) (ihz c) (ihl c)
+    | foldCons _ _ _ _ _ ihf ihz ihl ihr ihv => exact .foldCons (ihf c) (ihz c) (ihl c) (ihr c) (ihv c)
 
 /-! ## §5 `delay` is `sync` at the declaration's own domain -/
 
@@ -402,6 +447,27 @@ theorem MEv.tag_provenance {S : Sched} {Δ : DeclEnv} {I : Input} (s : SemanticI
   | delaySome _ _ ih => intro he hρ; exact ih (fun h => he (Or.inr h)) hρ
   | syncNone _ _ ih => intro he hρ; exact ih (fun h => he (Or.inl h)) hρ
   | syncSome _ _ ih => intro he hρ; exact ih (fun h => he (Or.inr h)) hρ
+  | foldNil _ _ _ _ ihz _ => intro he hρ; exact ihz (fun h => he (Or.inr (Or.inl h))) hρ
+  | @foldCons _ _ _ _ _ _ vf vz x xs r v _ _ _ _ _ ihf ihz ihl ihr ihv =>
+    intro he hρ
+    have hf := ihf (fun h => he (Or.inl h)) hρ
+    have hz := ihz (fun h => he (Or.inr (Or.inl h))) hρ
+    have hl := ihl (fun h => he (Or.inr (Or.inr h))) hρ
+    have hxs : ∀ w ∈ [Value.list xs, vz, vf], ¬ w.Taints s := by
+      intro w hw
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hw
+      rcases hw with rfl | rfl | rfl
+      · intro ht; cases ht with | listElem hm ht' => exact hl (.listElem (List.mem_cons_of_mem _ hm) ht')
+      · exact hz
+      · exact hf
+    have hr := ihr (by simp [foldVarTerm, Expr.constructs]) hxs
+    refine ihv (by simp [stepVarTerm, Expr.constructs]) ?_
+    intro w hw
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hw
+    rcases hw with rfl | rfl | rfl
+    · exact hr
+    · exact fun ht => hl (.listElem List.mem_cons_self ht)
+    · exact hf
 
 /-- **`transport_preserves_semantic_identity`** (semantic form): with clock
     crossings present, a concept no signature announces never appears. -/
@@ -435,6 +501,19 @@ theorem MEv.app_of_apply {S : Sched} {Δ : DeclEnv} {I : Input} {c : ClockId} {t
   rcases hap with ⟨ρ', body, rfl, hb⟩ | ⟨p, args, rfl, rfl⟩
   · exact .appClo hf ha hb
   · exact .appPrim hf ha
+
+theorem mfold_total {S : Sched} {Θ : ConceptEnv} {Δ : DeclEnv} {I : Input} {c : ClockId} {t : Nat} {τ σ : Ty}
+    {vf vz : Value}
+    (hf : Red Θ (MApply S Δ I c t) (.arr τ (.arr σ σ)) vf) (hz : Red Θ (MApply S Δ I c t) σ vz) :
+    ∀ vs, (∀ w ∈ vs, Red Θ (MApply S Δ I c t) τ w) →
+      ∃ r, MEv S Δ I c t [.list vs, vz, vf] foldVarTerm r ∧ Red Θ (MApply S Δ I c t) σ r
+  | [], _ => ⟨vz, .foldNil (.var rfl) (.var rfl) (.var rfl), hz⟩
+  | x :: xs, hvs => by
+    obtain ⟨r, hr, hrr⟩ := mfold_total hf hz xs (fun w hw => hvs w (List.mem_cons_of_mem x hw))
+    obtain ⟨g, hg, hrg⟩ := hf x (hvs x List.mem_cons_self)
+    obtain ⟨v, hv, hrv⟩ := hrg r hrr
+    refine ⟨v, .foldCons (.var rfl) (.var rfl) (.var rfl) hr ?_, hrv⟩
+    exact MEv.app_of_apply (MEv.app_of_apply (.var rfl) (.var rfl) hg) (.var rfl) hv
 
 /-- **Fundamental theorem, multi-domain.**  Same induction as Phase 4 — on
     (global tick, instantaneous rank, derivation) — because `delay` and
@@ -523,6 +602,20 @@ theorem mfundamental {S : Sched} {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} 
     | some t' =>
       obtain ⟨v, hv, hr⟩ := iht t' (prevAct_lt hp) R c' he ρ (fun x _ => hR x) (RedEnv.nil ρ)
       exact ⟨v, .syncSome hp hv, Red_data hΘ hdata hr⟩
+  | fold _ _ _ ihf ihz ihl =>
+    intro ρ hb hρ
+    obtain ⟨vf, hvf, hrf⟩ := ihf ρ (fun x hx => hb x (by simp [Expr.instRefs, hx])) hρ
+    obtain ⟨vz, hvz, hrz⟩ := ihz ρ (fun x hx => hb x (by simp [Expr.instRefs, hx])) hρ
+    obtain ⟨vl, hvl, hrl⟩ := ihl ρ (fun x hx => hb x (by simp [Expr.instRefs, hx])) hρ
+    obtain ⟨vs, rfl, hvs⟩ := hrl
+    cases vs with
+    | nil => exact ⟨vz, .foldNil hvf hvz hvl, hrz⟩
+    | cons x xs =>
+      obtain ⟨r, hr, hrr⟩ := mfold_total hrf hrz xs (fun w hw => hvs w (List.mem_cons_of_mem x hw))
+      obtain ⟨g, hg, hrg⟩ := hrf x (hvs x List.mem_cons_self)
+      obtain ⟨v, hv, hrv⟩ := hrg r hrr
+      refine ⟨v, .foldCons hvf hvz hvl hr ?_, hrv⟩
+      exact MEv.app_of_apply (MEv.app_of_apply (.var rfl) (.var rfl) hg) (.var rfl) hv
 
 /-- **`multi_domain_total`.**  Every declaration of a causal, globally
     well-formed design has a value in every domain at every global tick —

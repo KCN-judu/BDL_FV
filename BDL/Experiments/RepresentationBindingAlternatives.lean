@@ -135,6 +135,7 @@ theorem rinfer_sound {Θ : ConceptEnv} {Δ : DeclEnv} {P : Policy} :
         | q _ => simp [rinfer, hf, ha] at h
         | opt _ => simp [rinfer, hf, ha] at h
         | list _ => simp [rinfer, hf, ha] at h
+        | prod _ _ => simp [rinfer, hf, ha] at h
         | sem _ => simp [rinfer, hf, ha] at h
         | arr dom cod =>
           simp [rinfer, hf, ha] at h
@@ -151,6 +152,7 @@ theorem rinfer_sound {Θ : ConceptEnv} {Δ : DeclEnv} {P : Policy} :
       | q _ => simp [rinfer, he] at h
       | opt _ => simp [rinfer, he] at h
       | list _ => simp [rinfer, he] at h
+      | prod _ _ => simp [rinfer, he] at h
       | arr _ _ => simp [rinfer, he] at h
   | Γ, .mk s e, τ, h => by
     by_cases hp : P.allows s
@@ -263,6 +265,7 @@ def _root_.BDL.Ty.isSourceB (t : SemanticId) : Ty → Bool
   | .q _ => false
   | .opt _ => false   -- `none` inhabits every option type: an absent event is no source
   | .list _ => false  -- `nil` inhabits every list type
+  | .prod a b => a.isSourceB t || b.isSourceB t  -- a pair needs both components
   | .sem s => decide (s = t)
   | .arr a b => !a.isSourceB t && b.isSourceB t
 
@@ -281,6 +284,7 @@ def _root_.BDL.Ty.tdenote (t : SemanticId) : Ty → Type
   | .q _ => Nat
   | .opt τ => Option (τ.tdenote t)
   | .list τ => List (τ.tdenote t)
+  | .prod a b => a.tdenote t × b.tdenote t
   | .arr a b => a.tdenote t → b.tdenote t
   | .sem s => PLift (s ≠ t)
 
@@ -308,6 +312,18 @@ def _root_.BDL.Ty.tinfo (t : SemanticId) : ∀ τ : Ty, TInfo t τ
       have h' : ¬ a.IsSource t ∧ b.IsSource t := by
         simpa [Ty.IsSource, Ty.isSourceB] using h
       ib.emp h'.2 (f (ia.inh h'.1))⟩
+  | .prod a b =>
+    let ia := Ty.tinfo t a
+    let ib := Ty.tinfo t b
+    ⟨fun h =>
+      have h' : ¬ a.IsSource t ∧ ¬ b.IsSource t := by
+        simpa [Ty.IsSource, Ty.isSourceB, not_or] using h
+      (show a.tdenote t × b.tdenote t from (ia.inh h'.1, ib.inh h'.2)),
+     fun h x =>
+      have h' : a.IsSource t ∨ b.IsSource t := by
+        simpa [Ty.IsSource, Ty.isSourceB] using h
+      h'.elim (fun ha => ia.emp ha (show a.tdenote t × b.tdenote t from x).1)
+              (fun hb => ib.emp hb (show a.tdenote t × b.tdenote t from x).2)⟩
 
 theorem _root_.BDL.Ty.SemFree.not_source {t : SemanticId} : ∀ {τ : Ty}, τ.SemFree → ¬ τ.IsSource t
   | .bool, _ => by simp [Ty.IsSource, Ty.isSourceB]
@@ -316,6 +332,11 @@ theorem _root_.BDL.Ty.SemFree.not_source {t : SemanticId} : ∀ {τ : Ty}, τ.Se
   | .opt _, _ => by simp [Ty.IsSource, Ty.isSourceB]
   | .list _, _ => by simp [Ty.IsSource, Ty.isSourceB]
   | .sem _, h => h.elim
+  | .prod a b, h => by
+    have ha := Ty.SemFree.not_source (t := t) (τ := a) h.1
+    have hb := Ty.SemFree.not_source (t := t) (τ := b) h.2
+    simp [Ty.IsSource, Ty.isSourceB] at ha hb ⊢
+    exact ⟨ha, hb⟩
   | .arr a b, h => by
     have := Ty.SemFree.not_source (t := t) (τ := b) h.2
     simp [Ty.IsSource, Ty.isSourceB] at this ⊢
@@ -362,6 +383,7 @@ def REval {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {P : Policy} {t : Seman
         | q _ => simp [rinfer, hf, ha] at h
         | opt _ => simp [rinfer, hf, ha] at h
         | list _ => simp [rinfer, hf, ha] at h
+        | prod _ _ => simp [rinfer, hf, ha] at h
         | sem _ => simp [rinfer, hf, ha] at h
         | arr dom cod =>
           simp [rinfer, hf, ha] at h
@@ -380,6 +402,7 @@ def REval {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {P : Policy} {t : Seman
       | q _ => simp [rinfer, he] at h
       | opt _ => simp [rinfer, he] at h
       | list _ => simp [rinfer, he] at h
+      | prod _ _ => simp [rinfer, he] at h
       | arr _ _ => simp [rinfer, he] at h
   | .mk s e, Γ, _, τ, h => by
     by_cases hp : P.allows s

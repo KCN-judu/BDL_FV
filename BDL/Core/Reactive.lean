@@ -42,7 +42,49 @@ inductive Value where
   | prim (p : Prim) (args : List Value)
   /-- Phase 9a: an ordinary list value (the cross-domain window). -/
   | list (vs : List Value)
+  /-- Phase 9b: a pair. -/
+  | pair (a b : Value)
   deriving Repr, Inhabited
+
+/-! ### Structural equality and order on data values (Phase 9b)
+
+The closed capability vocabulary is {`Data`}: every data value admits a
+decidable structural equality and a lexicographic order — booleans
+`false < true`, numbers, `none < some`, pairs and lists lexicographically,
+semantic values by their representations (typing already forbids comparing
+two concepts).  Closures compare `false`; typing never asks. -/
+
+mutual
+def Value.beq : Value → Value → Bool
+  | .bool a, .bool b => a == b
+  | .nat a, .nat b => a == b
+  | .sem s v, .sem s' w => s == s' && Value.beq v w
+  | .none, .none => true
+  | .some v, .some w => Value.beq v w
+  | .pair a b, .pair c d => Value.beq a c && Value.beq b d
+  | .list vs, .list ws => Value.beqList vs ws
+  | _, _ => false
+def Value.beqList : List Value → List Value → Bool
+  | [], [] => true
+  | v :: vs, w :: ws => Value.beq v w && Value.beqList vs ws
+  | _, _ => false
+end
+
+mutual
+def Value.blt : Value → Value → Bool
+  | .bool a, .bool b => !a && b
+  | .nat a, .nat b => decide (a < b)
+  | .sem s v, .sem s' w => s == s' && Value.blt v w
+  | .none, .some _ => true
+  | .some v, .some w => Value.blt v w
+  | .pair a b, .pair c d => Value.blt a c || (Value.beq a c && Value.blt b d)
+  | .list vs, .list ws => Value.bltList vs ws
+  | _, _ => false
+def Value.bltList : List Value → List Value → Bool
+  | [], _ :: _ => true
+  | v :: vs, w :: ws => Value.blt v w || (Value.beq v w && Value.bltList vs ws)
+  | _, _ => false
+end
 
 /-- Projections used to state example results decidably (`Value` is a nested
     inductive, so `DecidableEq` is not derived). -/
@@ -56,8 +98,9 @@ def Value.toBool? : Value → Option Bool
 
 def _root_.BDL.Prim.arity : Prim → Nat
   | .lit _ _ => 0 | .none _ => 0 | .nil _ => 0
-  | .not | .isSome _ | .some _ | .length _ | .reverse _ | .head _ => 1
-  | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ | .eq _ | .and | .or | .getD _ | .cons _ | .take _ => 2
+  | .not | .isSome _ | .some _ | .length _ | .reverse _ | .head _ | .fst _ _ | .snd _ _ | .toList _ => 1
+  | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ _ | .eq _ _ | .and | .or | .getD _ | .cons _ | .take _ | .pair _ _
+  | .drop _ => 2
   | .ite _ => 3
 
 /-- Saturated primitive evaluation.  Ill-shaped arguments (excluded by typing)
@@ -68,8 +111,8 @@ def _root_.BDL.Prim.compute : Prim → List Value → Value
   | .sub _, [.nat a, .nat b] => .nat (a - b)
   | .mul _ _, [.nat a, .nat b] => .nat (a * b)
   | .div _ _, [.nat a, .nat b] => .nat (a / b)
-  | .lt _, [.nat a, .nat b] => .bool (decide (a < b))
-  | .eq _, [.nat a, .nat b] => .bool (decide (a = b))
+  | .lt _ _, [a, b] => .bool (Value.blt a b)
+  | .eq _ _, [a, b] => .bool (Value.beq a b)
   | .not, [.bool a] => .bool (!a)
   | .and, [.bool a, .bool b] => .bool (a && b)
   | .or, [.bool a, .bool b] => .bool (a || b)
@@ -87,6 +130,12 @@ def _root_.BDL.Prim.compute : Prim → List Value → Value
   | .reverse _, [.list xs] => .list xs.reverse
   | .head _, [.list (x :: _)] => .some x
   | .head _, [.list []] => .none
+  | .pair _ _, [a, b] => .pair a b
+  | .fst _ _, [.pair a _] => a
+  | .snd _ _, [.pair _ b] => b
+  | .drop _, [.nat k, .list xs] => .list (xs.drop k)
+  | .toList _, [.some x] => .list [x]
+  | .toList _, [.none] => .list []
   | _, _ => .nat 0
 
 /-- Apply a primitive to one more argument: compute when saturated. -/
@@ -95,6 +144,11 @@ def applyPrim (p : Prim) (args : List Value) : Value :=
 
 /-- Input streams: a value for every (unresolved) declaration at every tick. -/
 abbrev Input := DeclId → Nat → Value
+
+/-- `fold f z l` over the environment `[l, z, f]` (Phase 9b). -/
+def _root_.BDL.foldVarTerm : Expr := .fold (.var 2) (.var 1) (.var 0)
+/-- `f x r` over the environment `[r, x, f]` (Phase 9b). -/
+def _root_.BDL.stepVarTerm : Expr := .app (.app (.var 2) (.var 1)) (.var 0)
 
 /-- Big-step evaluation of `e` at tick `t` under environment `ρ`. -/
 inductive Ev (Δ : DeclEnv) (I : Input) : Nat → List Value → Expr → Value → Prop where
@@ -119,6 +173,17 @@ inductive Ev (Δ : DeclEnv) (I : Input) : Nat → List Value → Expr → Value 
       (this is what the Phase-5 embedding theorem makes precise). -/
   | syncZero {ρ c i e v} : Ev Δ I 0 ρ i v → Ev Δ I 0 ρ (.sync c i e) v
   | syncSucc {t ρ c i e v} : Ev Δ I t ρ e v → Ev Δ I (t + 1) ρ (.sync c i e) v
+  /-- Phase 9b: the list recursor on the empty list is `z`. -/
+  | foldNil {t ρ f z l vf vz} :
+      Ev Δ I t ρ f vf → Ev Δ I t ρ z vz → Ev Δ I t ρ l (.list []) → Ev Δ I t ρ (.fold f z l) vz
+  /-- On `x :: xs`: recurse on `xs` (the three values passed through the
+      environment, `foldVarTerm`), then apply `f x r` (`stepVarTerm`).  The
+      recursion is syntactic unrolling through the environment, so `Ev`
+      stays an ordinary inductive relation. -/
+  | foldCons {t ρ f z l vf vz x xs r v} :
+      Ev Δ I t ρ f vf → Ev Δ I t ρ z vz → Ev Δ I t ρ l (.list (x :: xs)) →
+      Ev Δ I t [.list xs, vz, vf] foldVarTerm r → Ev Δ I t [r, x, vf] stepVarTerm v →
+      Ev Δ I t ρ (.fold f z l) v
 
 /-- **`reactive_step_deterministic`.**  Evaluation is a partial function:
     one tick, one environment, one term — at most one value.  No evaluation
@@ -154,6 +219,15 @@ theorem Ev.det {Δ : DeclEnv} {I : Input} {t : Nat} {ρ : List Value} {e : Expr}
   | delaySucc _ ih => cases h₂ with | delaySucc h' => exact ih h'
   | syncZero _ ih => cases h₂ with | syncZero h' => exact ih h'
   | syncSucc _ ih => cases h₂ with | syncSucc h' => exact ih h'
+  | foldNil _ _ _ _ ihz ihl =>
+    cases h₂ with
+    | foldNil _ hz' _ => exact ihz hz'
+    | foldCons _ _ hl' _ _ => cases ihl hl'
+  | foldCons _ _ _ _ _ ihf ihz ihl ihr ihv =>
+    cases h₂ with
+    | foldNil _ _ hl' => cases ihl hl'
+    | foldCons hf' hz' hl' hr' hv' =>
+      cases ihf hf'; cases ihz hz'; cases ihl hl'; cases ihr hr'; exact ihv hv'
 
 /-! ### An executable interpreter, sound for `Ev`
 
@@ -194,6 +268,16 @@ def evalF (Δ : DeclEnv) (I : Input) : Nat → Nat → List Value → Expr → O
       match t with
       | 0 => evalF Δ I fuel 0 ρ i
       | t' + 1 => evalF Δ I fuel t' ρ e
+    | .fold f z l =>
+      (evalF Δ I fuel t ρ f).bind fun vf =>
+      (evalF Δ I fuel t ρ z).bind fun vz =>
+      (evalF Δ I fuel t ρ l).bind fun vl =>
+      match vl with
+      | .list [] => Option.some vz
+      | .list (x :: xs) =>
+        (evalF Δ I fuel t [.list xs, vz, vf] foldVarTerm).bind fun r =>
+        evalF Δ I fuel t [r, x, vf] stepVarTerm
+      | _ => Option.none
 
 theorem evalF_sound {Δ : DeclEnv} {I : Input} :
     ∀ {fuel t : Nat} {ρ : List Value} {e : Expr} {v : Value},
@@ -215,18 +299,33 @@ theorem evalF_sound {Δ : DeclEnv} {I : Input} :
         simp only [Option.some.injEq] at hm
         subst hm
         exact .appPrim (evalF_sound hf) (evalF_sound ha)
-      | bool _ | nat _ | sem _ _ | none | some _ | list _ => simp at hm
+      | bool _ | nat _ | sem _ _ | none | some _ | list _ | pair _ _ => simp at hm
     | declRef d =>
       simp only [evalF] at h
       cases hr : Δ.realizationOf d with
       | none => rw [hr] at h; exact (Option.some.inj h) ▸ Ev.refInput hr
       | some b => rw [hr] at h; exact .refRealized hr (evalF_sound h)
+    | fold f z l =>
+      simp only [evalF, Option.bind_eq_some_iff] at h
+      obtain ⟨vf, hf, vz, hz, vl, hl, hm⟩ := h
+      cases vl with
+      | list vs =>
+        cases vs with
+        | nil =>
+          simp only [Option.some.injEq] at hm
+          subst hm
+          exact .foldNil (evalF_sound hf) (evalF_sound hz) (evalF_sound hl)
+        | cons x xs =>
+          simp only [Option.bind_eq_some_iff] at hm
+          obtain ⟨r, hr, hv⟩ := hm
+          exact .foldCons (evalF_sound hf) (evalF_sound hz) (evalF_sound hl) (evalF_sound hr) (evalF_sound hv)
+      | bool _ | nat _ | sem _ _ | none | some _ | clo _ _ | prim _ _ | pair _ _ => simp at hm
     | rep e =>
       simp only [evalF, Option.bind_eq_some_iff] at h
       obtain ⟨ve, he, hm⟩ := h
       cases ve with
       | sem s w => simp only [Option.some.injEq] at hm; subst hm; exact .rep (evalF_sound he)
-      | bool _ | nat _ | none | some _ | clo _ _ | prim _ _ | list _ => simp at hm
+      | bool _ | nat _ | none | some _ | clo _ _ | prim _ _ | list _ | pair _ _ => simp at hm
     | mk s e =>
       simp only [evalF, Option.map_eq_some_iff] at h
       obtain ⟨w, hw, rfl⟩ := h
@@ -263,6 +362,7 @@ def _root_.BDL.Expr.strictRefs : Expr → List DeclId
   | .declRef d => [d]
   | .rep e => e.strictRefs
   | .mk _ e => e.strictRefs
+  | .fold f z l => f.strictRefs ++ z.strictRefs ++ l.strictRefs
   | _ => []
 
 def strictDependsOn (Δ : DeclEnv) (a b : DeclId) : Bool :=
@@ -327,6 +427,14 @@ theorem Ev.strictRefs_not_cyclic {Δ : DeclEnv} {I : Input} {t : Nat} {ρ : List
   | delaySucc _ _ => intro x hx; simp [Expr.strictRefs] at hx
   | syncZero _ _ => intro x hx; simp [Expr.strictRefs] at hx
   | syncSucc _ _ => intro x hx; simp [Expr.strictRefs] at hx
+  | foldNil _ _ _ ihf ihz ihl =>
+    intro x hx
+    simp only [Expr.strictRefs, List.mem_append] at hx
+    exact hx.elim (fun h => h.elim (ihf x) (ihz x)) (ihl x)
+  | foldCons _ _ _ _ _ ihf ihz ihl _ _ =>
+    intro x hx
+    simp only [Expr.strictRefs, List.mem_append] at hx
+    exact hx.elim (fun h => h.elim (ihf x) (ihz x)) (ihl x)
 
 /-- **`instantaneous_cycle_rejected`.**  A declaration on an instantaneous
     cycle has no value at any tick — not "some default", not "one of several":
@@ -351,6 +459,13 @@ where
       exact h.elim (fun h => .inl (ihf h)) (fun h => .inr (iha h))
     | rep e ih => exact ih
     | mk _ e ih => exact ih
+    | fold f z l ihf ihz ihl =>
+      intro h
+      simp only [Expr.strictRefs, Expr.instRefs, List.mem_append] at h ⊢
+      rcases h with (h | h) | h
+      · exact .inl (.inl (ihf h))
+      · exact .inl (.inr (ihz h))
+      · exact .inr (ihl h)
 
 /-! ## §3 Totality — causal designs have a value at every tick
 
@@ -383,6 +498,7 @@ def RedSF (A : App) : Ty → Value → Prop
   | .q _, v => ∃ n, v = .nat n
   | .opt τ, v => v = .none ∨ ∃ w, v = .some w ∧ RedSF A τ w
   | .list τ, v => ∃ vs, v = .list vs ∧ ∀ w ∈ vs, RedSF A τ w
+  | .prod a b, v => ∃ x y, v = .pair x y ∧ RedSF A a x ∧ RedSF A b y
   | .arr a b, v => ∀ w, RedSF A a w → ∃ v', A v w v' ∧ RedSF A b v'
   | .sem _, _ => False
 
@@ -393,6 +509,7 @@ def Red (Θ : ConceptEnv) (A : App) : Ty → Value → Prop
   | .q _, v => ∃ n, v = .nat n
   | .opt τ, v => v = .none ∨ ∃ w, v = .some w ∧ Red Θ A τ w
   | .list τ, v => ∃ vs, v = .list vs ∧ ∀ w ∈ vs, Red Θ A τ w
+  | .prod a b, v => ∃ x y, v = .pair x y ∧ Red Θ A a x ∧ Red Θ A b y
   | .arr a b, v => ∀ w, Red Θ A a w → ∃ v', A v w v' ∧ Red Θ A b v'
   | .sem s, v => ∃ w, v = .sem s w ∧ ∀ R, Θ s = some R → RedSF A R w
 
@@ -418,6 +535,13 @@ theorem Red_semFree {Θ : ConceptEnv} {A : App} :
       exact ⟨vs, rfl, fun w hw => (Red_semFree (τ := τ) h).mp (hvs w hw)⟩
     · rintro ⟨vs, rfl, hvs⟩
       exact ⟨vs, rfl, fun w hw => (Red_semFree (τ := τ) h).mpr (hvs w hw)⟩
+  | .prod a b, h, v => by
+    simp only [Red, RedSF]
+    constructor
+    · rintro ⟨x, y, rfl, hx, hy⟩
+      exact ⟨x, y, rfl, (Red_semFree h.1).mp hx, (Red_semFree h.2).mp hy⟩
+    · rintro ⟨x, y, rfl, hx, hy⟩
+      exact ⟨x, y, rfl, (Red_semFree h.1).mpr hx, (Red_semFree h.2).mpr hy⟩
   | .arr a b, h, v => by
     simp only [Red, RedSF]
     constructor
@@ -446,6 +570,10 @@ theorem RedSF_data {A A' : App} :
     simp only [RedSF] at h ⊢
     obtain ⟨vs, rfl, hvs⟩ := h
     exact ⟨vs, rfl, fun w hw => RedSF_data (τ := τ) hd (hvs w hw)⟩
+  | .prod a b, hd, v, h => by
+    simp only [RedSF] at h ⊢
+    obtain ⟨x, y, rfl, hx, hy⟩ := h
+    exact ⟨x, y, rfl, RedSF_data (τ := a) hd.1 hx, RedSF_data (τ := b) hd.2 hy⟩
 
 theorem Red_data {Θ : ConceptEnv} (hΘ : Θ.WF) {A A' : App} :
     ∀ {τ : Ty}, τ.Data → ∀ {v : Value}, Red Θ A τ v → Red Θ A' τ v
@@ -465,6 +593,10 @@ theorem Red_data {Θ : ConceptEnv} (hΘ : Θ.WF) {A A' : App} :
     simp only [Red] at h ⊢
     obtain ⟨vs, rfl, hvs⟩ := h
     exact ⟨vs, rfl, fun w hw => Red_data (τ := τ) hΘ hd (hvs w hw)⟩
+  | .prod a b, hd, v, h => by
+    simp only [Red] at h ⊢
+    obtain ⟨x, y, rfl, hx, hy⟩ := h
+    exact ⟨x, y, rfl, Red_data (τ := a) hΘ hd.1 hx, Red_data (τ := b) hΘ hd.2 hy⟩
 
 /-- Environments related pointwise. -/
 def RedEnv (Θ : ConceptEnv) (A : App) (Γ : Ctx) (ρ : List Value) : Prop :=
@@ -500,12 +632,12 @@ theorem Red_prim {Θ : ConceptEnv} {A : App} (hA : A.HasPrim) (p : Prim) :
     rintro _ ⟨b, rfl⟩
     refine ⟨_, hA _ _ _, ?_⟩
     simp [applyPrim, Prim.arity, Prim.compute]
-  | lt d | eq d =>
+  | lt τ _ | eq τ _ =>
     simp only [Prim.ty, Red, applyPrim, Prim.arity]
-    rintro _ ⟨a, rfl⟩
+    intro a _
     refine ⟨_, hA _ _ _, ?_⟩
     simp only [applyPrim, Prim.arity]
-    rintro _ ⟨b, rfl⟩
+    intro b _
     refine ⟨_, hA _ _ _, ?_⟩
     simp [applyPrim, Prim.arity, Prim.compute]
   | not =>
@@ -593,6 +725,53 @@ theorem Red_prim {Θ : ConceptEnv} {A : App} (hA : A.HasPrim) (p : Prim) :
     cases vs with
     | nil => exact Or.inl (by simp [applyPrim, Prim.arity, Prim.compute])
     | cons x xs => exact Or.inr ⟨x, by simp [applyPrim, Prim.arity, Prim.compute], hvs x (List.mem_cons_self)⟩
+  | pair a b =>
+    simp only [Prim.ty, Red, applyPrim, Prim.arity]
+    intro x hx
+    refine ⟨_, hA _ _ _, ?_⟩
+    simp only [applyPrim, Prim.arity]
+    intro y hy
+    refine ⟨_, hA _ _ _, x, y, by simp [applyPrim, Prim.arity, Prim.compute], hx, hy⟩
+  | fst a b =>
+    simp only [Prim.ty, Red, applyPrim, Prim.arity]
+    rintro _ ⟨x, y, rfl, hx, hy⟩
+    exact ⟨_, hA _ _ _, by simpa [applyPrim, Prim.arity, Prim.compute] using hx⟩
+  | snd a b =>
+    simp only [Prim.ty, Red, applyPrim, Prim.arity]
+    rintro _ ⟨x, y, rfl, hx, hy⟩
+    exact ⟨_, hA _ _ _, by simpa [applyPrim, Prim.arity, Prim.compute] using hy⟩
+  | drop τ =>
+    simp only [Prim.ty, Red, applyPrim, Prim.arity]
+    rintro _ ⟨k, rfl⟩
+    refine ⟨_, hA _ _ _, ?_⟩
+    simp only [applyPrim, Prim.arity]
+    rintro _ ⟨vs, rfl, hvs⟩
+    refine ⟨_, hA _ _ _, vs.drop k, by simp [applyPrim, Prim.arity, Prim.compute], ?_⟩
+    intro w hw
+    exact hvs w (List.mem_of_mem_drop hw)
+  | toList τ =>
+    simp only [Prim.ty, Red, applyPrim, Prim.arity]
+    intro o ho
+    refine ⟨_, hA _ _ _, ?_⟩
+    rcases ho with rfl | ⟨w, rfl, hw⟩
+    · exact ⟨[], by simp [applyPrim, Prim.arity, Prim.compute], fun _ h => by simp at h⟩
+    · refine ⟨[w], by simp [applyPrim, Prim.arity, Prim.compute], ?_⟩
+      intro x hx; simp at hx; subst hx; exact hw
+
+/-- **`fold_total`** (Phase 9b): the recursor applied through the
+    environment to related values yields a related value, by induction on
+    the list. -/
+theorem fold_total {Θ : ConceptEnv} {Δ : DeclEnv} {I : Input} {t : Nat} {τ σ : Ty} {vf vz : Value}
+    (hf : Red Θ (Apply Δ I t) (.arr τ (.arr σ σ)) vf) (hz : Red Θ (Apply Δ I t) σ vz) :
+    ∀ vs, (∀ w ∈ vs, Red Θ (Apply Δ I t) τ w) →
+      ∃ r, Ev Δ I t [.list vs, vz, vf] foldVarTerm r ∧ Red Θ (Apply Δ I t) σ r
+  | [], _ => ⟨vz, .foldNil (.var rfl) (.var rfl) (.var rfl), hz⟩
+  | x :: xs, hvs => by
+    obtain ⟨r, hr, hrr⟩ := fold_total hf hz xs (fun w hw => hvs w (List.mem_cons_of_mem x hw))
+    obtain ⟨g, hg, hrg⟩ := hf x (hvs x List.mem_cons_self)
+    obtain ⟨v, hv, hrv⟩ := hrg r hrr
+    refine ⟨v, .foldCons (.var rfl) (.var rfl) (.var rfl) hr ?_, hrv⟩
+    exact Ev.app_of_apply (Ev.app_of_apply (.var rfl) (.var rfl) hg) (.var rfl) hv
 
 /-- **Fundamental theorem.**  In a causal, globally well-formed design with
     well-typed inputs, every well-typed term whose instantaneous references
@@ -681,6 +860,20 @@ theorem fundamental {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {I : Input}
     | succ t' =>
       obtain ⟨v, hv, hr⟩ := iht t' (Nat.lt_succ_self _) R he ρ (fun x _ => hR x) (RedEnv.nil ρ)
       exact ⟨v, .syncSucc hv, Red_data hΘ hdata hr⟩
+  | fold _ _ _ ihf ihz ihl =>
+    intro ρ hb hρ
+    obtain ⟨vf, hvf, hrf⟩ := ihf ρ (fun x hx => hb x (by simp [Expr.instRefs, hx])) hρ
+    obtain ⟨vz, hvz, hrz⟩ := ihz ρ (fun x hx => hb x (by simp [Expr.instRefs, hx])) hρ
+    obtain ⟨vl, hvl, hrl⟩ := ihl ρ (fun x hx => hb x (by simp [Expr.instRefs, hx])) hρ
+    obtain ⟨vs, rfl, hvs⟩ := hrl
+    cases vs with
+    | nil => exact ⟨vz, .foldNil hvf hvz hvl, hrz⟩
+    | cons x xs =>
+      obtain ⟨r, hr, hrr⟩ := fold_total hrf hrz xs (fun w hw => hvs w (List.mem_cons_of_mem x hw))
+      obtain ⟨g, hg, hrg⟩ := hrf x (hvs x List.mem_cons_self)
+      obtain ⟨v, hv, hrv⟩ := hrg r hrr
+      refine ⟨v, .foldCons hvf hvz hvl hr ?_, hrv⟩
+      exact Ev.app_of_apply (Ev.app_of_apply (.var rfl) (.var rfl) hg) (.var rfl) hv
 
 /-- **`reactive_total`.**  Every declaration of a causal, globally
     well-formed design has a value at every tick, related to its type. -/
@@ -719,6 +912,8 @@ inductive Value.Taints (s : SemanticId) : Value → Prop where
   | cloBody {ρ : List Value} {body : Expr} : body.constructs s → Value.Taints s (.clo ρ body)
   | primArg {p : Prim} {args : List Value} {v : Value} : v ∈ args → Value.Taints s v → Value.Taints s (.prim p args)
   | listElem {vs : List Value} {v : Value} : v ∈ vs → Value.Taints s v → Value.Taints s (.list vs)
+  | pairFst {a b : Value} : Value.Taints s a → Value.Taints s (.pair a b)
+  | pairSnd {a b : Value} : Value.Taints s b → Value.Taints s (.pair a b)
 
 /-- A saturated primitive either returns one of its arguments or a fresh
     untagged value: it never introduces a tag. -/
@@ -740,6 +935,14 @@ theorem Prim.compute_taints {s : SemanticId} (p : Prim) (args : List Value)
     | (cases h with | listElem hm h' => (refine ⟨_, ?_, Value.Taints.listElem (List.mem_of_mem_take hm) h'⟩; simp; done))
     | (cases h with | listElem hm h' => (refine ⟨_, ?_, Value.Taints.listElem (List.mem_reverse.mp hm) h'⟩; simp; done))
     | (cases h with | someInner h' => (rename_i x xs; refine ⟨.list (x :: xs), ?_, Value.Taints.listElem List.mem_cons_self h'⟩; simp; done))
+    -- Phase 9b: pairs
+    | (cases h with
+        | pairFst h' => (refine ⟨_, ?_, h'⟩; simp; done)
+        | pairSnd h' => (refine ⟨_, ?_, h'⟩; simp; done))
+    | (rename_i a b; refine ⟨.pair a b, ?_, Value.Taints.pairFst h⟩; simp; done)
+    | (rename_i a b; refine ⟨.pair a b, ?_, Value.Taints.pairSnd h⟩; simp; done)
+    | (cases h with | listElem hm h' => (refine ⟨_, ?_, Value.Taints.listElem (List.mem_of_mem_drop hm) h'⟩; simp; done))
+    | (cases h with | listElem hm h' => (simp at hm; subst hm; refine ⟨_, ?_, Value.Taints.someInner h'⟩; simp; done))
 
 theorem applyPrim_taints {s : SemanticId} (p : Prim) (args : List Value)
     (h : (applyPrim p args).Taints s) : ∃ v ∈ args, v.Taints s := by
@@ -802,6 +1005,27 @@ theorem Ev.tag_provenance {Δ : DeclEnv} {I : Input} (s : SemanticId)
   | delaySucc _ ih => intro he hρ; exact ih (fun h => he (Or.inr h)) hρ
   | syncZero _ ih => intro he hρ; exact ih (fun h => he (Or.inl h)) hρ
   | syncSucc _ ih => intro he hρ; exact ih (fun h => he (Or.inr h)) hρ
+  | foldNil _ _ _ _ ihz _ => intro he hρ; exact ihz (fun h => he (Or.inr (Or.inl h))) hρ
+  | @foldCons _ _ _ _ _ vf vz x xs r v _ _ _ _ _ ihf ihz ihl ihr ihv =>
+    intro he hρ
+    have hf := ihf (fun h => he (Or.inl h)) hρ
+    have hz := ihz (fun h => he (Or.inr (Or.inl h))) hρ
+    have hl := ihl (fun h => he (Or.inr (Or.inr h))) hρ
+    have hxs : ∀ w ∈ [Value.list xs, vz, vf], ¬ w.Taints s := by
+      intro w hw
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hw
+      rcases hw with rfl | rfl | rfl
+      · intro ht; cases ht with | listElem hm ht' => exact hl (.listElem (List.mem_cons_of_mem _ hm) ht')
+      · exact hz
+      · exact hf
+    have hr := ihr (by simp [foldVarTerm, Expr.constructs]) hxs
+    refine ihv (by simp [stepVarTerm, Expr.constructs]) ?_
+    intro w hw
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hw
+    rcases hw with rfl | rfl | rfl
+    · exact hr
+    · exact fun ht => hl (.listElem List.mem_cons_self ht)
+    · exact hf
 
 /-- **`temporal_state_preserves_semantic_identity`.**  Combined with the
     Phase-3 grant discipline: if no declaration's *signature* announces
@@ -849,7 +1073,31 @@ def _root_.BDL.Expr.Wiring : Expr → Prop
   | .mk _ e => e.Wiring
   | .delay i e => i.Wiring ∧ e.Wiring
   | .sync _ i e => i.Wiring ∧ e.Wiring
+  | .fold f z l => f.Wiring ∧ z.Wiring ∧ l.Wiring
   | _ => True
+
+/-- Wiring with variables allowed (no `lam`): the fragment the recursor's
+    environment-passing sub-derivations live in. -/
+def _root_.BDL.Expr.WiringV : Expr → Prop
+  | .lam _ _ => False
+  | .app f a => f.WiringV ∧ a.WiringV
+  | .rep e => e.WiringV
+  | .mk _ e => e.WiringV
+  | .delay i e => i.WiringV ∧ e.WiringV
+  | .sync _ i e => i.WiringV ∧ e.WiringV
+  | .fold f z l => f.WiringV ∧ z.WiringV ∧ l.WiringV
+  | _ => True
+
+theorem _root_.BDL.Expr.Wiring.toV : ∀ {e : Expr}, e.Wiring → e.WiringV
+  | .var _, h => h.elim
+  | .lam _ _, h => h.elim
+  | .boolLit _, _ | .natLit _, _ | .declRef _, _ | .prim _, _ => trivial
+  | .app f a, h => ⟨Expr.Wiring.toV (e := f) h.1, Expr.Wiring.toV (e := a) h.2⟩
+  | .rep e, h => Expr.Wiring.toV (e := e) h
+  | .mk _ e, h => Expr.Wiring.toV (e := e) h
+  | .delay i e, h => ⟨Expr.Wiring.toV (e := i) h.1, Expr.Wiring.toV (e := e) h.2⟩
+  | .sync _ i e, h => ⟨Expr.Wiring.toV (e := i) h.1, Expr.Wiring.toV (e := e) h.2⟩
+  | .fold f z l, h => ⟨Expr.Wiring.toV (e := f) h.1, Expr.Wiring.toV (e := z) h.2.1, Expr.Wiring.toV (e := l) h.2.2⟩
 
 def DeclEnvWiring (Δ : DeclEnv) : Prop := ∀ d b, Δ.realizationOf d = some b → b.Wiring
 
@@ -859,6 +1107,8 @@ inductive Value.HasClo : Value → Prop where
   | someInner {v : Value} : Value.HasClo v → Value.HasClo (.some v)
   | primArg {p : Prim} {args : List Value} {v : Value} : v ∈ args → Value.HasClo v → Value.HasClo (.prim p args)
   | listElem {vs : List Value} {v : Value} : v ∈ vs → Value.HasClo v → Value.HasClo (.list vs)
+  | pairFst {a b : Value} : Value.HasClo a → Value.HasClo (.pair a b)
+  | pairSnd {a b : Value} : Value.HasClo b → Value.HasClo (.pair a b)
 
 abbrev Value.NoClo (v : Value) : Prop := ¬ v.HasClo
 
@@ -880,13 +1130,72 @@ theorem Prim.compute_noClo (p : Prim) (args : List Value) (h : ∀ v ∈ args, v
     | (cases hc with | listElem hm hc' => (refine h _ ?_ (Value.HasClo.listElem (List.mem_of_mem_take hm) hc'); simp; done))
     | (cases hc with | listElem hm hc' => (refine h _ ?_ (Value.HasClo.listElem (List.mem_reverse.mp hm) hc'); simp; done))
     | (cases hc with | someInner hc' => (rename_i x xs; refine h (.list (x :: xs)) ?_ (Value.HasClo.listElem List.mem_cons_self hc'); simp; done))
+    -- Phase 9b: pairs
+    | (cases hc with
+        | pairFst hc' => (refine h _ ?_ hc'; simp; done)
+        | pairSnd hc' => (refine h _ ?_ hc'; simp; done))
+    | (rename_i a b; refine h (.pair a b) ?_ (Value.HasClo.pairFst hc); simp; done)
+    | (rename_i a b; refine h (.pair a b) ?_ (Value.HasClo.pairSnd hc); simp; done)
+    | (cases hc with | listElem hm hc' => (refine h _ ?_ (Value.HasClo.listElem (List.mem_of_mem_drop hm) hc'); simp; done))
+    | (cases hc with | listElem hm hc' => (simp at hm; subst hm; refine h _ ?_ (Value.HasClo.someInner hc'); simp; done))
 
 theorem applyPrim_noClo (p : Prim) (args : List Value) (h : ∀ v ∈ args, v.NoClo) : (applyPrim p args).NoClo := by
   unfold applyPrim; split
   · exact Prim.compute_noClo p args h
   · intro hc; cases hc with | primArg hm hc' => exact h _ hm hc'
 
-/-- Wiring designs never produce closures. -/
+/-- Closure-free environments and lambda-free terms never produce closures. -/
+theorem Ev.noCloV {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {I : Input} (hI : ∀ d t, (I d t).NoClo) :
+    ∀ {t : Nat} {ρ : List Value} {e : Expr} {v : Value}, Ev Δ I t ρ e v → e.WiringV →
+      (∀ w ∈ ρ, w.NoClo) → v.NoClo := by
+  intro t ρ e v h
+  induction h with
+  | var hv => intro _ hρ; exact hρ _ (List.mem_of_getElem? hv)
+  | boolLit | natLit => intro _ _ hc; cases hc
+  | lam => intro hw; exact hw.elim
+  | appClo _ _ _ ihf _ _ => intro hw hρ; exact (ihf hw.1 hρ (.clo _ _)).elim
+  | appPrim _ _ ihf iha =>
+    intro hw hρ
+    have hf := ihf hw.1 hρ
+    have ha := iha hw.2 hρ
+    refine applyPrim_noClo _ _ ?_
+    intro v hv
+    rcases List.mem_append.mp hv with hv | hv
+    · exact fun hc => hf (.primArg hv hc)
+    · simp at hv; subst hv; exact ha
+  | refRealized hs _ ih => intro _ _; exact ih (hΔ _ _ hs).toV (fun _ h => by simp at h)
+  | refInput _ => intro _ _; exact hI _ _
+  | rep _ ih => intro hw hρ hc; exact ih hw hρ (.semInner hc)
+  | mk _ ih => intro hw hρ hc; cases hc with | semInner hc' => exact ih hw hρ hc'
+  | prim => intro _ _; exact applyPrim_noClo _ _ (fun _ h => by simp at h)
+  | delayZero _ ih => intro hw hρ; exact ih hw.1 hρ
+  | delaySucc _ ih => intro hw hρ; exact ih hw.2 hρ
+  | syncZero _ ih => intro hw hρ; exact ih hw.1 hρ
+  | syncSucc _ ih => intro hw hρ; exact ih hw.2 hρ
+  | foldNil _ _ _ _ ihz _ => intro hw hρ; exact ihz hw.2.1 hρ
+  | @foldCons _ _ _ _ _ vf vz x xs r v _ _ _ _ _ ihf ihz ihl ihr ihv =>
+    intro hw hρ
+    have hf := ihf hw.1 hρ
+    have hz := ihz hw.2.1 hρ
+    have hl := ihl hw.2.2 hρ
+    have hxs : ∀ w ∈ [Value.list xs, vz, vf], w.NoClo := by
+      intro w hw'
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hw'
+      rcases hw' with rfl | rfl | rfl
+      · intro hc; cases hc with | listElem hm hc' => exact hl (.listElem (List.mem_cons_of_mem _ hm) hc')
+      · exact hz
+      · exact hf
+    have hr := ihr (by simp [foldVarTerm, Expr.WiringV]) hxs
+    refine ihv (by simp [stepVarTerm, Expr.WiringV]) ?_
+    intro w hw'
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hw'
+    rcases hw' with rfl | rfl | rfl
+    · exact hr
+    · exact fun hc => hl (.listElem List.mem_cons_self hc)
+    · exact hf
+
+/-- Wiring designs never produce closures (any environment: a wiring term
+    reads none). -/
 theorem Ev.noClo {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {I : Input} (hI : ∀ d t, (I d t).NoClo) :
     ∀ {t : Nat} {ρ : List Value} {e : Expr} {v : Value}, Ev Δ I t ρ e v → e.Wiring → v.NoClo := by
   intro t ρ e v h
@@ -913,6 +1222,27 @@ theorem Ev.noClo {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {I : Input} (hI : ∀ d
   | delaySucc _ ih => intro hw; exact ih hw.2
   | syncZero _ ih => intro hw; exact ih hw.1
   | syncSucc _ ih => intro hw; exact ih hw.2
+  | foldNil _ _ _ _ ihz _ => intro hw; exact ihz hw.2.1
+  | @foldCons _ _ _ _ _ vf vz x xs r v _ _ _ hr hv ihf ihz ihl _ _ =>
+    intro hw
+    have hf := ihf hw.1
+    have hz := ihz hw.2.1
+    have hl := ihl hw.2.2
+    have hxs : ∀ w ∈ [Value.list xs, vz, vf], w.NoClo := by
+      intro w hw'
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hw'
+      rcases hw' with rfl | rfl | rfl
+      · intro hc; cases hc with | listElem hm hc' => exact hl (.listElem (List.mem_cons_of_mem _ hm) hc')
+      · exact hz
+      · exact hf
+    have hr' := Ev.noCloV hΔ hI hr (by simp [foldVarTerm, Expr.WiringV]) hxs
+    refine Ev.noCloV hΔ hI hv (by simp [stepVarTerm, Expr.WiringV]) ?_
+    intro w hw'
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hw'
+    rcases hw' with rfl | rfl | rfl
+    · exact hr'
+    · exact fun hc => hl (.listElem List.mem_cons_self hc)
+    · exact hf
 
 /-- The environment is irrelevant for wiring terms. -/
 theorem Ev.env_irrelevant {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {I : Input} (hI : ∀ d t, (I d t).NoClo) :
@@ -935,6 +1265,239 @@ theorem Ev.env_irrelevant {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {I : Input} (h
   | delaySucc _ ih => intro hw ρ'; exact .delaySucc (ih hw.2 ρ')
   | syncZero _ ih => intro hw ρ'; exact .syncZero (ih hw.1 ρ')
   | syncSucc _ ih => intro hw ρ'; exact .syncSucc (ih hw.2 ρ')
+  | foldNil _ _ _ ihf ihz ihl => intro hw ρ'; exact .foldNil (ihf hw.1 ρ') (ihz hw.2.1 ρ') (ihl hw.2.2 ρ')
+  | foldCons _ _ _ hr hv ihf ihz ihl _ _ =>
+    intro hw ρ'; exact .foldCons (ihf hw.1 ρ') (ihz hw.2.1 ρ') (ihl hw.2.2 ρ') hr hv
+
+/-! ## Pure terms (Phase 9b): evaluation independent of design, input and tick
+
+A *pure* term refers to no declaration and reads no earlier tick: the
+fragment definitional library functions live in.  Its value in a pure
+environment is the same in every design, at every tick, under every input
+— the semantic half of library expansion (`Surface/Stdlib.lean`). -/
+
+def _root_.BDL.Expr.Pure : Expr → Prop
+  | .declRef _ => False
+  | .delay _ _ => False
+  | .sync _ _ _ => False
+  | .lam _ b => b.Pure
+  | .app f a => f.Pure ∧ a.Pure
+  | .rep e => e.Pure
+  | .mk _ e => e.Pure
+  | .fold f z l => f.Pure ∧ z.Pure ∧ l.Pure
+  | _ => True
+
+instance : ∀ e : Expr, Decidable e.Pure
+  | .var _ | .boolLit _ | .natLit _ | .prim _ => inferInstanceAs (Decidable True)
+  | .declRef _ | .delay _ _ | .sync _ _ _ => inferInstanceAs (Decidable False)
+  | .lam _ b => instDecidablePure b
+  | .app f a =>
+    have := instDecidablePure f
+    have := instDecidablePure a
+    inferInstanceAs (Decidable (f.Pure ∧ a.Pure))
+  | .rep e => instDecidablePure e
+  | .mk _ e => instDecidablePure e
+  | .fold f z l =>
+    have := instDecidablePure f
+    have := instDecidablePure z
+    have := instDecidablePure l
+    inferInstanceAs (Decidable (f.Pure ∧ z.Pure ∧ l.Pure))
+
+/-- A value whose closures (if any) have pure bodies and pure environments. -/
+inductive Value.Pure : Value → Prop where
+  | bool (b : Bool) : Value.Pure (.bool b)
+  | nat (n : Nat) : Value.Pure (.nat n)
+  | sem {s : SemanticId} {v : Value} : Value.Pure v → Value.Pure (.sem s v)
+  | none : Value.Pure .none
+  | some {v : Value} : Value.Pure v → Value.Pure (.some v)
+  | clo {ρ : List Value} {body : Expr} : body.Pure → (∀ w ∈ ρ, Value.Pure w) → Value.Pure (.clo ρ body)
+  | prim {p : Prim} {args : List Value} : (∀ w ∈ args, Value.Pure w) → Value.Pure (.prim p args)
+  | list {vs : List Value} : (∀ w ∈ vs, Value.Pure w) → Value.Pure (.list vs)
+  | pair {a b : Value} : Value.Pure a → Value.Pure b → Value.Pure (.pair a b)
+
+/-- Closure-free values are pure. -/
+theorem Value.Pure.of_noClo : ∀ {v : Value}, v.NoClo → v.Pure
+  | .bool b, _ => .bool b
+  | .nat n, _ => .nat n
+  | .sem _ v, h => .sem (Value.Pure.of_noClo (v := v) fun hc => h (.semInner hc))
+  | .none, _ => .none
+  | .some v, h => .some (Value.Pure.of_noClo (v := v) fun hc => h (.someInner hc))
+  | .clo _ _, h => (h (.clo _ _)).elim
+  | .prim _ args, h => .prim fun w hw => Value.Pure.of_noClo fun hc => h (.primArg hw hc)
+  | .list vs, h => .list fun w hw => Value.Pure.of_noClo fun hc => h (.listElem hw hc)
+  | .pair a b, h => .pair (Value.Pure.of_noClo (v := a) fun hc => h (.pairFst hc))
+      (Value.Pure.of_noClo (v := b) fun hc => h (.pairSnd hc))
+termination_by v => sizeOf v
+decreasing_by all_goals (simp_wf; (try omega); (try (have := List.sizeOf_lt_of_mem hw; omega)))
+
+theorem Prim.compute_pure (p : Prim) (args : List Value) (h : ∀ v ∈ args, v.Pure) : (p.compute args).Pure := by
+  unfold Prim.compute
+  split <;> first
+    | (exact .nat _)
+    | (exact .bool _)
+    | (exact .none)
+    | (exact .list fun _ h => absurd h (List.not_mem_nil))
+    | (exact .some (h _ List.mem_cons_self))
+    | (exact h _ List.mem_cons_self)
+    | (exact h _ (List.mem_cons_of_mem _ List.mem_cons_self))
+    | (rename_i x d
+       have hx := h (.some x) List.mem_cons_self
+       cases hx with | some hx' => exact hx')
+    | (rename_i c x y; cases c <;> simp only [Bool.false_eq_true, ↓reduceIte]
+       · exact h y (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self))
+       · exact h x (List.mem_cons_of_mem _ List.mem_cons_self))
+    | (rename_i x xs
+       have hl := h (.list (x :: xs)) List.mem_cons_self
+       cases hl with | list hl' => exact .list fun w hw => hl' w (List.mem_cons_of_mem _ hw))
+    | (rename_i x xs
+       have hx := h x List.mem_cons_self
+       have hl := h (.list xs) (List.mem_cons_of_mem _ List.mem_cons_self)
+       cases hl with | list hl' => exact .list fun w hw => (List.mem_cons.mp hw).elim (fun e => e ▸ hx) (hl' w))
+    | (rename_i k xs
+       have hl := h (.list xs) (List.mem_cons_of_mem _ List.mem_cons_self)
+       cases hl with | list hl' => exact .list fun w hw => hl' w (List.mem_of_mem_take hw))
+    | (rename_i xs
+       have hl := h (.list xs) List.mem_cons_self
+       cases hl with | list hl' => exact .list fun w hw => hl' w (List.mem_reverse.mp hw))
+    | (rename_i x xs
+       have hl := h (.list (x :: xs)) List.mem_cons_self
+       cases hl with | list hl' => exact .some (hl' x List.mem_cons_self))
+    | (rename_i a b; exact .pair (h a List.mem_cons_self) (h b (List.mem_cons_of_mem _ List.mem_cons_self)))
+    | (rename_i a b
+       have hp := h (.pair a b) List.mem_cons_self
+       cases hp with | pair ha _ => exact ha)
+    | (rename_i a b
+       have hp := h (.pair a b) List.mem_cons_self
+       cases hp with | pair _ hb => exact hb)
+    | (rename_i k xs
+       have hl := h (.list xs) (List.mem_cons_of_mem _ List.mem_cons_self)
+       cases hl with | list hl' => exact .list fun w hw => hl' w (List.mem_of_mem_drop hw))
+    | (rename_i x
+       have hx := h (.some x) List.mem_cons_self
+       cases hx with | some hx' => exact .list fun w hw => by simp at hw; subst hw; exact hx')
+
+theorem applyPrim_pure (p : Prim) (args : List Value) (h : ∀ v ∈ args, v.Pure) : (applyPrim p args).Pure := by
+  unfold applyPrim; split
+  · exact Prim.compute_pure p args h
+  · exact .prim h
+
+/-- **Pure evaluation is context-free**: a pure term in a pure environment
+    has a pure value, and the same value in every design, input and tick. -/
+theorem Ev.pure {Δ : DeclEnv} {I : Input} :
+    ∀ {t : Nat} {ρ : List Value} {e : Expr} {v : Value}, Ev Δ I t ρ e v → e.Pure → (∀ w ∈ ρ, w.Pure) →
+      v.Pure ∧ ∀ (Δ' : DeclEnv) (I' : Input) (t' : Nat), Ev Δ' I' t' ρ e v := by
+  intro t ρ e v h
+  induction h with
+  | var hv => intro _ hρ; exact ⟨hρ _ (List.mem_of_getElem? hv), fun _ _ _ => .var hv⟩
+  | boolLit => intro _ _; exact ⟨.bool _, fun _ _ _ => .boolLit⟩
+  | natLit => intro _ _; exact ⟨.nat _, fun _ _ _ => .natLit⟩
+  | lam => intro he hρ; exact ⟨.clo he hρ, fun _ _ _ => .lam⟩
+  | appClo _ _ _ ihf iha ihb =>
+    intro he hρ
+    obtain ⟨hf, hf'⟩ := ihf he.1 hρ
+    obtain ⟨ha, ha'⟩ := iha he.2 hρ
+    cases hf with
+    | clo hb hρ' =>
+      obtain ⟨hv, hv'⟩ := ihb hb (fun w hw => (List.mem_cons.mp hw).elim (fun e => e ▸ ha) (hρ' w))
+      exact ⟨hv, fun Δ' I' t' => .appClo (hf' Δ' I' t') (ha' Δ' I' t') (hv' Δ' I' t')⟩
+  | appPrim _ _ ihf iha =>
+    intro he hρ
+    obtain ⟨hf, hf'⟩ := ihf he.1 hρ
+    obtain ⟨ha, ha'⟩ := iha he.2 hρ
+    cases hf with
+    | prim hargs =>
+      refine ⟨applyPrim_pure _ _ ?_, fun Δ' I' t' => .appPrim (hf' Δ' I' t') (ha' Δ' I' t')⟩
+      intro w hw
+      rcases List.mem_append.mp hw with hw | hw
+      · exact hargs w hw
+      · simp at hw; subst hw; exact ha
+  | refRealized _ _ _ => intro he; exact he.elim
+  | refInput _ => intro he; exact he.elim
+  | rep _ ih =>
+    intro he hρ
+    obtain ⟨hv, hv'⟩ := ih he hρ
+    cases hv with
+    | sem hw => exact ⟨hw, fun Δ' I' t' => .rep (hv' Δ' I' t')⟩
+  | mk _ ih =>
+    intro he hρ
+    obtain ⟨hv, hv'⟩ := ih he hρ
+    exact ⟨.sem hv, fun Δ' I' t' => .mk (hv' Δ' I' t')⟩
+  | prim => intro _ _; exact ⟨applyPrim_pure _ _ (fun _ h => by simp at h), fun _ _ _ => .prim⟩
+  | delayZero _ _ => intro he; exact he.elim
+  | delaySucc _ _ => intro he; exact he.elim
+  | syncZero _ _ => intro he; exact he.elim
+  | syncSucc _ _ => intro he; exact he.elim
+  | foldNil _ _ _ ihf ihz ihl =>
+    intro he hρ
+    obtain ⟨_, hf'⟩ := ihf he.1 hρ
+    obtain ⟨hz, hz'⟩ := ihz he.2.1 hρ
+    obtain ⟨_, hl'⟩ := ihl he.2.2 hρ
+    exact ⟨hz, fun Δ' I' t' => .foldNil (hf' Δ' I' t') (hz' Δ' I' t') (hl' Δ' I' t')⟩
+  | @foldCons _ _ _ _ _ vf vz x xs r v _ _ _ _ _ ihf ihz ihl ihr ihv =>
+    intro he hρ
+    obtain ⟨hf, hf'⟩ := ihf he.1 hρ
+    obtain ⟨hz, hz'⟩ := ihz he.2.1 hρ
+    obtain ⟨hl, hl'⟩ := ihl he.2.2 hρ
+    have hxs : ∀ w ∈ [Value.list xs, vz, vf], w.Pure := by
+      intro w hw
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hw
+      rcases hw with rfl | rfl | rfl
+      · cases hl with | list hl'' => exact .list fun w hw => hl'' w (List.mem_cons_of_mem _ hw)
+      · exact hz
+      · exact hf
+    obtain ⟨hr, hr'⟩ := ihr (by simp [foldVarTerm, Expr.Pure]) hxs
+    have hrs : ∀ w ∈ [r, x, vf], w.Pure := by
+      intro w hw
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hw
+      rcases hw with rfl | rfl | rfl
+      · exact hr
+      · cases hl with | list hl'' => exact hl'' _ List.mem_cons_self
+      · exact hf
+    obtain ⟨hv, hv'⟩ := ihv (by simp [stepVarTerm, Expr.Pure]) hrs
+    exact ⟨hv, fun Δ' I' t' => .foldCons (hf' Δ' I' t') (hz' Δ' I' t') (hl' Δ' I' t') (hr' Δ' I' t') (hv' Δ' I' t')⟩
+
+/-- The recursor's environment-passing sub-derivations move between designs
+    whenever the passed values are closure-free. -/
+theorem Ev.foldVar_move {Δ Δ' : DeclEnv} {I I' : Input} {t t' : Nat} {ρ : List Value} {v : Value}
+    (h : Ev Δ I t ρ foldVarTerm v) (hρ : ∀ w ∈ ρ, w.NoClo) : Ev Δ' I' t' ρ foldVarTerm v :=
+  (Ev.pure h (by simp [foldVarTerm, Expr.Pure]) (fun w hw => Value.Pure.of_noClo (hρ w hw))).2 Δ' I' t'
+
+theorem Ev.stepVar_move {Δ Δ' : DeclEnv} {I I' : Input} {t t' : Nat} {ρ : List Value} {v : Value}
+    (h : Ev Δ I t ρ stepVarTerm v) (hρ : ∀ w ∈ ρ, w.NoClo) : Ev Δ' I' t' ρ stepVarTerm v :=
+  (Ev.pure h (by simp [stepVarTerm, Expr.Pure]) (fun w hw => Value.Pure.of_noClo (hρ w hw))).2 Δ' I' t'
+
+theorem foldEnv_noClo {vf vz x : Value} {xs : List Value} (hf : vf.NoClo) (hz : vz.NoClo)
+    (hl : (Value.list (x :: xs)).NoClo) : (∀ w ∈ [Value.list xs, vz, vf], w.NoClo) ∧ x.NoClo := by
+  refine ⟨?_, fun hc => hl (.listElem List.mem_cons_self hc)⟩
+  intro w hw
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hw
+  rcases hw with rfl | rfl | rfl
+  · intro hc; cases hc with | listElem hm hc' => exact hl (.listElem (List.mem_cons_of_mem _ hm) hc')
+  · exact hz
+  · exact hf
+
+theorem stepEnv_noClo {r x vf : Value} (hr : r.NoClo) (hx : x.NoClo) (hf : vf.NoClo) :
+    ∀ w ∈ [r, x, vf], w.NoClo := by
+  intro w hw
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hw
+  rcases hw with rfl | rfl | rfl
+  · exact hr
+  · exact hx
+  · exact hf
+
+/-- Moving a `foldCons` evaluation between designs: given the three
+    operands' evaluations in the target design and closure-free values, the
+    environment-passing sub-derivations transfer. -/
+theorem Ev.foldCons_move {Δ Δ' : DeclEnv} {I I' : Input} {t t' : Nat} {ρ' : List Value} {f' z' l' : Expr}
+    {vf vz x r v : Value} {xs : List Value}
+    (hf' : Ev Δ' I' t' ρ' f' vf) (hz' : Ev Δ' I' t' ρ' z' vz) (hl' : Ev Δ' I' t' ρ' l' (.list (x :: xs)))
+    (hr : Ev Δ I t [.list xs, vz, vf] foldVarTerm r) (hv : Ev Δ I t [r, x, vf] stepVarTerm v)
+    (hΔ : DeclEnvWiring Δ) (hI : ∀ d t, (I d t).NoClo)
+    (hvf : vf.NoClo) (hvz : vz.NoClo) (hvl : (Value.list (x :: xs)).NoClo) :
+    Ev Δ' I' t' ρ' (.fold f' z' l') v := by
+  obtain ⟨hxs, hx⟩ := foldEnv_noClo hvf hvz hvl
+  have hrn : r.NoClo := Ev.noCloV hΔ hI hr (by simp [foldVarTerm, Expr.WiringV]) hxs
+  exact .foldCons hf' hz' hl' (Ev.foldVar_move hr hxs) (Ev.stepVar_move hv (stepEnv_noClo hrn hx hvf))
 
 theorem unfolds_wiring {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {e e' : Expr} (h : Unfolds Δ e e') (hw : e.Wiring) : e'.Wiring := by
   induction h with
@@ -947,6 +1510,7 @@ theorem unfolds_wiring {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {e e' : Expr} (h 
   | mk _ ih => exact ih hw
   | delay _ _ ihi ihe => exact ⟨ihi hw.1, ihe hw.2⟩
   | sync _ _ ihi ihe => exact ⟨ihi hw.1, ihe hw.2⟩
+  | fold _ _ _ ihf ihz ihl => exact ⟨ihf hw.1, ihz hw.2.1, ihl hw.2.2⟩
 
 /-- **Unfolding preserves stepping** on wiring designs: the value of a term
     at any tick is the value of its unfolding.  So `Unfolds` (Phase 1) is a
@@ -981,6 +1545,12 @@ theorem unfolds_preserves_eval {Δ : DeclEnv} (hΔ : DeclEnvWiring Δ) {I : Inpu
     cases h with
     | syncZero h' => exact .syncZero (ihi hw.1 _ _ _ h')
     | syncSucc h' => exact .syncSucc (ihe hw.2 _ _ _ h')
+  | fold _ _ _ ihf ihz ihl =>
+    intro t ρ v h
+    cases h with
+    | foldNil hf hz hl => exact .foldNil (ihf hw.1 _ _ _ hf) (ihz hw.2.1 _ _ _ hz) (ihl hw.2.2 _ _ _ hl)
+    | foldCons hf hz hl hr hv =>
+      exact .foldCons (ihf hw.1 _ _ _ hf) (ihz hw.2.1 _ _ _ hz) (ihl hw.2.2 _ _ _ hl) hr hv
 
 /-- `rep (delay i x)` and `delay (rep i) (rep x)` evaluate identically:
     representation access commutes with delay (both are typed `q Angle`). -/

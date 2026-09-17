@@ -58,6 +58,10 @@ inductive HasType (Θ : ConceptEnv) (Δ : DeclEnv) (G : Grant) : Ctx → Expr �
       typing matter (`Clock.lean`). -/
   | sync    {c i e τ} : τ.Data → HasType Θ Δ G [] i τ → HasType Θ Δ G [] e τ →
       HasType Θ Δ G [] (.sync c i e) τ
+  /-- Phase 9b.  The list recursor: `f : τ → σ → σ`, `z : σ`, `l : list τ`. -/
+  | fold    {Γ f z l τ σ} :
+      HasType Θ Δ G Γ f (.arr τ (.arr σ σ)) → HasType Θ Δ G Γ z σ → HasType Θ Δ G Γ l (.list τ) →
+      HasType Θ Δ G Γ (.fold f z l) σ
 
 /-- Syntax-directed type inference. -/
 def infer (Θ : ConceptEnv) (Δ : DeclEnv) (G : Grant) [DecidablePred G] : Ctx → Expr → Option Ty
@@ -93,6 +97,11 @@ def infer (Θ : ConceptEnv) (Δ : DeclEnv) (G : Grant) [DecidablePred G] : Ctx �
       | some τ, some τ' => if τ = τ' ∧ τ.Data then some τ else none
       | _, _ => none
     else none
+  | Γ, .fold f z l   =>
+    match infer Θ Δ G Γ f, infer Θ Δ G Γ z, infer Θ Δ G Γ l with
+    | some (.arr τ (.arr σ σ')), some σ'', some (.list τ') =>
+      if τ = τ' ∧ σ = σ' ∧ σ = σ'' then some σ else none
+    | _, _, _ => none
 
 section Inference
 variable {Θ : ConceptEnv} {Δ : DeclEnv} {G : Grant} [DecidablePred G]
@@ -125,6 +134,7 @@ theorem infer_sound :
         | q _ => simp [infer, hf, ha] at h
         | opt _ => simp [infer, hf, ha] at h
         | list _ => simp [infer, hf, ha] at h
+        | prod _ _ => simp [infer, hf, ha] at h
         | arr dom cod =>
           simp [infer, hf, ha] at h
           obtain ⟨rfl, rfl⟩ := h
@@ -140,7 +150,28 @@ theorem infer_sound :
       | q _ => simp [infer, he] at h
       | opt _ => simp [infer, he] at h
       | list _ => simp [infer, he] at h
+      | prod _ _ => simp [infer, he] at h
       | arr _ _ => simp [infer, he] at h
+  | Γ, .fold f z l, τ, h => by
+    cases hf : infer Θ Δ G Γ f with
+    | none => simp [infer, hf] at h
+    | some τf =>
+      cases hz : infer Θ Δ G Γ z with
+      | none => cases τf <;> simp [infer, hf, hz] at h
+      | some τz =>
+        cases hl : infer Θ Δ G Γ l with
+        | none => cases τf <;> simp [infer, hf, hz, hl] at h
+        | some τl =>
+          -- only `arr τ (arr σ σ)` / `list τ` survive
+          simp only [infer, hf, hz, hl] at h
+          split at h
+          · rename_i h₁ h₂ h₃
+            simp only [Option.some.injEq] at h₁ h₂ h₃
+            subst h₁ h₂ h₃
+            simp only [Option.ite_none_right_eq_some, Option.some.injEq] at h
+            obtain ⟨⟨rfl, rfl, rfl⟩, rfl⟩ := h
+            exact .fold (infer_sound hf) (infer_sound hz) (infer_sound hl)
+          · exact nomatch h
   | Γ, .delay i e, τ, h => by
     by_cases hΓ : Γ = []
     · subst hΓ
@@ -194,6 +225,7 @@ theorem infer_complete {Γ : Ctx} {e : Expr} {τ : Ty}
   | prim => rfl
   | delay hd _ _ ihi ihe => simp [infer, ihi, ihe, hd]
   | sync hd _ _ ihi ihe => simp [infer, ihi, ihe, hd]
+  | fold _ _ _ ihf ihz ihl => simp [infer, ihf, ihz, ihl]
 
 theorem HasType.unique {Γ : Ctx} {e : Expr} {τ₁ τ₂ : Ty}
     (h₁ : HasType Θ Δ G Γ e τ₁) (h₂ : HasType Θ Δ G Γ e τ₂) : τ₁ = τ₂ :=
@@ -231,6 +263,7 @@ theorem HasType.weaken_append {Γ : Ctx} {e : Expr} {τ : Ty} (hd : e.DelayFree)
   | prim => exact .prim
   | delay _ _ _ _ _ => exact hd.elim
   | sync _ _ _ _ _ => exact hd.elim
+  | fold _ _ _ ihf ihz ihl => exact .fold (ihf hd.1) (ihz hd.2.1) (ihl hd.2.2)
 
 /-- A delay-free term well typed at top level is well typed in every context. -/
 theorem HasType.of_closed {e : Expr} {τ : Ty} (hd : e.DelayFree)
@@ -266,6 +299,7 @@ theorem HasType.mono_env {Δ₁ Δ₂ : DeclEnv}
   | prim => exact .prim
   | delay hd _ _ ihi ihe => exact .delay hd ihi ihe
   | sync hd _ _ ihi ihe => exact .sync hd ihi ihe
+  | fold _ _ _ ihf ihz ihl => exact .fold ihf ihz ihl
 
 theorem HasType.of_envRefines {Δ₁ Δ₂ : DeclEnv} (er : EnvRefines Δ₁ Δ₂)
     {Γ : Ctx} {e : Expr} {τ : Ty} (h : HasType Θ Δ₁ G Γ e τ) : HasType Θ Δ₂ G Γ e τ :=
@@ -287,6 +321,7 @@ theorem HasType.mono_concept {Θ₁ Θ₂ : ConceptEnv} (hc : ConceptRefines Θ�
   | prim => exact .prim
   | delay hd _ _ ihi ihe => exact .delay hd ihi ihe
   | sync hd _ _ ihi ihe => exact .sync hd ihi ihe
+  | fold _ _ _ ihf ihz ihl => exact .fold ihf ihz ihl
 
 /-- Granting more construction rights never breaks a derivation. -/
 theorem HasType.mono_grant {G₁ G₂ : Grant} (hg : ∀ s, G₁ s → G₂ s)
@@ -303,6 +338,7 @@ theorem HasType.mono_grant {G₁ G₂ : Grant} (hg : ∀ s, G₁ s → G₂ s)
   | prim => exact .prim
   | delay hd _ _ ihi ihe => exact .delay hd ihi ihe
   | sync hd _ _ ihi ihe => exact .sync hd ihi ihe
+  | fold _ _ _ ihf ihz ihl => exact .fold ihf ihz ihl
 
 theorem HasType.to_all {Γ : Ctx} {e : Expr} {τ : Ty} (h : HasType Θ Δ G Γ e τ) :
     HasType Θ Δ Grant.all Γ e τ :=
@@ -316,6 +352,7 @@ def Expr.constructs (s : SemanticId) : Expr → Prop
   | .mk s' e => s' = s ∨ e.constructs s
   | .delay i e => i.constructs s ∨ e.constructs s
   | .sync _ i e => i.constructs s ∨ e.constructs s
+  | .fold f z l => f.constructs s ∨ z.constructs s ∨ l.constructs s
   | _ => False
 
 /-- **Construction requires a grant** (syntactic form of the isolation
@@ -336,6 +373,7 @@ theorem HasType.constructs_granted {Γ : Ctx} {e : Expr} {τ : Ty}
     · exact ih s hs
   | delay _ _ _ ihi ihe => intro s hs; exact hs.elim (ihi s) (ihe s)
   | sync _ _ _ ihi ihe => intro s hs; exact hs.elim (ihi s) (ihe s)
+  | fold _ _ _ ihf ihz ihl => intro s hs; exact hs.elim (ihf s) (fun h => h.elim (ihz s) (ihl s))
 
 /-- Every declaration a well-typed term refers to exists in the environment. -/
 theorem HasType.refs_declared {Γ : Ctx} {e : Expr} {τ : Ty}
@@ -362,6 +400,10 @@ theorem HasType.refs_declared {Γ : Ctx} {e : Expr} {τ : Ty}
     intro x hx
     simp only [Expr.refs, List.mem_append] at hx
     exact hx.elim (ihi x) (ihe x)
+  | fold _ _ _ ihf ihz ihl =>
+    intro x hx
+    simp only [Expr.refs, List.mem_append] at hx
+    exact hx.elim (fun h => h.elim (ihf x) (ihz x)) (ihl x)
 
 /-- A reference-free term's typing is independent of the declaration environment. -/
 theorem HasType.refFree_env_irrelevant {Δ₁ Δ₂ : DeclEnv} {Γ : Ctx} {e : Expr} {τ : Ty}
@@ -380,6 +422,10 @@ theorem HasType.refFree_env_irrelevant {Δ₁ Δ₂ : DeclEnv} {Γ : Ctx} {e : E
     exact .delay hd (ihi (List.append_eq_nil_iff.mp hf).1) (ihe (List.append_eq_nil_iff.mp hf).2)
   | sync hd _ _ ihi ihe =>
     exact .sync hd (ihi (List.append_eq_nil_iff.mp hf).1) (ihe (List.append_eq_nil_iff.mp hf).2)
+  | fold _ _ _ ihf ihz ihl =>
+    have h1 := List.append_eq_nil_iff.mp hf
+    have h2 := List.append_eq_nil_iff.mp h1.1
+    exact .fold (ihf h2.1) (ihz h2.2) (ihl h1.2)
 
 end Structural
 

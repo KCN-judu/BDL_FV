@@ -126,6 +126,7 @@ def _root_.BDL.Ty.erase (ρ : SemanticId → Ty) : Ty → Ty
   | .arr a b => .arr (a.erase ρ) (b.erase ρ)
   | .opt τ => .opt (τ.erase ρ)
   | .list τ => .list (τ.erase ρ)
+  | .prod a b => .prod (a.erase ρ) (b.erase ρ)
   | .bool => .bool
   | .nat => .nat
   | .q d => .q d
@@ -138,6 +139,7 @@ theorem _root_.BDL.Ty.erase_semFree (ρ : SemanticId → Ty) : ∀ {τ : Ty}, τ
   | .opt τ, h => by simp [Ty.erase, Ty.erase_semFree ρ (τ := τ) h]
   | .list τ, h => by simp [Ty.erase, Ty.erase_semFree ρ (τ := τ) h]
   | .arr a b, h => by simp [Ty.erase, Ty.erase_semFree ρ h.1, Ty.erase_semFree ρ h.2]
+  | .prod a b, h => by simp [Ty.erase, Ty.erase_semFree ρ h.1, Ty.erase_semFree ρ h.2]
 
 /-- Registered operators are sem-free *except* the polymorphic ones instantiated
     at a semantic type (`ite (sem s)`, `some (sem s)`, …), which merely route
@@ -154,10 +156,31 @@ def _root_.BDL.Prim.erase (ρ : SemanticId → Ty) : Prim → Prim
   | .take τ => .take (τ.erase ρ)
   | .reverse τ => .reverse (τ.erase ρ)
   | .head τ => .head (τ.erase ρ)
+  | .pair a b => .pair (a.erase ρ) (b.erase ρ)
+  | .fst a b => .fst (a.erase ρ) (b.erase ρ)
+  | .snd a b => .snd (a.erase ρ) (b.erase ρ)
+  | .drop τ => .drop (τ.erase ρ)
+  | .toList τ => .toList (τ.erase ρ)
+  -- Phase 9b: the comparison families carry their data proof; erasure keeps
+  -- it when the binding is data (always, under `hρd` below).
+  | .lt τ h => if h' : (τ.erase ρ).Data then .lt (τ.erase ρ) h' else .lt τ h
+  | .eq τ h => if h' : (τ.erase ρ).Data then .eq (τ.erase ρ) h' else .eq τ h
   | p => p
 
-theorem _root_.BDL.Prim.ty_erase (ρ : SemanticId → Ty) (p : Prim) : (p.erase ρ).ty = p.ty.erase ρ := by
-  cases p <;> simp [Prim.erase, Prim.ty, Ty.erase]
+theorem _root_.BDL.Ty.erase_data (ρ : SemanticId → Ty) (hρ : ∀ s, (ρ s).Data) : ∀ {τ : Ty}, τ.Data → (τ.erase ρ).Data
+  | .bool, _ => trivial
+  | .nat, _ => trivial
+  | .q _, _ => trivial
+  | .sem s, _ => hρ s
+  | .opt τ, h => Ty.erase_data ρ hρ (τ := τ) h
+  | .list τ, h => Ty.erase_data ρ hρ (τ := τ) h
+  | .prod _ _, h => ⟨Ty.erase_data ρ hρ h.1, Ty.erase_data ρ hρ h.2⟩
+  | .arr _ _, h => h.elim
+
+theorem _root_.BDL.Prim.ty_erase (ρ : SemanticId → Ty) (hρd : ∀ s, (ρ s).Data) (p : Prim) :
+    (p.erase ρ).ty = p.ty.erase ρ := by
+  cases p <;> simp [Prim.erase, Prim.ty, Ty.erase] <;>
+    (rename_i τ h; rw [dif_pos (Ty.erase_data ρ hρd h)])
 
 /-- Erasing terms: `rep`/`mk` disappear (the representation *is* the value). -/
 def _root_.BDL.Expr.erase (ρ : SemanticId → Ty) : Expr → Expr
@@ -168,16 +191,8 @@ def _root_.BDL.Expr.erase (ρ : SemanticId → Ty) : Expr → Expr
   | .prim p => .prim (p.erase ρ)
   | .delay i e => .delay (i.erase ρ) (e.erase ρ)
   | .sync c i e => .sync c (i.erase ρ) (e.erase ρ)
+  | .fold f z l => .fold (f.erase ρ) (z.erase ρ) (l.erase ρ)
   | e => e
-
-theorem _root_.BDL.Ty.erase_data (ρ : SemanticId → Ty) (hρ : ∀ s, (ρ s).Data) : ∀ {τ : Ty}, τ.Data → (τ.erase ρ).Data
-  | .bool, _ => trivial
-  | .nat, _ => trivial
-  | .q _, _ => trivial
-  | .sem s, _ => hρ s
-  | .opt τ, h => Ty.erase_data ρ hρ (τ := τ) h
-  | .list τ, h => Ty.erase_data ρ hρ (τ := τ) h
-  | .arr _ _, h => h.elim
 
 def _root_.BDL.DesignDecl.erase (ρ : SemanticId → Ty) (d : DesignDecl) : DesignDecl :=
   { d with interface := { d.interface with expectedType := d.interface.expectedType.erase ρ },
@@ -215,9 +230,10 @@ theorem _root_.BDL.HasType.erase (ρ : SemanticId → Ty) (hρd : ∀ s, (ρ s).
     have hR : R.erase ρ = R := Ty.erase_semFree ρ (hΘ s R hb).1
     simp only [Expr.erase, Ty.erase, hρ s R hb]
     simpa [hR] using ih
-  | prim => exact (Prim.ty_erase ρ _) ▸ HasType.prim
+  | prim => exact (Prim.ty_erase ρ hρd _) ▸ HasType.prim
   | delay hd _ _ ihi ihe => exact .delay (Ty.erase_data ρ hρd hd) ihi ihe
   | sync hd _ _ ihi ihe => exact .sync (Ty.erase_data ρ hρd hd) ihi ihe
+  | fold _ _ _ ihf ihz ihl => exact .fold ihf ihz ihl
 
 /-- The numeric binding: every concept is represented by `nat`. -/
 def ρnat : SemanticId → Ty := fun _ => .nat
@@ -243,6 +259,7 @@ def _root_.BDL.Expr.SemFree : Expr → Prop
   | .prim p => p.ty.SemFree
   | .delay i e => i.SemFree ∧ e.SemFree
   | .sync _ i e => i.SemFree ∧ e.SemFree
+  | .fold f z l => f.SemFree ∧ z.SemFree ∧ l.SemFree
   | _ => True
 
 /-- **Result 4 — semantic extension preserves structural typing.**  A
@@ -272,6 +289,7 @@ theorem semantic_extension_preserves_structural_typing {Θ : ConceptEnv} {Δ : D
   | prim => exact he
   | delay _ _ _ ihi _ => exact ihi hΓ he.1
   | sync _ _ _ ihi _ => exact ihi hΓ he.1
+  | fold _ _ _ _ ihz _ => exact ihz hΓ he.2.1
 
 /-! ### Refinement preservation is inherited from Phase 1
 
@@ -351,7 +369,50 @@ def _root_.BDL.Ty.denote : Ty → Type
   | .arr a b => a.denote → b.denote
   | .opt τ => Option τ.denote
   | .list τ => List τ.denote
+  | .prod a b => a.denote × b.denote
   | .sem _ => Empty
+
+/-- Structural equality / order on the denotations of data types (Phase 9b). -/
+def _root_.BDL.Ty.deq : ∀ (τ : Ty), τ.Data → τ.denote → τ.denote → Bool
+  | .bool, _, a, b => (show Bool from a) == (show Bool from b)
+  | .nat, _, a, b => (show Nat from a) == (show Nat from b)
+  | .q _, _, a, b => (show Nat from a) == (show Nat from b)
+  | .sem _, _, a, _ => (show Empty from a).elim
+  | .opt τ, h, a, b => match (show Option τ.denote from a), (show Option τ.denote from b) with
+    | Option.none, Option.none => true
+    | Option.some x, Option.some y => Ty.deq τ h x y
+    | _, _ => false
+  | .list τ, h, a, b => go τ h (show List τ.denote from a) (show List τ.denote from b)
+  | .prod τ₁ τ₂, h, a, b =>
+    Ty.deq τ₁ h.1 (show τ₁.denote × τ₂.denote from a).1 (show τ₁.denote × τ₂.denote from b).1 &&
+    Ty.deq τ₂ h.2 (show τ₁.denote × τ₂.denote from a).2 (show τ₁.denote × τ₂.denote from b).2
+  | .arr _ _, h, _, _ => h.elim
+where
+  go (τ : Ty) (h : τ.Data) : List τ.denote → List τ.denote → Bool
+    | [], [] => true
+    | x :: xs, y :: ys => Ty.deq τ h x y && go τ h xs ys
+    | _, _ => false
+
+def _root_.BDL.Ty.dlt : ∀ (τ : Ty), τ.Data → τ.denote → τ.denote → Bool
+  | .bool, _, a, b => !(show Bool from a) && (show Bool from b)
+  | .nat, _, a, b => decide ((show Nat from a) < (show Nat from b))
+  | .q _, _, a, b => decide ((show Nat from a) < (show Nat from b))
+  | .sem _, _, a, _ => (show Empty from a).elim
+  | .opt τ, h, a, b => match (show Option τ.denote from a), (show Option τ.denote from b) with
+    | Option.none, Option.some _ => true
+    | Option.some x, Option.some y => Ty.dlt τ h x y
+    | _, _ => false
+  | .list τ, h, a, b => go τ h (show List τ.denote from a) (show List τ.denote from b)
+  | .prod τ₁ τ₂, h, a, b =>
+    Ty.dlt τ₁ h.1 (show τ₁.denote × τ₂.denote from a).1 (show τ₁.denote × τ₂.denote from b).1 ||
+    (Ty.deq τ₁ h.1 (show τ₁.denote × τ₂.denote from a).1 (show τ₁.denote × τ₂.denote from b).1 &&
+     Ty.dlt τ₂ h.2 (show τ₁.denote × τ₂.denote from a).2 (show τ₁.denote × τ₂.denote from b).2)
+  | .arr _ _, h, _, _ => h.elim
+where
+  go (τ : Ty) (h : τ.Data) : List τ.denote → List τ.denote → Bool
+    | [], _ :: _ => true
+    | x :: xs, y :: ys => Ty.dlt τ h x y || (Ty.deq τ h x y && go τ h xs ys)
+    | _, _ => false
 
 def _root_.BDL.Prim.denote : ∀ p : Prim, p.ty.denote
   | .lit _ n => (show Nat from n)
@@ -359,8 +420,8 @@ def _root_.BDL.Prim.denote : ∀ p : Prim, p.ty.denote
   | .sub _ => (show Nat → Nat → Nat from fun a b => a - b)
   | .mul _ _ => (show Nat → Nat → Nat from fun a b => a * b)
   | .div _ _ => (show Nat → Nat → Nat from fun a b => a / b)
-  | .lt _ => (show Nat → Nat → Bool from fun a b => decide (a < b))
-  | .eq _ => (show Nat → Nat → Bool from fun a b => decide (a = b))
+  | .lt τ h => (show τ.denote → τ.denote → Bool from Ty.dlt τ h)
+  | .eq τ h => (show τ.denote → τ.denote → Bool from Ty.deq τ h)
   | .not => (show Bool → Bool from fun a => !a)
   | .and => (show Bool → Bool → Bool from fun a b => a && b)
   | .or => (show Bool → Bool → Bool from fun a b => a || b)
@@ -375,6 +436,11 @@ def _root_.BDL.Prim.denote : ∀ p : Prim, p.ty.denote
   | .take τ => (show Nat → List τ.denote → List τ.denote from fun k xs => xs.take k)
   | .reverse τ => (show List τ.denote → List τ.denote from List.reverse)
   | .head τ => (show List τ.denote → Option τ.denote from List.head?)
+  | .pair a b => (show a.denote → b.denote → a.denote × b.denote from fun x y => (x, y))
+  | .fst a b => (show a.denote × b.denote → a.denote from Prod.fst)
+  | .snd a b => (show a.denote × b.denote → b.denote from Prod.snd)
+  | .drop τ => (show Nat → List τ.denote → List τ.denote from fun k xs => xs.drop k)
+  | .toList τ => (show Option τ.denote → List τ.denote from Option.toList)
 
 /-- Interpretation of a context: a value for every variable. -/
 def _root_.BDL.Ctx.Interp (Γ : Ctx) : Type := ∀ (i : Nat) (τ : Ty), Γ[i]? = some τ → τ.denote
@@ -424,10 +490,30 @@ def _root_.BDL.Expr.eval {Θ : ConceptEnv} {Δ : DeclEnv} (δ : Δ.Interp) :
         | sem _ => simp [infer, hf, ha] at h
         | opt _ => simp [infer, hf, ha] at h
         | list _ => simp [infer, hf, ha] at h
+        | prod _ _ => simp [infer, hf, ha] at h
         | arr dom cod =>
           simp [infer, hf, ha] at h
           obtain ⟨rfl, rfl⟩ := h
           exact (Expr.eval δ f Γ γ _ hf) (Expr.eval δ a Γ γ _ ha)
+  | .fold f z l, Γ, γ, τ, h => by
+    cases hf : infer Θ Δ Grant.none Γ f with
+    | none => simp [infer, hf] at h
+    | some τf =>
+      cases hz : infer Θ Δ Grant.none Γ z with
+      | none => cases τf <;> simp [infer, hf, hz] at h
+      | some τz =>
+        cases hl : infer Θ Δ Grant.none Γ l with
+        | none => cases τf <;> simp [infer, hf, hz, hl] at h
+        | some τl =>
+          simp only [infer, hf, hz, hl] at h
+          split at h
+          · rename_i h₁ h₂ h₃
+            simp only [Option.some.injEq] at h₁ h₂ h₃
+            subst h₁ h₂ h₃
+            simp only [Option.ite_none_right_eq_some, Option.some.injEq] at h
+            obtain ⟨⟨rfl, rfl, rfl⟩, rfl⟩ := h
+            exact (Expr.eval δ l Γ γ _ hl).foldr (Expr.eval δ f Γ γ _ hf) (Expr.eval δ z Γ γ _ hz)
+          · exact nomatch h
   | .rep e, Γ, γ, τ, h => by
     -- the argument denotes `Empty`; nothing can be observed from nothing
     cases he : infer Θ Δ Grant.none Γ e with
@@ -440,6 +526,7 @@ def _root_.BDL.Expr.eval {Θ : ConceptEnv} {Δ : DeclEnv} (δ : Δ.Interp) :
       | q _ => simp [infer, he] at h
       | opt _ => simp [infer, he] at h
       | list _ => simp [infer, he] at h
+      | prod _ _ => simp [infer, he] at h
       | arr _ _ => simp [infer, he] at h
   | .mk s e, _, _, _, h => by simp [infer, Grant.none] at h
   | .delay i e, Γ, γ, τ, h => by
@@ -481,6 +568,7 @@ def _root_.BDL.Ty.SemFree.inhabitant : ∀ {τ : Ty}, τ.SemFree → τ.denote
   | .q _, _ => (show Nat from 0)
   | .opt _, _ => (show Option _ from Option.none)
   | .list _, _ => (show List _ from [])
+  | .prod a b, h => (show _ × _ from (Ty.SemFree.inhabitant (τ := a) h.1, Ty.SemFree.inhabitant (τ := b) h.2))
   | .arr _ b, h => fun _ => Ty.SemFree.inhabitant (τ := b) h.2
 
 /-- **Result 6.**  In an environment declaring only sem-free types, no closed

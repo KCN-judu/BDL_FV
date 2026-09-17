@@ -13,13 +13,14 @@ lake build
 * `DESIGN_DECISIONS.md` — every model choice and rejected alternative
 * `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table
 
-Status: Phases 0–7, 8a/8b and 9a complete (lifecycle/refinement; cross-declaration
+Status: Phases 0–7, 8a/8b, 9a and 9b complete (lifecycle/refinement; cross-declaration
 preservation; semantic identity; representation binding + dimensions;
 reactive core; clock domains + synchronization; physical outputs +
 single-driver discipline; hardware constraint validation + resource
 allocation; behaviour systems — reusable components, fresh instantiation,
 port binding, hierarchical composition, flattening; behaviour grouping and
-component extraction; list data and lossless buffered cross-domain events).
+component extraction; list data and lossless buffered cross-domain events;
+products, the list recursor and the polymorphic equation library).
 Remaining: Phase 8c surface elaboration + executable semantics; final
 minimality audit.
 
@@ -31,6 +32,11 @@ minimality audit.
   `BDL/Validation/Capacity.lean` — Phase 9a: `Ty.list` and the buffered
   cross-domain event transport as a proved surface elaboration
   (`BUFFERING_NOTE.md` is the design note)
+* `BDL/Surface/Poly.lean`, `Stdlib.lean`, `Generic.lean` — Phase 9b:
+  rank-1 schemes instantiated by matching, the definitional equation
+  library with its typing/evaluation theorems, nominality through generics
+  (`POLYMORPHIC_EQUATION_LANGUAGE_NOTE.md` is the design note, with the
+  production guidance)
 
 Kernel in one line: `DeclEnv : DeclId → Option DesignDecl`, where a
 `DesignDecl` is a stable id, a `DeclInterface` (expected type + monotone
@@ -59,7 +65,11 @@ an ordinary design accepted by the same judgments — the kernel is unchanged
 (Phase 8a). Ordinary list data `Ty.list τ` lets the Phase-5 event window
 be written as five declarations over `delay` and `sync`, proved to
 evaluate to exactly the window at every tick; capacity is a validation
-obligation and `Event` is still not a type (Phase 9a). Typing sees only the
+obligation and `Event` is still not a type (Phase 9a). Products and one
+list recursor complete the data core; every collection operation, range,
+finite-set test and finite quantifier is a definition over them, generic
+definitions are families of monomorphic terms instantiated by matching, and
+the kernel never sees a type variable (Phase 9b). Typing sees only the
 expected type; validation may rely on commitments and evidence; monotone
 refinement preserves earlier commitments; anything else is an edit that
 requires rechecking dependents.
