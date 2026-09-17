@@ -101,7 +101,7 @@ def _root_.BDL.Prim.eraseDim : Prim → Prim
   | .sub _ => .sub Dim.zero
   | .mul _ _ => .mul Dim.zero Dim.zero
   | .div _ _ => .div Dim.zero Dim.zero
-  | .lt τ h => .lt τ.eraseDim (Ty.eraseDim_data h)
+  | .lt _ => .lt Dim.zero
   | .eq τ h => .eq τ.eraseDim (Ty.eraseDim_data h)
   | .ite τ => .ite τ.eraseDim
   | .none τ => .none τ.eraseDim

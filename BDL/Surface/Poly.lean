@@ -357,39 +357,92 @@ theorem matchTy_complete : ∀ (p : PTy) (σ : Subst) {ps : PSubst}, ps.AgreesWi
     obtain ⟨ps₂, h₂, hb⟩ := matchTy_complete b σ ha
     exact ⟨ps₂, by simp [PTy.inst, matchTy, h₁, h₂], hb⟩
 
-/-! ## Schemes with the closed constraint vocabulary -/
+/-! ## Schemes with the closed capability vocabulary (Phase 9c) -/
 
-/-- A scheme: a pattern whose type variables listed in `dataVars` may be
-    instantiated at *data* types only.  `Data` is the whole constraint
-    vocabulary: it is what `eq`, `lt`, `delay` and `sync` require. -/
+/-- The closed capability vocabulary.  `data`: may be delayed/transported
+    (and, extensionally on this type grammar, compared for equality);
+    `eq`: has structural equality — coincides with `data`, kept as a
+    separate name because it answers a different question and is what
+    diagnostics say; `ord`: has a designer-meaningful order — a quantity, or
+    a concept *declared* ordered and represented by a quantity.  Nothing
+    is user-definable; there is no instance search and no superclass
+    relation (a variable simply lists what it needs). -/
+inductive Cap where
+  | data
+  | eq
+  | ord
+  deriving DecidableEq, Repr
+
+/-- The ordering declarations of the design: which concepts the designer
+    marked as ordered.  Surface metadata, like display names. -/
+abbrev OrdDecl := SemanticId → Bool
+
+/-- `ordB O Θ τ`: `τ` has a designer-meaningful order.  Quantities, and
+    ordered concepts represented by quantities; never booleans, options,
+    lists, pairs or undeclared concepts. -/
+def Ty.ordB (O : OrdDecl) (Θ : ConceptEnv) : Ty → Bool
+  | .q _ => true
+  | .sem s => O s && (match Θ s with | some (.q _) => true | _ => false)
+  | _ => false
+
+def Cap.holds (O : OrdDecl) (Θ : ConceptEnv) : Cap → Ty → Prop
+  | .data, τ => τ.Data
+  | .eq, τ => τ.Data
+  | .ord, τ => Ty.ordB O Θ τ = true
+
+instance (O : OrdDecl) (Θ : ConceptEnv) (c : Cap) (τ : Ty) : Decidable (Cap.holds O Θ c τ) := by
+  cases c <;> simp only [Cap.holds] <;> infer_instance
+
+/-- **`eq_is_data`**: on the current type grammar the equality capability
+    is extensionally the data capability — a proved coincidence, not a
+    definition; a future type that is data without equality would separate
+    them. -/
+theorem Cap.eq_iff_data (O : OrdDecl) (Θ : ConceptEnv) (τ : Ty) : Cap.holds O Θ .eq τ ↔ Cap.holds O Θ .data τ := Iff.rfl
+
+/-- **`ord_implies_data`**: everything ordered is data; the converse fails
+    (`ord_not_data_converse`). -/
+theorem Cap.ord_data (O : OrdDecl) (Θ : ConceptEnv) : ∀ τ, Cap.holds O Θ .ord τ → Cap.holds O Θ .data τ
+  | .q _, _ => trivial
+  | .sem _, _ => trivial
+  | .bool, h | .nat, h | .arr _ _, h | .opt _, h | .list _, h | .prod _ _, h => by simp [Cap.holds, Ty.ordB] at h
+
+theorem Cap.ord_not_data_converse (O : OrdDecl) (Θ : ConceptEnv) :
+    ¬ Cap.holds O Θ .ord .bool ∧ ¬ Cap.holds O Θ .ord (.opt (.q Dim.zero)) ∧
+    ¬ Cap.holds O Θ .ord (.list (.q Dim.zero)) ∧ ¬ Cap.holds O Θ .ord (.prod (.q Dim.zero) (.q Dim.zero)) := by
+  simp [Cap.holds, Ty.ordB]
+
+/-- A scheme: a pattern whose type variables carry capability requirements. -/
 structure Scheme where
   pattern : PTy
-  dataVars : List Nat
+  caps : List (Nat × Cap)
   deriving Repr
 
-/-- A substitution admissible for a scheme. -/
-def Scheme.Admits (S : Scheme) (σ : Subst) : Prop := ∀ n ∈ S.dataVars, (σ.ty n).Data
+/-- A substitution admissible for a scheme under the design's declarations. -/
+def Scheme.Admits (S : Scheme) (O : OrdDecl) (Θ : ConceptEnv) (σ : Subst) : Prop :=
+  ∀ p ∈ S.caps, Cap.holds O Θ p.2 (σ.ty p.1)
 
-instance (S : Scheme) (σ : Subst) : Decidable (S.Admits σ) :=
-  inferInstanceAs (Decidable (∀ n ∈ S.dataVars, (σ.ty n).Data))
+instance (S : Scheme) (O : OrdDecl) (Θ : ConceptEnv) (σ : Subst) : Decidable (S.Admits O Θ σ) :=
+  inferInstanceAs (Decidable (∀ p ∈ S.caps, Cap.holds O Θ p.2 (σ.ty p.1)))
 
-/-- Use-site elaboration: match, then check the constraints.  Decidable and
-    deterministic; the diagnostics are the two failure points: *no instance*
-    (the argument's type does not fit the pattern) and *constraint failed*
-    (a type variable was instantiated at a function type). -/
-def Scheme.instantiate (S : Scheme) (τ : Ty) : Option Subst :=
+/-- Use-site elaboration: match, then check the capabilities.  Decidable
+    and deterministic; the diagnostics are the two failure points: *no
+    instance* (the argument's type does not fit the pattern) and
+    *capability failed* (which variable, which capability, which type —
+    e.g. "Mode values can be compared for equality, but they have no
+    default order"). -/
+def Scheme.instantiate (S : Scheme) (O : OrdDecl) (Θ : ConceptEnv) (τ : Ty) : Option Subst :=
   match matchTy S.pattern τ PSubst.empty with
-  | some ps => if S.Admits ps.toSubst then some ps.toSubst else none
+  | some ps => if S.Admits O Θ ps.toSubst then some ps.toSubst else none
   | none => none
 
-theorem Scheme.instantiate_sound {S : Scheme} {τ : Ty} {σ : Subst} (h : S.instantiate τ = some σ) :
-    S.pattern.inst σ = τ ∧ S.Admits σ := by
+theorem Scheme.instantiate_sound {S : Scheme} {O : OrdDecl} {Θ : ConceptEnv} {τ : Ty} {σ : Subst}
+    (h : S.instantiate O Θ τ = some σ) : S.pattern.inst σ = τ ∧ S.Admits O Θ σ := by
   unfold Scheme.instantiate at h
   cases hm : matchTy S.pattern τ PSubst.empty with
   | none => rw [hm] at h; exact nomatch h
   | some ps =>
     rw [hm] at h
-    by_cases ha : S.Admits ps.toSubst
+    by_cases ha : S.Admits O Θ ps.toSubst
     · simp only [ha, ↓reduceIte, Option.some.injEq] at h
       subst h
       exact ⟨matchTy_sound hm ps (PSubst.Extends.refl ps), ha⟩

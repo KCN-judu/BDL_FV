@@ -102,7 +102,7 @@ def Prim.rename (σ : SemanticId → SemanticId) : Prim → Prim
   | .sub d => .sub d
   | .mul d₁ d₂ => .mul d₁ d₂
   | .div d₁ d₂ => .div d₁ d₂
-  | .lt τ h => .lt (τ.rename σ) (Ty.rename_data σ τ h)
+  | .lt d => .lt d
   | .eq τ h => .eq (τ.rename σ) (Ty.rename_data σ τ h)
   | .not => .not
   | .and => .and
@@ -127,7 +127,7 @@ def Prim.rename (σ : SemanticId → SemanticId) : Prim → Prim
 /-- Dimension algebra is untouched by renaming: the type of a renamed
     primitive is the renamed type. -/
 theorem Prim.rename_ty (σ : SemanticId → SemanticId) : ∀ p : Prim, (p.rename σ).ty = p.ty.rename σ
-  | .lit _ _ | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ _ | .eq _ _ | .not | .and | .or => rfl
+  | .lit _ _ | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ | .eq _ _ | .not | .and | .or => rfl
   | .ite _ | .none _ | .some _ | .isSome _ | .getD _ => rfl
   | .nil _ | .cons _ | .length _ | .take _ | .reverse _ | .head _ => rfl
   | .pair _ _ | .fst _ _ | .snd _ _ | .drop _ | .toList _ => rfl

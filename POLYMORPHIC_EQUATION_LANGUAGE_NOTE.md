@@ -1,6 +1,6 @@
 # Minimal Data Abstraction and the Polymorphic Equation Language
 
-*A formal note on Phase 9b of the BDL development (`BDL/Core/Base.lean`,
+*A formal note on Phases 9b and 9c of the BDL development (`BDL/Core/Base.lean`,
 `Typing.lean`, `Reactive.lean`, `Clock.lean` — kernel; `BDL/Surface/Poly.lean`,
 `Stdlib.lean`, `Generic.lean` — surface; `BDL/Experiments/PolyAlternatives.lean`,
 `EquationExamples.lean` — alternatives and executed cases), followed by
@@ -16,9 +16,9 @@ determinism, the clock semantics, the grant discipline and a small
 explainable kernel. The smallest design found that supports every required
 case is: the existing monomorphic core, plus **products** (`A × B`), plus
 **one list recursor** (`fold`) as a term former, plus **structural
-equality and order on every data type** (`eq`, `lt` at any `Data` type),
-plus two first-order list/option operators (`drop`, `toList`). Nothing else
-entered the kernel. Parametric polymorphism is real but definitional: a
+equality on every data type** (`eq` at any `Data` type; ordering `lt`
+stays a *quantity* comparison — Phase 9c, §11), plus two first-order
+list/option operators (`drop`, `toList`). Nothing else entered the kernel. Parametric polymorphism is real but definitional: a
 generic equation is a family of monomorphic kernel terms indexed by the
 types (and dimensions) it is used at, instantiated by first-order matching
 at the use site. The kernel never sees a type variable, a type abstraction,
@@ -30,7 +30,7 @@ a constraint, a set, an interval, a record or a quantifier.
 |---|---|---|
 | `Ty.prod a b`, `Value.pair`, `pair`/`fst`/`snd` | KEEP IN KERNEL | a pair encoded as a function is an arrow, and arrows are not data: they cannot be delayed or transported (`arrow_not_delayable`). Paired state (`delay` at `prod`, `pair_state_delayable`) needs a data product. The Church encoding also needs rank-2 types to be first-class (`church_fst_rank`). |
 | `Expr.fold f z l` | KEEP IN KERNEL | the kernel has no recursion; a total language needs an eliminator for its inductive data. `fold` is the *one* term former that applies a function value during evaluation — registered operators still never do. `map`, `filter`, `any`, `all`, `contains`, `append`, `sum`, `zip`, `optElim`, `mapOpt` are definitions over it. |
-| `eq τ h`, `lt τ h` for every data `τ` (were `q d` only) | KEEP IN KERNEL (generalized) | equality on `bool`, `sem s`, pairs, lists and options was not writable; production encoded boolean equality as `(a∧b)∨(¬a∧¬b)`. The proof field `h : τ.Data` makes an inadmissible instance unwritable. |
+| `eq τ h` for every data `τ` (was `q d` only); `lt d` on quantities only | KEEP IN KERNEL (`eq` generalized; `lt` **reverted** to quantities in 9c) | equality on `bool`, `sem s`, pairs, lists and options was not writable; production encoded boolean equality as `(a∧b)∨(¬a∧¬b)`. The proof field `h : τ.Data` makes an inadmissible instance unwritable. Ordering is not a property of data: 9c found no behaviour-design meaning for `<` on modes, pairs, lists, options or booleans, so the kernel has none (§11). |
 | `drop τ`, `toList τ` | KEEP IN KERNEL (registered operators) | `toList : opt τ → list τ` makes `fold` eliminate options too — without it `opt` has no eliminator that does not need a default. `drop` is the dual of `take`; `zip` needs it. |
 
 Every earlier theorem — determinism, totality in one and many domains,
@@ -68,15 +68,21 @@ kind, no `Type + Dim` universe, no `Fω`: the dimension algebra already
 lives in the primitive table, so a dimension variable is just a second
 kind of pattern variable in the elaborator.
 
-Constraints (§5): the closed vocabulary is **{Data}**. `eq`, `lt`,
-`delay` and `sync` are exactly the operations that need it, and the
-proof field on `eq`/`lt` means the kernel enforces it syntactically. A
-scheme lists which of its variables are constrained (`Scheme.dataVars`);
+Constraints (§5, revised by the 9c audit, §11): the closed vocabulary is
+**{Data, Eq, Ord}** (`Poly.Cap`). `Data` is what `delay`/`sync` need and
+what the kernel's one proof field (`eq τ h`) checks; `Eq` coincides with
+`Data` on the current type grammar (`Cap.eq_iff_data`, a proved
+coincidence kept as a separate name for diagnostics); `Ord` is a
+*surface* capability — a quantity, or a concept the designer declared
+ordered and represented by a quantity (`Ty.ordB`, `Stdlib.Ordered`) —
+with no kernel counterpart: an ordered concept compares through `rep`.
+A scheme lists the capability of each variable (`Scheme.caps`);
 instantiation checks them (`Scheme.instantiate_sound`). `Numeric` is not a
 constraint but a shape (`q d`), matched directly. User-definable classes
 were not needed by any behaviour-design case: a designer's custom order is
-an explicit comparator argument (`minByF`), which is what dictionary
-passing would produce anyway.
+an explicit comparator argument (`minByF`), proved to recover `min`
+(`minBy_recovers_min`), which is what dictionary passing would produce
+anyway.
 
 ## 4. Nominality survives generics — proved
 
@@ -169,7 +175,8 @@ brief, proved once for the whole library.
 
 1. **Weakest useful polymorphism.** Rank-1, realized as type- and
    dimension-indexed families of monomorphic terms instantiated by
-   matching; constrained only by `Data`. No kernel type variable.
+   matching; constrained by the closed vocabulary {Data, Eq, Ord}, of
+   which only `Data` has kernel evidence. No kernel type variable.
 2. **Products in the data core.** Yes: `prod` is data, so paired state can
    be delayed and transported; function encodings cannot (`arrow_not_delayable`).
    Products are value composition only — never component interfaces,
@@ -180,8 +187,8 @@ brief, proved once for the whole library.
    `exists_in_list`.
 5. **Existential types today.** No; Phase-8a components already hide
    representation and identity.
-6. **User-defined typeclasses.** No; the closed vocabulary {Data} plus
-   explicit comparator arguments covers the standard library.
+6. **User-defined typeclasses.** No; the closed vocabulary {Data, Eq, Ord}
+   plus explicit comparator arguments covers the standard library.
 7. **Expressiveness ceiling.** Total, first-order-data computation over
    `bool`, quantities, nominal concepts, options, lists and pairs, with
    higher-order functions and one list recursor; generic definitions
@@ -214,10 +221,10 @@ equation library.
 
 | layer | what to implement |
 |---|---|
-| **core IR** (`bdl-ir`) | `Ty::List`, `Ty::Prod`; `Expr::Fold { f, z, l }`; `Prim::{Pair, Fst, Snd, Nil, Cons, Length, Take, Drop, Reverse, Head, ToList}`; generalize `Prim::Lt/Eq` to `{ ty }` with the `is_data` check at construction. `Value::List`, `Value::Pair`; structural `beq`/`blt` on values (closures compare false). |
-| **type checker** (`bdl-check`) | the `fold` rule; `is_data` on `prod`/`list`; nothing else — the checker remains the authority and stays monomorphic. Reject `Lt/Eq` at non-data types at IR construction, not by a typing rule. |
+| **core IR** (`bdl-ir`) | `Ty::List`, `Ty::Prod`; `Expr::Fold { f, z, l }`; `Prim::{Pair, Fst, Snd, Nil, Cons, Length, Take, Drop, Reverse, Head, ToList}`; generalize `Prim::Eq` to `{ ty }` with the `is_data` check at construction; **keep `Prim::Lt { dim }` on quantities only** (9c). `Value::List`, `Value::Pair`; structural `beq` on values (closures compare false); **no `blt`** — any ordering the compiler needs for maps or serialization is internal and never surfaces as `<`. |
+| **type checker** (`bdl-check`) | the `fold` rule; `is_data` on `prod`/`list`; nothing else — the checker remains the authority and stays monomorphic. Reject `Eq` at non-data types at IR construction, not by a typing rule; `Lt` is dimension-indexed as before. |
 | **reference evaluator / codegen** | `fold` by iteration (`foldr`; a stack-free `foldl` over `reverse` is equivalent for finite lists); pairs and lists as values; `beq`/`blt` structural. No closure escapes into state: the `Data` check already guarantees it. |
-| **elaborator** (`bdl-elab`) | (1) schemes as patterns with type and dimension variables; use-site instantiation by matching (`matchTy`), then the `Data` check; (2) the definitional library as *elaboration templates* producing closed Core terms (`Stdlib.lean` is the reference: each entry is a closed de Bruijn term); (3) records → nested pairs with positional projections; finite-set literals → `contains` over a list literal; intervals → pairs; `forall x in xs, P` → `all xs (λx. P)`, `exists` → `any`; `fn` helpers → closed lambdas inlined at each use (no declaration is created; §21 guarantees nothing changes); (4) `enum` → tag × optional payload, `match` → conditionals on the tag; (5) replace the boolean-equality encoding by `Eq { ty: Bool }`. |
+| **elaborator** (`bdl-elab`) | (1) schemes as patterns with type and dimension variables; use-site instantiation by matching (`matchTy`), then the capability check (`Data`/`Eq`: `is_data`; `Ord`: a quantity, or a concept marked `ordered` in the project with a quantity representation — `Ty.ordB`); `<`/`min`/`max`/`clamp`/`inRange` on an ordered concept elaborate to the quantity comparison of `rep`s (`ltAt`), returning the original values; (2) the definitional library as *elaboration templates* producing closed Core terms (`Stdlib.lean` is the reference: each entry is a closed de Bruijn term); (3) records → nested pairs with positional projections; finite-set literals → `contains` over a list literal; intervals → pairs; `forall x in xs, P` → `all xs (λx. P)`, `exists` → `any`; `fn` helpers → closed lambdas inlined at each use (no declaration is created; §21 guarantees nothing changes); (4) `enum` → tag × optional payload, `match` → conditionals on the tag; (5) replace the boolean-equality encoding by `Eq { ty: Bool }`. |
 | **parser / surface** (`bdl-syntax`) | list literals `[a, b]`, set literals `{a, b}`, tuple literals `(a, b)`, record literals `{ temperature: …, humidity: … }`, range forms `x in [lo, hi]`, `forall x in xs, P` / `exists x in xs, P`, lambda-free predicate syntax (`all(xs, x => P)` or the quantifier form), `fn name<T>(…) : … = …` with an explicit signature; no `Λ`, no `∀` in user types. |
 | **standard library** (`bdl-library`) | a second library beside concepts: equation templates with schemes and Core bodies (`id, const, swap, min, max, clamp, inRange, inInterval, any, all, contains, map, filter, append, sum, foldr, optElim, mapOpt, getOrElse, zip`), data-driven like `concepts.toml`, versioned; a template change never changes a stored design because bodies are inlined at analysis time. |
 | **IDE** (`bdl-ide`, Studio) | expose *intent* forms only — "any", "all", "in range", "one of", "pair", "optional value", "collection", "clamp", "reusable equation"; never show schemes, folds, products or `Data`. Diagnostics in concept language ("Brightness and Opacity are different concepts", "expected a collection of Temperature", "cannot compare functions"). |
@@ -228,12 +235,89 @@ typeclasses, higher-rank types, existentials, a kernel sum type (until a
 case needs exhaustiveness beyond the tag encoding), or any new temporal,
 output or component construct.
 
-## 11. Assumptions and limits
+## 11. The Phase-9c capability audit: Data vs Eq vs Ord
 
-* `min`/`max`/`clamp`/`contains` are defined through the *structural*
-  order and equality on data values; on `sem s` that is the order of the
-  representation. A concept whose representation should not be ordered is
-  a surface/validation decision, not a kernel one.
+**Question.** Does "may be delayed/transported as data" imply "has
+meaningful equality", and does that imply "has meaningful ordering"?
+
+**Findings, by type, for a behaviour designer:**
+
+| expression | meaning | verdict |
+|---|---|---|
+| `temperature1 == temperature2`, `<` | magnitude comparison of one quantity | Eq, Ord (`q d` only; `q Length < q Time` rejected as before, `exI`) |
+| `brightness1 < brightness2` | the concept is a magnitude the designer declared ordered | Ord *by declaration*, through the representation (`Ordered.sem`, `exA`, `exJ`) |
+| `mode1 == mode2` | same mode | Eq |
+| `mode1 < mode2` | none — any order would come from a code, a constructor tag or a `SemanticId` | **rejected** (`lt_rejected`, `min_mode_rejected`) |
+| `pair1 == pair2` | same reading (both components) | Eq |
+| `pair1 < pair2` | lexicographic order is a mathematical convenience with no design meaning ("is (temp, hum) less than …?") | **rejected** |
+| `list1 == list2` | same collection, same order | Eq |
+| `list1 < list2` | none | **rejected** |
+| `optional1 == optional2` | both absent, or both present and equal | Eq |
+| `None < Some x` | a constructor-tag artifact | **rejected** |
+
+So: `Data ⇒ Eq` holds (extensionally, on this grammar: `Cap.eq_iff_data`),
+but `Eq ⇏ Ord`. The Phase-9b choice — `lt` at every data type through a
+structural order — was formally consistent and semantically wrong: it
+exposed `mode1 < mode2`, `None < Some x` and lexicographic pairs/lists as
+language capabilities. Phase 9c removed the structural order from the
+kernel entirely (`Value.blt` deleted, `lt d` restored to quantities),
+which also makes 9b *smaller*.
+
+**Models compared** (§2 of the 9c brief):
+
+| model | verdict |
+|---|---|
+| A {Data} for both `eq` and `lt` | rejected: conflates state with order |
+| B {Data, Eq}, `lt` on ordered shapes only | correct at the kernel: `eq` on Data, `lt` on `q d`; but the *surface* must still name Ord for ordered concepts |
+| C {Data, Eq, Ord} closed capabilities | **adopted at the surface** (`Poly.Cap`); `Ord` = quantities + declared-ordered concepts; the kernel needs no Ord evidence because an ordered concept's `<` is `lt d` on `rep` — already expressible |
+| D user-defined typeclasses | rejected: no case; instance search and superclasses unnecessary |
+| E comparators only | kept as the escape hatch: `minByF`/`maxByF`, with `minBy_recovers_min` proving the comparator form loses nothing |
+
+**Internal vs language order.** A compiler may need a total order on
+values for maps, canonical forms, serialization and tests. That is an
+implementation detail of the toolchain and is *not* `<` in BDL: the
+kernel has no such order, and `Ty.ordB` never grants one to a non-quantity.
+
+**Enums.** Equality is natural; ordering is not automatic. Declaration
+order must never silently become behavioural order: an enumeration is
+ordered only if declared so, exactly like a concept (the same `OrdDecl`
+flag is the intended production mechanism).
+
+**Kernel minimality.** Eq/Ord never appear as kernel types or classes.
+The kernel carries one capability proof field (`eq τ (h : τ.Data)`) and
+one dimension-indexed comparison (`lt d`). The kernel is monomorphic.
+
+**Re-proved after the change** with unchanged statements: determinism,
+totality (`fold_total`, `mfold_total`), provenance, library expansion
+(`lib_expansion`, with `rep` now admitted in combinators and Θ held fixed),
+finite quantifiers, the 9a buffer, the Phase-8 preservation theorems,
+`generic_preserves_identity`/`_dimension`; 178 theorems in the 9a/9b/9c
+modules audited on `propext`/`Quot.sound` only.
+
+**Stdlib reclassification.** Eq: `contains`, `oneOf`, equality
+predicates. Ord: `min`, `max`, `clamp`, `inRange`, `inInterval` (all take
+`Ordered` evidence). Neither: `map`, `fold`, `any`, `all`, `filter`,
+`append`, `zip`, `optElim`, `mapOpt`, `sum` (dimension-indexed).
+
+**Diagnostics.** "Mode values can be compared for equality, but they have
+no default order" (Ord failed on a concept not declared ordered); "a pair
+has no order — compare its components" (Ord on `prod`); "cannot compare
+functions" (Eq/Data on an arrow); never a class-solving residue, because
+there is no class solving.
+
+**Final answer to the 9c question.** `Ty.Data` is a sufficient boundary
+for *equality* and for *state* — not for *ordering*. The smallest closed
+split that supports every tested case is {Data, Eq, Ord} at the surface
+with Eq ≡ Data today and Ord = quantities ∪ declared-ordered concepts
+(represented by quantities), and nothing but `eq τ (h : τ.Data)` and
+`lt d` in the kernel. Claim strength: minimal among the tested models; an
+executed and proved reclassification, not a minimality theorem.
+
+## 12. Assumptions and limits
+
+* `contains`/`oneOf` use structural equality on data values; `min`/`max`/
+  `clamp`/`inRange` use the quantity order, on a concept through its
+  representation and only when the concept is declared ordered (§11).
 * Library evaluation lemmas are stated with an "implements" hypothesis on
   the predicate/function value (`Implements`, `ImplementsF`); the
   executed cases discharge it concretely.

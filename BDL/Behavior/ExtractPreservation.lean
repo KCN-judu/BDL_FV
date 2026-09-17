@@ -809,8 +809,8 @@ theorem renOf_s (k : Nat) : (X.renOf k).s = fun s => s := by
   funext s; unfold renOf instOf; split <;> rfl
 
 theorem _root_.BDL.Prim.rename_id : ∀ p : Prim, p.rename (fun s => s) = p
-  | .lit _ _ | .add _ | .sub _ | .mul _ _ | .div _ _ | .not | .and | .or => rfl
-  | .lt τ _ | .eq τ _ => by simp [Prim.rename, Ty.rename_id]
+  | .lit _ _ | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ | .not | .and | .or => rfl
+  | .eq τ _ => by simp [Prim.rename, Ty.rename_id]
   | .ite τ | .none τ | .some τ | .isSome τ | .getD τ => by simp [Prim.rename, Ty.rename_id]
   | .nil τ | .cons τ | .length τ | .take τ | .reverse τ | .head τ => by simp [Prim.rename, Ty.rename_id]
   | .pair a b | .fst a b | .snd a b => by simp [Prim.rename, Ty.rename_id]

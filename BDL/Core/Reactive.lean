@@ -46,13 +46,15 @@ inductive Value where
   | pair (a b : Value)
   deriving Repr, Inhabited
 
-/-! ### Structural equality and order on data values (Phase 9b)
+/-! ### Structural equality on data values (Phase 9b)
 
-The closed capability vocabulary is {`Data`}: every data value admits a
-decidable structural equality and a lexicographic order — booleans
-`false < true`, numbers, `none < some`, pairs and lists lexicographically,
-semantic values by their representations (typing already forbids comparing
-two concepts).  Closures compare `false`; typing never asks. -/
+Every data value admits a decidable structural equality: booleans,
+numbers, `none`/`some`, pairs and lists componentwise, semantic values by
+concept and representation (typing already forbids comparing two
+concepts).  Closures compare `false`; typing never asks.  There is *no*
+structural order on values (Phase 9c): ordering is a quantity comparison
+(`lt d`), and a canonical order an implementation may need for maps or
+serialization is not a language capability. -/
 
 mutual
 def Value.beq : Value → Value → Bool
@@ -70,22 +72,6 @@ def Value.beqList : List Value → List Value → Bool
   | _, _ => false
 end
 
-mutual
-def Value.blt : Value → Value → Bool
-  | .bool a, .bool b => !a && b
-  | .nat a, .nat b => decide (a < b)
-  | .sem s v, .sem s' w => s == s' && Value.blt v w
-  | .none, .some _ => true
-  | .some v, .some w => Value.blt v w
-  | .pair a b, .pair c d => Value.blt a c || (Value.beq a c && Value.blt b d)
-  | .list vs, .list ws => Value.bltList vs ws
-  | _, _ => false
-def Value.bltList : List Value → List Value → Bool
-  | [], _ :: _ => true
-  | v :: vs, w :: ws => Value.blt v w || (Value.beq v w && Value.bltList vs ws)
-  | _, _ => false
-end
-
 /-- Projections used to state example results decidably (`Value` is a nested
     inductive, so `DecidableEq` is not derived). -/
 def Value.toNat? : Value → Option Nat
@@ -99,7 +85,7 @@ def Value.toBool? : Value → Option Bool
 def _root_.BDL.Prim.arity : Prim → Nat
   | .lit _ _ => 0 | .none _ => 0 | .nil _ => 0
   | .not | .isSome _ | .some _ | .length _ | .reverse _ | .head _ | .fst _ _ | .snd _ _ | .toList _ => 1
-  | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ _ | .eq _ _ | .and | .or | .getD _ | .cons _ | .take _ | .pair _ _
+  | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ | .eq _ _ | .and | .or | .getD _ | .cons _ | .take _ | .pair _ _
   | .drop _ => 2
   | .ite _ => 3
 
@@ -111,7 +97,7 @@ def _root_.BDL.Prim.compute : Prim → List Value → Value
   | .sub _, [.nat a, .nat b] => .nat (a - b)
   | .mul _ _, [.nat a, .nat b] => .nat (a * b)
   | .div _ _, [.nat a, .nat b] => .nat (a / b)
-  | .lt _ _, [a, b] => .bool (Value.blt a b)
+  | .lt _, [.nat a, .nat b] => .bool (decide (a < b))
   | .eq _ _, [a, b] => .bool (Value.beq a b)
   | .not, [.bool a] => .bool (!a)
   | .and, [.bool a, .bool b] => .bool (a && b)
@@ -632,7 +618,15 @@ theorem Red_prim {Θ : ConceptEnv} {A : App} (hA : A.HasPrim) (p : Prim) :
     rintro _ ⟨b, rfl⟩
     refine ⟨_, hA _ _ _, ?_⟩
     simp [applyPrim, Prim.arity, Prim.compute]
-  | lt τ _ | eq τ _ =>
+  | lt d =>
+    simp only [Prim.ty, Red, applyPrim, Prim.arity]
+    rintro _ ⟨a, rfl⟩
+    refine ⟨_, hA _ _ _, ?_⟩
+    simp only [applyPrim, Prim.arity]
+    rintro _ ⟨b, rfl⟩
+    refine ⟨_, hA _ _ _, ?_⟩
+    simp [applyPrim, Prim.arity, Prim.compute]
+  | eq τ _ =>
     simp only [Prim.ty, Red, applyPrim, Prim.arity]
     intro a _
     refine ⟨_, hA _ _ _, ?_⟩

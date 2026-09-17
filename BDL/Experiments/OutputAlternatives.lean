@@ -191,7 +191,7 @@ def dBlended : DesignDecl := ⟨blended, ⟨MotorAngle, []⟩, some
 def maxed : DeclId := ⟨225⟩
 def dMaxed : DesignDecl := ⟨maxed, ⟨MotorAngle, []⟩, some
   (.mk cMotor (.app (.app (.app (.prim (.ite (.q Dim.Angle)))
-    (.app (.app (.prim (.lt (.q Dim.Angle) trivial)) (.rep (.declRef emergencyTarget))) (.rep (.declRef normalTarget))))
+    (.app (.app (.prim (.lt Dim.Angle)) (.rep (.declRef emergencyTarget))) (.rep (.declRef normalTarget))))
     (.rep (.declRef normalTarget))) (.rep (.declRef emergencyTarget))))⟩
 theorem blend_and_max_are_ordinary_targets :
     GlobalWF trivEv Dimension.Θdim (.ofList [dEmT, dNormT, dBlended, dMaxed]) := GlobalWF.ofList (by decide)

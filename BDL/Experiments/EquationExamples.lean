@@ -15,14 +15,18 @@ open BDL BDL.Reactive BDL.Stdlib BDL.Generic
 
 def Brightness : SemanticId := ⟨50⟩
 def Opacity : SemanticId := ⟨51⟩
+def Mode : SemanticId := ⟨52⟩
 def Q0 : Ty := .q Dim.zero
 def B : Ty := .sem Brightness
+/-- Brightness is an ordered concept (Phase 9c evidence); Mode is not. -/
+def oB : Ordered B := .sem Brightness Dim.zero
+def O : Poly.OrdDecl := fun s => s = Brightness ∨ s = Opacity
 def lit (n : Nat) : Expr := litE Dim.zero n
 def trivEv : Evidence := fun _ _ _ => True
 instance : ∀ Δ e p, Decidable (trivEv Δ e p) := fun _ _ _ => inferInstanceAs (Decidable True)
 
-/-- Both concepts are represented by `q 0`: same representation, distinct identity. -/
-def Θ : ConceptEnv := fun s => if s = Brightness ∨ s = Opacity then some Q0 else none
+/-- All three concepts are represented by `q 0`: same representation, distinct identity. -/
+def Θ : ConceptEnv := fun s => if s = Brightness ∨ s = Opacity ∨ s = Mode then some Q0 else none
 
 /-! ## Declarations -/
 
@@ -49,6 +53,8 @@ def oIn : DeclId := ⟨19⟩      -- Opacity input (for J)
 def lenIn : DeclId := ⟨20⟩    -- q Length input (for I)
 def timeIn : DeclId := ⟨21⟩   -- q Time input (for I)
 def temp : DeclId := ⟨22⟩     -- q 0 input
+def mode1 : DeclId := ⟨23⟩    -- sem Mode input (for the capability audit)
+def mode2 : DeclId := ⟨24⟩
 
 def thr : Expr := lit 30
 def sev : Expr := lit 2
@@ -57,13 +63,13 @@ def decls : List DesignDecl := [
   ⟨bIn, ⟨B, []⟩, none⟩,
   ⟨bMin, ⟨B, []⟩, some (.mk Brightness (lit 10))⟩,
   ⟨bMax, ⟨B, []⟩, some (.mk Brightness (lit 90))⟩,
-  ⟨bOut, ⟨B, []⟩, some (app3 (clampF B trivial) (.declRef bIn) (.declRef bMin) (.declRef bMax))⟩,
+  ⟨bOut, ⟨B, []⟩, some (app3 (clampF oB) (.declRef bIn) (.declRef bMin) (.declRef bMax))⟩,
   ⟨mode, ⟨Q0, []⟩, none⟩,
   ⟨isAuto, ⟨.bool, []⟩, some (oneOfE Q0 trivial (.declRef mode) [lit 1, lit 2])⟩,
   ⟨temps, ⟨.list Q0, []⟩, none⟩,
-  ⟨allBelow, ⟨.bool, []⟩, some (app2 (allF Q0) (.lam Q0 (ltE Q0 trivial (.var 0) thr)) (.declRef temps))⟩,
+  ⟨allBelow, ⟨.bool, []⟩, some (app2 (allF Q0) (.lam Q0 (ltE Dim.zero (.var 0) thr)) (.declRef temps))⟩,
   ⟨faults, ⟨.list Q0, []⟩, none⟩,
-  ⟨anyHigh, ⟨.bool, []⟩, some (app2 (anyF Q0) (.lam Q0 (ltE Q0 trivial sev (.var 0))) (.declRef faults))⟩,
+  ⟨anyHigh, ⟨.bool, []⟩, some (app2 (anyF Q0) (.lam Q0 (ltE Dim.zero sev (.var 0))) (.declRef faults))⟩,
   ⟨hum, ⟨Q0, []⟩, none⟩,
   ⟨temp, ⟨Q0, []⟩, none⟩,
   ⟨th, ⟨.prod Q0 Q0, []⟩, some (pairE Q0 Q0 (.declRef temp) (.declRef hum))⟩,
@@ -73,12 +79,14 @@ def decls : List DesignDecl := [
   ⟨ys, ⟨.list Q0, []⟩, none⟩,
   ⟨zipped, ⟨.list (.prod Q0 Q0), []⟩, some (app2 (zipF Q0 Q0) (.declRef temps) (.declRef ys))⟩,
   ⟨firstOr, ⟨Q0, []⟩, some (app2 (getOrElseF Q0) (.app (.prim (.head Q0)) (.declRef temps)) (lit 0))⟩,
-  ⟨inRng, ⟨.bool, []⟩, some (app3 (inRangeF Q0 trivial) (.declRef hum) (lit 30) (lit 60))⟩,
+  ⟨inRng, ⟨.bool, []⟩, some (app3 (inRangeF (.q Dim.zero)) (.declRef hum) (lit 30) (lit 60))⟩,
   ⟨level, ⟨Q0, []⟩, some (iteE Q0 (andE (.declRef inRng) (.declRef allBelow)) (lit 1)
     (iteE Q0 (.declRef anyHigh) (lit 2) (lit 0)))⟩,
   ⟨oIn, ⟨.sem Opacity, []⟩, none⟩,
   ⟨lenIn, ⟨.q Dim.Length, []⟩, none⟩,
-  ⟨timeIn, ⟨.q Dim.Time, []⟩, none⟩]
+  ⟨timeIn, ⟨.q Dim.Time, []⟩, none⟩,
+  ⟨mode1, ⟨.sem Mode, []⟩, none⟩,
+  ⟨mode2, ⟨.sem Mode, []⟩, none⟩]
 
 def Δ : DeclEnv := .ofList decls
 
@@ -141,17 +149,67 @@ theorem exH : runIs I₁ firstOr (.nat 20) ∧ runIs (mkI 0 0 0 0 [] [] []) firs
 /-- **I — dimension-preserving min**: `min` at `q Length` types on two
     lengths and is rejected on a length and a time. -/
 theorem exI :
-    infer Θ Δ Grant.none [] (app2 (minF (.q Dim.Length) trivial) (.declRef lenIn) (.declRef lenIn)) = some (.q Dim.Length) ∧
-    infer Θ Δ Grant.none [] (app2 (minF (.q Dim.Length) trivial) (.declRef lenIn) (.declRef timeIn)) = none := by decide
+    infer Θ Δ Grant.none [] (app2 (minF (.q Dim.Length)) (.declRef lenIn) (.declRef lenIn)) = some (.q Dim.Length) ∧
+    infer Θ Δ Grant.none [] (app2 (minF (.q Dim.Length)) (.declRef lenIn) (.declRef timeIn)) = none := by decide
 
 /-- **J — semantic-type-preserving generic**: `min` at `Brightness` returns
     `Brightness` and rejects an `Opacity` argument, although both are `q 0`
     underneath. -/
 theorem exJ :
-    infer Θ Δ Grant.none [] (app2 (minF B trivial) (.declRef bIn) (.declRef bMin)) = some B ∧
-    infer Θ Δ Grant.none [] (app2 (minF B trivial) (.declRef bIn) (.declRef oIn)) = none ∧
+    infer Θ Δ Grant.none [] (app2 (minF oB) (.declRef bIn) (.declRef bMin)) = some B ∧
+    infer Θ Δ Grant.none [] (app2 (minF oB) (.declRef bIn) (.declRef oIn)) = none ∧
     infer Θ Δ Grant.none [] (eqE B trivial (.declRef bIn) (.declRef oIn)) = none ∧
     infer Θ Δ Grant.none [] (app2 (containsF B trivial) (.declRef oIn) (listLit B [.declRef bIn])) = none := by decide
+
+/-! ## Phase 9c — the capability boundary, on realistic types
+
+`Mode` is a concept represented like `Brightness` (`q 0`) but *not*
+declared ordered.  Equality is accepted on modes, pairs, lists and options;
+ordering is rejected on all of them — at the surface (no `Ordered`
+evidence: `Scheme.instantiate = none`) and in the kernel, where `lt`
+exists only at quantities, so the terms cannot even be written. -/
+
+/-- **Equality accepted** on modes, pairs of quantities, lists and options. -/
+theorem eq_accepted :
+    infer Θ Δ Grant.none [] (eqE (.sem Mode) trivial (.declRef mode1) (.declRef mode2)) = some .bool ∧
+    infer Θ Δ Grant.none [] (eqE (.prod Q0 Q0) ⟨trivial, trivial⟩ (.declRef th) (.declRef th)) = some .bool ∧
+    infer Θ Δ Grant.none [] (eqE (.list Q0) trivial (.declRef temps) (.declRef ys)) = some .bool ∧
+    infer Θ Δ Grant.none [] (eqE (.opt Q0) trivial (.app (.prim (.head Q0)) (.declRef temps)) (noneE Q0)) = some .bool ∧
+    runIs (mkI 0 0 0 0 [1, 2] [] [1, 2]) ⟨0⟩ (.sem Brightness (.nat 0)) = true := by decide
+
+def ltScheme : Poly.Scheme := ⟨.arr (.tvar 0) (.arr (.tvar 0) .bool), [(0, .ord)]⟩
+def eqScheme : Poly.Scheme := ⟨.arr (.tvar 0) (.arr (.tvar 0) .bool), [(0, .eq)]⟩
+
+/-- **Ordering rejected** where it has no behaviour-design meaning:
+    `mode1 < mode2`, `pair < pair`, `list < list`, `None < Some`, `bool < bool`
+    — and accepted exactly on quantities and declared-ordered concepts. -/
+theorem lt_rejected :
+    ltScheme.instantiate O Θ (.arr (.sem Mode) (.arr (.sem Mode) .bool)) = none ∧
+    ltScheme.instantiate O Θ (.arr (.prod Q0 Q0) (.arr (.prod Q0 Q0) .bool)) = none ∧
+    ltScheme.instantiate O Θ (.arr (.list Q0) (.arr (.list Q0) .bool)) = none ∧
+    ltScheme.instantiate O Θ (.arr (.opt Q0) (.arr (.opt Q0) .bool)) = none ∧
+    ltScheme.instantiate O Θ (.arr .bool (.arr .bool .bool)) = none ∧
+    (ltScheme.instantiate O Θ (.arr B (.arr B .bool))).isSome = true ∧
+    (ltScheme.instantiate O Θ (.arr Q0 (.arr Q0 .bool))).isSome = true ∧
+    -- the same types all admit equality
+    (eqScheme.instantiate O Θ (.arr (.sem Mode) (.arr (.sem Mode) .bool))).isSome = true ∧
+    (eqScheme.instantiate O Θ (.arr (.prod Q0 Q0) (.arr (.prod Q0 Q0) .bool))).isSome = true ∧
+    (eqScheme.instantiate O Θ (.arr (.list Q0) (.arr (.list Q0) .bool))).isSome = true ∧
+    (eqScheme.instantiate O Θ (.arr (.opt Q0) (.arr (.opt Q0) .bool))).isSome = true := by decide
+
+/-- In the kernel no ordering exists on these types at all: the only
+    comparison primitive is at quantities. -/
+theorem lt_only_on_quantities (p : Prim) (τ : Ty) (h : p.ty = .arr τ (.arr τ .bool)) (hlt : ∃ d, p = .lt d) :
+    ∃ d, τ = .q d := by
+  obtain ⟨d, rfl⟩ := hlt
+  simp only [Prim.ty, Ty.arr.injEq] at h
+  exact ⟨d, h.1.symm⟩
+
+/-- An ordered concept's evidence is well formed only if declared: with
+    `O Mode = false` no admissible instance exists, whatever dimension is
+    tried — this is the rejection of `min<Mode>`. -/
+theorem min_mode_rejected : Poly.Ty.ordB O Θ (.sem Mode) = false ∧ ¬ (Poly.Cap.holds O Θ .ord (.sem Mode)) := by
+  simp [Poly.Ty.ordB, Poly.Cap.holds, O, Mode, Brightness, Opacity]
 
 /-- **K — range membership**: 45 ∈ [30, 60]; 70 ∉. -/
 theorem exK : runIs I₁ inRng (.bool true) ∧ runIs I₂ inRng (.bool false) := by decide
@@ -202,7 +260,7 @@ theorem records_are_pairs :
 theorem options_by_fold :
     (evalF Δ I₁ 64 0 [] (app2 (mapOptF Q0 Q0) (.lam Q0 (app2 (.prim (.add Dim.zero)) (.var 0) (lit 1)))
       (someE Q0 (lit 4)))).map (Value.beq · (.some (.nat 5))) = some true ∧
-    (evalF Δ I₁ 64 0 [] (app3 (optElimF Q0 .bool) (.boolLit false) (.lam Q0 (ltE Q0 trivial (lit 3) (.var 0)))
+    (evalF Δ I₁ 64 0 [] (app3 (optElimF Q0 .bool) (.boolLit false) (.lam Q0 (ltE Dim.zero (lit 3) (.var 0)))
       (noneE Q0))).map (Value.beq · (.bool false)) = some true := by decide
 
 end BDL.Experiments.Equations

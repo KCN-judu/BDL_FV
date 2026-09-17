@@ -647,13 +647,13 @@ unrolling.  Reason: one eliminator derives every collection operation
 (`Ev.foldCons`), so `Ev` stays an ordinary inductive and every earlier
 proof extends by one case.  Totality by `fold_total`.
 
-**D-90. `eq`/`lt` at every data type, with the data proof in the syntax.**
+**D-90. `eq` at every data type, with the data proof in the syntax.**
 Rejected: equality on quantities only (boolean equality had to be
-encoded); a typing side condition (would change the `prim` rule);
-Θ-dependent orderability of concepts.  Reason: structural equality and
-lexicographic order are defined on all data values (`Value.beq`, `blt`);
+encoded); a typing side condition (would change the `prim` rule).
+Reason: structural equality is defined on all data values (`Value.beq`);
 typing already forbids comparing two concepts.  The proof field makes
-`eq (arr ..)` unwritable — the closed capability vocabulary is {Data}.
+`eq (arr ..)` unwritable.  *(9b also generalized `lt` to every data type
+through a structural order; D-98 reverts that.)*
 
 **D-91. `toList : opt τ → list τ` and `drop` are registered operators.**
 Reason: without `toList` an option has no eliminator that does not need a
@@ -702,3 +702,31 @@ case needs exhaustiveness beyond the encoding.
 Private concepts and identities are freshened per instance; the public
 contract is the interface.  The type-theoretic encoding is rank 2
 (`existential_rank`).
+
+## Phase 9c
+
+**D-98. Ordering is a quantity comparison; the kernel has no structural order.**
+`lt` is `lt (d : Dim)` again (Phase-4 form); `Value.blt` is removed.
+Rejected: `lt` at every data type (9b) — `mode1 < mode2`, `None < Some x`
+and lexicographic pairs/lists have no behaviour-design meaning and their
+order would come from codes, constructor tags or `SemanticId`s
+(`lt_rejected`, `min_mode_rejected`); a kernel `Ord` predicate on types
+(unnecessary: an ordered concept compares as `lt d` on `rep`).  An
+implementation's canonical order for maps/serialization is not a language
+capability.
+
+**D-99. The surface capability vocabulary is {Data, Eq, Ord}; Eq ≡ Data today; Ord is by declaration.**
+`Poly.Cap`, `Scheme.caps`, `Ty.ordB O Θ`: quantities, and concepts the
+designer declared ordered (`OrdDecl`) with a quantity representation.
+`Cap.eq_iff_data` records the coincidence; `Cap.ord_data` that Ord ⇒
+Data and not conversely.  Rejected: user-defined classes, instance search,
+superclasses (no case); deriving order from declaration/constructor order
+(enums included).  Diagnostics name the capability and the concept.
+
+**D-100. Ordered library entries take `Ordered` evidence; comparators recover them.**
+`min`/`max`/`clamp`/`inRange`/`inInterval` are indexed by `Ordered τ`
+(`q d` | `sem s d`, well formed against Θ); `contains`/`oneOf` keep the
+`Data` proof; `map`/`fold`/`any`/`all`/`filter` need neither.
+`minBy_recovers_min`: the comparator escape hatch loses nothing.
+Combinators admit `rep` (needed by ordered concepts); their typing is
+independent of Δ and G and reads Θ only through write-once bindings.

@@ -9,6 +9,14 @@ the types (and dimensions) it is used at: a rank-1 generic definition is a
 family of monomorphic terms, instantiated by matching (`Poly.lean`).  The
 kernel never sees a type variable.
 
+Capabilities (Phase 9c): `eq` needs `Data` — the kernel's one proof
+field; ordering is a *surface* capability `Ordered` — a quantity, or a
+concept the designer declared ordered, compared through its representation
+(`ltAt`).  No structural order exists on pairs, lists, options, booleans or
+undeclared concepts: `min`, `max`, `clamp`, `inRange` take `Ordered`
+evidence; `contains`, `oneOf` take the `Data` proof; `map`, `fold`, `any`,
+`all`, `filter` need neither.
+
 Three things are proved once, for the whole library (§21 of the brief):
 
 * **typing at every instance** (`*_typed`): each entry has its scheme's
@@ -34,7 +42,7 @@ def app2 (f a b : Expr) : Expr := .app (.app f a) b
 def app3 (f a b c : Expr) : Expr := .app (.app (.app f a) b) c
 
 def iteE (τ : Ty) (c a b : Expr) : Expr := app3 (.prim (.ite τ)) c a b
-def ltE (τ : Ty) (h : τ.Data) (a b : Expr) : Expr := app2 (.prim (.lt τ h)) a b
+def ltE (d : Dim) (a b : Expr) : Expr := app2 (.prim (.lt d)) a b
 def eqE (τ : Ty) (h : τ.Data) (a b : Expr) : Expr := app2 (.prim (.eq τ h)) a b
 def orE (a b : Expr) : Expr := app2 (.prim .or) a b
 def andE (a b : Expr) : Expr := app2 (.prim .and) a b
@@ -65,21 +73,44 @@ def idF (τ : Ty) : Expr := .lam τ (.var 0)
 def constF (τ σ : Ty) : Expr := .lam τ (.lam σ (.var 1))
 /-- `swap : α × β → β × α` -/
 def swapF (a b : Ty) : Expr := .lam (.prod a b) (pairE b a (sndE a b (.var 0)) (fstE a b (.var 0)))
-/-- `min : α → α → α` for data `α` -/
-def minF (τ : Ty) (h : τ.Data) : Expr :=
-  .lam τ (.lam τ (iteE τ (ltE τ h (.var 1) (.var 0)) (.var 1) (.var 0)))
-/-- `max : α → α → α` for data `α` -/
-def maxF (τ : Ty) (h : τ.Data) : Expr :=
-  .lam τ (.lam τ (iteE τ (ltE τ h (.var 1) (.var 0)) (.var 0) (.var 1)))
+/-! ### The `Ordered` capability (Phase 9c)
+
+Evidence that a type has a designer-meaningful order: a quantity, or a
+concept declared *ordered* whose representation is a quantity of
+dimension `d`.  Nothing else: pairs, lists, options, booleans and
+undeclared concepts have no order — their only comparison is equality. -/
+inductive Ordered : Ty → Type where
+  | q (d : Dim) : Ordered (.q d)
+  | sem (s : SemanticId) (d : Dim) : Ordered (.sem s)
+
+/-- `a < b` at an ordered type: directly on quantities, through the
+    representation on an ordered concept.  The concept's identity is never
+    lost: `min`/`max`/`clamp` return one of their arguments. -/
+def ltAt : {τ : Ty} → Ordered τ → Expr → Expr → Expr
+  | _, .q d, a, b => ltE d a b
+  | _, .sem _ d, a, b => ltE d (.rep a) (.rep b)
+
+/-- `min : α → α → α` for ordered `α` -/
+def minF {τ : Ty} (o : Ordered τ) : Expr :=
+  .lam τ (.lam τ (iteE τ (ltAt o (.var 1) (.var 0)) (.var 1) (.var 0)))
+/-- `max : α → α → α` for ordered `α` -/
+def maxF {τ : Ty} (o : Ordered τ) : Expr :=
+  .lam τ (.lam τ (iteE τ (ltAt o (.var 1) (.var 0)) (.var 0) (.var 1)))
 /-- `clamp x lo hi = max lo (min x hi)` -/
-def clampF (τ : Ty) (h : τ.Data) : Expr :=
-  .lam τ (.lam τ (.lam τ (app2 (maxF τ h) (.var 1) (app2 (minF τ h) (.var 2) (.var 0)))))
+def clampF {τ : Ty} (o : Ordered τ) : Expr :=
+  .lam τ (.lam τ (.lam τ (app2 (maxF o) (.var 1) (app2 (minF o) (.var 2) (.var 0)))))
 /-- `inRange x lo hi = lo ≤ x ∧ x ≤ hi` -/
-def inRangeF (τ : Ty) (h : τ.Data) : Expr :=
-  .lam τ (.lam τ (.lam τ (andE (notE (ltE τ h (.var 2) (.var 1))) (notE (ltE τ h (.var 0) (.var 2))))))
+def inRangeF {τ : Ty} (o : Ordered τ) : Expr :=
+  .lam τ (.lam τ (.lam τ (andE (notE (ltAt o (.var 2) (.var 1))) (notE (ltAt o (.var 0) (.var 2))))))
 /-- An interval is a pair; membership is a function of the pair. -/
-def inIntervalF (τ : Ty) (h : τ.Data) : Expr :=
-  .lam (.prod τ τ) (.lam τ (app3 (inRangeF τ h) (.var 0) (fstE τ τ (.var 1)) (sndE τ τ (.var 1))))
+def inIntervalF {τ : Ty} (o : Ordered τ) : Expr :=
+  .lam (.prod τ τ) (.lam τ (app3 (inRangeF o) (.var 0) (fstE τ τ (.var 1)) (sndE τ τ (.var 1))))
+/-- `minBy : (α → α → bool) → α → α → α` — the comparator escape hatch: a
+    designer-defined order without any class. -/
+def minByF (τ : Ty) : Expr :=
+  .lam (.arr τ (.arr τ .bool)) (.lam τ (.lam τ (iteE τ (app2 (.var 2) (.var 1) (.var 0)) (.var 1) (.var 0))))
+def maxByF (τ : Ty) : Expr :=
+  .lam (.arr τ (.arr τ .bool)) (.lam τ (.lam τ (iteE τ (app2 (.var 2) (.var 1) (.var 0)) (.var 0) (.var 1))))
 /-- `foldr : (α → β → β) → β → list α → β` — the recursor as a function -/
 def foldrF (τ σ : Ty) : Expr :=
   .lam (.arr τ (.arr σ σ)) (.lam σ (.lam (.list τ) (.fold (.var 2) (.var 1) (.var 0))))
@@ -160,18 +191,22 @@ def projE : List Ty → Nat → Expr → Expr
 /-! ## Combinators: the library discipline -/
 
 /-- A *combinator*: variables, literals, lambdas, applications, registered
-    operators and the recursor — no reference, no state, no transport, no
-    semantic construction or observation. -/
+    operators, the recursor and representation observation — no reference,
+    no state, no transport, no semantic construction.  (`rep` is admitted
+    since Phase 9c: an ordered concept compares through its representation;
+    `rep` is free everywhere and constructs nothing.) -/
 def _root_.BDL.Expr.Comb : Expr → Prop
   | .var _ | .boolLit _ | .natLit _ | .prim _ => True
   | .lam _ b => b.Comb
   | .app f a => f.Comb ∧ a.Comb
   | .fold f z l => f.Comb ∧ z.Comb ∧ l.Comb
+  | .rep e => e.Comb
   | _ => False
 
 instance : ∀ e : Expr, Decidable e.Comb
   | .var _ | .boolLit _ | .natLit _ | .prim _ => inferInstanceAs (Decidable True)
-  | .declRef _ | .delay _ _ | .sync _ _ _ | .rep _ | .mk _ _ => inferInstanceAs (Decidable False)
+  | .declRef _ | .delay _ _ | .sync _ _ _ | .mk _ _ => inferInstanceAs (Decidable False)
+  | .rep e => instDecidableComb e
   | .lam _ b => instDecidableComb b
   | .app f a =>
     have := instDecidableComb f
@@ -186,42 +221,48 @@ instance : ∀ e : Expr, Decidable e.Comb
 theorem _root_.BDL.Expr.Comb.pure : ∀ {e : Expr}, e.Comb → e.Pure
   | .var _, _ | .boolLit _, _ | .natLit _, _ | .prim _, _ => trivial
   | .lam _ b, h => Expr.Comb.pure (e := b) h
+  | .rep e, h => Expr.Comb.pure (e := e) h
   | .app f a, h => ⟨Expr.Comb.pure (e := f) h.1, Expr.Comb.pure (e := a) h.2⟩
   | .fold f z l, h => ⟨Expr.Comb.pure (e := f) h.1, Expr.Comb.pure (e := z) h.2.1, Expr.Comb.pure (e := l) h.2.2⟩
-  | .declRef _, h | .delay _ _, h | .sync _ _ _, h | .rep _, h | .mk _ _, h => h.elim
+  | .declRef _, h | .delay _ _, h | .sync _ _ _, h | .mk _ _, h => h.elim
 
 theorem _root_.BDL.Expr.Comb.refFree : ∀ {e : Expr}, e.Comb → e.RefFree
   | .var _, _ | .boolLit _, _ | .natLit _, _ | .prim _, _ => rfl
   | .lam _ b, h => Expr.Comb.refFree (e := b) h
+  | .rep e, h => Expr.Comb.refFree (e := e) h
   | .app f a, h => by
     simp only [Expr.RefFree, Expr.refs, List.append_eq_nil_iff]
     exact ⟨Expr.Comb.refFree (e := f) h.1, Expr.Comb.refFree (e := a) h.2⟩
   | .fold f z l, h => by
     simp only [Expr.RefFree, Expr.refs, List.append_eq_nil_iff]
     exact ⟨⟨Expr.Comb.refFree (e := f) h.1, Expr.Comb.refFree (e := z) h.2.1⟩, Expr.Comb.refFree (e := l) h.2.2⟩
-  | .declRef _, h | .delay _ _, h | .sync _ _ _, h | .rep _, h | .mk _ _, h => h.elim
+  | .declRef _, h | .delay _ _, h | .sync _ _ _, h | .mk _ _, h => h.elim
 
 theorem _root_.BDL.Expr.Comb.delayFree : ∀ {e : Expr}, e.Comb → e.DelayFree
   | .var _, _ | .boolLit _, _ | .natLit _, _ | .prim _, _ => trivial
   | .lam _ b, h => Expr.Comb.delayFree (e := b) h
+  | .rep e, h => Expr.Comb.delayFree (e := e) h
   | .app f a, h => ⟨Expr.Comb.delayFree (e := f) h.1, Expr.Comb.delayFree (e := a) h.2⟩
   | .fold f z l, h => ⟨Expr.Comb.delayFree (e := f) h.1, Expr.Comb.delayFree (e := z) h.2.1, Expr.Comb.delayFree (e := l) h.2.2⟩
-  | .declRef _, h | .delay _ _, h | .sync _ _ _, h | .rep _, h | .mk _ _, h => h.elim
+  | .declRef _, h | .delay _ _, h | .sync _ _ _, h | .mk _ _, h => h.elim
 
 /-- **`lib_no_construction`**: a combinator constructs no semantic value. -/
 theorem _root_.BDL.Expr.Comb.noConstruct : ∀ {e : Expr}, e.Comb → ∀ s, ¬ e.constructs s
   | .var _, _, _, h | .boolLit _, _, _, h | .natLit _, _, _, h | .prim _, _, _, h => h
   | .lam _ b, hc, s, h => Expr.Comb.noConstruct (e := b) hc s h
+  | .rep e, hc, s, h => Expr.Comb.noConstruct (e := e) hc s h
   | .app f a, hc, s, h => h.elim (Expr.Comb.noConstruct (e := f) hc.1 s) (Expr.Comb.noConstruct (e := a) hc.2 s)
   | .fold f z l, hc, s, h =>
     h.elim (Expr.Comb.noConstruct (e := f) hc.1 s)
       (fun h => h.elim (Expr.Comb.noConstruct (e := z) hc.2.1 s) (Expr.Comb.noConstruct (e := l) hc.2.2 s))
-  | .declRef _, h, _, _ | .delay _ _, h, _, _ | .sync _ _ _, h, _, _ | .rep _, h, _, _ | .mk _ _, h, _, _ => h.elim
+  | .declRef _, h, _, _ | .delay _ _, h, _, _ | .sync _ _ _, h, _, _ | .mk _ _, h, _, _ => h.elim
 
 /-- **`lib_typing_context_free`**: a combinator's typing is independent of
-    the declaration environment, the concept environment and the grant. -/
-theorem _root_.BDL.HasType.comb_irrelevant {Θ Θ' : ConceptEnv} {Δ Δ' : DeclEnv} {G G' : Grant} {Γ : Ctx} {e : Expr} {τ : Ty}
-    (hc : e.Comb) (h : HasType Θ Δ G Γ e τ) : HasType Θ' Δ' G' Γ e τ := by
+    the declaration environment and the grant; it depends on the concept
+    environment only through the representation bindings an ordered
+    concept's `rep` reads (which are write-once: `mono_concept`). -/
+theorem _root_.BDL.HasType.comb_irrelevant {Θ : ConceptEnv} {Δ Δ' : DeclEnv} {G G' : Grant} {Γ : Ctx} {e : Expr} {τ : Ty}
+    (hc : e.Comb) (h : HasType Θ Δ G Γ e τ) : HasType Θ Δ' G' Γ e τ := by
   induction h with
   | var h => exact .var h
   | boolLit => exact .boolLit
@@ -229,8 +270,9 @@ theorem _root_.BDL.HasType.comb_irrelevant {Θ Θ' : ConceptEnv} {Δ Δ' : DeclE
   | lam _ ih => exact .lam (ih hc)
   | app _ _ ihf iha => exact .app (ihf hc.1) (iha hc.2)
   | fold _ _ _ ihf ihz ihl => exact .fold (ihf hc.1) (ihz hc.2.1) (ihl hc.2.2)
+  | rep hΘ _ ih => exact .rep hΘ (ih hc)
   | prim => exact .prim
-  | declRef _ | rep _ _ _ | mk _ _ _ _ | delay _ _ _ _ _ | sync _ _ _ _ _ => exact hc.elim
+  | declRef _ | mk _ _ _ _ | delay _ _ _ _ _ | sync _ _ _ _ _ => exact hc.elim
 
 /-- **`lib_eval_context_free`**: a combinator's value in a closure-free
     environment is the same in every design, at every tick, under every
@@ -247,9 +289,9 @@ theorem lib_clocked (Κ : ClockEnv) {e : Expr} (hc : e.Comb) (c : Option ClockId
     combinator `L` at a use site `L a` preserves typing under any environment
     change that preserves the argument's typing, adds no construction, and
     keeps the domain judgment exactly that of the argument. -/
-theorem lib_expansion {Θ Θ' : ConceptEnv} {Δ Δ' : DeclEnv} {G G' : Grant} {Γ : Ctx} {L a : Expr} {dom cod : Ty}
-    (hc : L.Comb) (hL : HasType Θ Δ G Γ L (.arr dom cod)) (ha : HasType Θ' Δ' G' Γ a dom) (Κ : ClockEnv) (c : Option ClockId) :
-    HasType Θ' Δ' G' Γ (.app L a) cod ∧
+theorem lib_expansion {Θ : ConceptEnv} {Δ Δ' : DeclEnv} {G G' : Grant} {Γ : Ctx} {L a : Expr} {dom cod : Ty}
+    (hc : L.Comb) (hL : HasType Θ Δ G Γ L (.arr dom cod)) (ha : HasType Θ Δ' G' Γ a dom) (Κ : ClockEnv) (c : Option ClockId) :
+    HasType Θ Δ' G' Γ (.app L a) cod ∧
     (∀ s, (Expr.app L a).constructs s → a.constructs s) ∧
     (Clocked Κ c (.app L a) ↔ Clocked Κ c a) := by
   refine ⟨.app (hL.comb_irrelevant hc) ha, fun s h => h.elim (fun h => (hc.noConstruct s h).elim) id, ?_⟩
@@ -259,14 +301,20 @@ theorem lib_expansion {Θ Θ' : ConceptEnv} {Δ Δ' : DeclEnv} {G G' : Grant} {�
 
 /-! ## Every library entry is a combinator -/
 
-theorem lib_comb (τ σ : Ty) (h : τ.Data) (d : Dim) :
-    (idF τ).Comb ∧ (constF τ σ).Comb ∧ (swapF τ σ).Comb ∧ (minF τ h).Comb ∧ (maxF τ h).Comb ∧
-    (clampF τ h).Comb ∧ (inRangeF τ h).Comb ∧ (inIntervalF τ h).Comb ∧ (foldrF τ σ).Comb ∧ (anyF τ).Comb ∧
+theorem ltAt_comb : ∀ {τ : Ty} (o : Ordered τ) {a b : Expr}, a.Comb → b.Comb → (ltAt o a b).Comb
+  | _, .q _, _, _, ha, hb => by simp [ltAt, ltE, app2, Expr.Comb, ha, hb]
+  | _, .sem _ _, _, _, ha, hb => by simp [ltAt, ltE, app2, Expr.Comb, ha, hb]
+
+theorem lib_comb (τ σ : Ty) (h : τ.Data) (o : Ordered τ) (d : Dim) :
+    (idF τ).Comb ∧ (constF τ σ).Comb ∧ (swapF τ σ).Comb ∧ (minF o).Comb ∧ (maxF o).Comb ∧
+    (clampF o).Comb ∧ (inRangeF o).Comb ∧ (inIntervalF o).Comb ∧ (minByF τ).Comb ∧ (maxByF τ).Comb ∧
+    (foldrF τ σ).Comb ∧ (anyF τ).Comb ∧
     (allF τ).Comb ∧ (containsF τ h).Comb ∧ (mapF τ σ).Comb ∧ (filterF τ).Comb ∧ (appendF τ).Comb ∧
     (sumF d).Comb ∧ (optElimF τ σ).Comb ∧ (mapOptF τ σ).Comb ∧ (getOrElseF τ).Comb ∧ (zipF τ σ).Comb := by
-  simp [Expr.Comb, idF, constF, swapF, minF, maxF, clampF, inRangeF, inIntervalF, foldrF, anyF, allF, containsF,
-    mapF, filterF, appendF, sumF, optElimF, mapOptF, getOrElseF, zipF, iteE, ltE, eqE, orE, andE, notE, consE,
-    nilE, pairE, fstE, sndE, someE, noneE, toListE, takeE, dropE, revE, litE, app2, app3]
+  have hlt : ∀ i j : Nat, (ltAt o (.var i) (.var j)).Comb := fun _ _ => ltAt_comb o trivial trivial
+  simp [Expr.Comb, idF, constF, swapF, minF, maxF, clampF, inRangeF, inIntervalF, minByF, maxByF, foldrF, anyF,
+    allF, containsF, mapF, filterF, appendF, sumF, optElimF, mapOptF, getOrElseF, zipF, iteE, eqE, orE, andE, notE,
+    consE, nilE, pairE, fstE, sndE, someE, noneE, toListE, takeE, dropE, revE, litE, app2, app3, hlt]
 
 /-! ## Typing at every instance -/
 
@@ -277,17 +325,33 @@ theorem idF_typed (τ : Ty) : HasType Θ Δ G Γ (idF τ) (.arr τ τ) := .lam (
 theorem constF_typed (τ σ : Ty) : HasType Θ Δ G Γ (constF τ σ) (.arr τ (.arr σ τ)) := .lam (.lam (.var rfl))
 theorem swapF_typed (a b : Ty) : HasType Θ Δ G Γ (swapF a b) (.arr (.prod a b) (.prod b a)) :=
   .lam (.app (.app .prim (.app .prim (.var rfl))) (.app .prim (.var rfl)))
-theorem minF_typed (τ : Ty) (h : τ.Data) : HasType Θ Δ G Γ (minF τ h) (.arr τ (.arr τ τ)) :=
-  .lam (.lam (.app (.app (.app .prim (.app (.app .prim (.var rfl)) (.var rfl))) (.var rfl)) (.var rfl)))
-theorem maxF_typed (τ : Ty) (h : τ.Data) : HasType Θ Δ G Γ (maxF τ h) (.arr τ (.arr τ τ)) :=
-  .lam (.lam (.app (.app (.app .prim (.app (.app .prim (.var rfl)) (.var rfl))) (.var rfl)) (.var rfl)))
-theorem clampF_typed (τ : Ty) (h : τ.Data) : HasType Θ Δ G Γ (clampF τ h) (.arr τ (.arr τ (.arr τ τ))) :=
-  .lam (.lam (.lam (.app (.app (maxF_typed τ h) (.var rfl)) (.app (.app (minF_typed τ h) (.var rfl)) (.var rfl)))))
-theorem inRangeF_typed (τ : Ty) (h : τ.Data) : HasType Θ Δ G Γ (inRangeF τ h) (.arr τ (.arr τ (.arr τ .bool))) :=
-  .lam (.lam (.lam (.app (.app .prim (.app .prim (.app (.app .prim (.var rfl)) (.var rfl))))
-    (.app .prim (.app (.app .prim (.var rfl)) (.var rfl))))))
-theorem inIntervalF_typed (τ : Ty) (h : τ.Data) : HasType Θ Δ G Γ (inIntervalF τ h) (.arr (.prod τ τ) (.arr τ .bool)) :=
-  .lam (.lam (.app (.app (.app (inRangeF_typed τ h) (.var rfl)) (.app .prim (.var rfl))) (.app .prim (.var rfl))))
+/-- Ordered evidence is *well formed* against the concept environment: an
+    ordered concept is represented by a quantity of the stated dimension. -/
+def Ordered.WF (Θ : ConceptEnv) : {τ : Ty} → Ordered τ → Prop
+  | _, .q _ => True
+  | _, .sem s d => Θ s = some (.q d)
+
+theorem ltAt_typed {τ : Ty} (o : Ordered τ) (ho : o.WF Θ) {a b : Expr}
+    (ha : HasType Θ Δ G Γ a τ) (hb : HasType Θ Δ G Γ b τ) : HasType Θ Δ G Γ (ltAt o a b) .bool := by
+  cases o with
+  | q d => exact .app (.app .prim ha) hb
+  | sem s d => exact .app (.app .prim (.rep ho ha)) (.rep ho hb)
+
+theorem minF_typed {τ : Ty} (o : Ordered τ) (ho : o.WF Θ) : HasType Θ Δ G Γ (minF o) (.arr τ (.arr τ τ)) :=
+  .lam (.lam (.app (.app (.app .prim (ltAt_typed o ho (.var rfl) (.var rfl))) (.var rfl)) (.var rfl)))
+theorem maxF_typed {τ : Ty} (o : Ordered τ) (ho : o.WF Θ) : HasType Θ Δ G Γ (maxF o) (.arr τ (.arr τ τ)) :=
+  .lam (.lam (.app (.app (.app .prim (ltAt_typed o ho (.var rfl) (.var rfl))) (.var rfl)) (.var rfl)))
+theorem clampF_typed {τ : Ty} (o : Ordered τ) (ho : o.WF Θ) : HasType Θ Δ G Γ (clampF o) (.arr τ (.arr τ (.arr τ τ))) :=
+  .lam (.lam (.lam (.app (.app (maxF_typed o ho) (.var rfl)) (.app (.app (minF_typed o ho) (.var rfl)) (.var rfl)))))
+theorem inRangeF_typed {τ : Ty} (o : Ordered τ) (ho : o.WF Θ) : HasType Θ Δ G Γ (inRangeF o) (.arr τ (.arr τ (.arr τ .bool))) :=
+  .lam (.lam (.lam (.app (.app .prim (.app .prim (ltAt_typed o ho (.var rfl) (.var rfl))))
+    (.app .prim (ltAt_typed o ho (.var rfl) (.var rfl))))))
+theorem inIntervalF_typed {τ : Ty} (o : Ordered τ) (ho : o.WF Θ) : HasType Θ Δ G Γ (inIntervalF o) (.arr (.prod τ τ) (.arr τ .bool)) :=
+  .lam (.lam (.app (.app (.app (inRangeF_typed o ho) (.var rfl)) (.app .prim (.var rfl))) (.app .prim (.var rfl))))
+theorem minByF_typed (τ : Ty) : HasType Θ Δ G Γ (minByF τ) (.arr (.arr τ (.arr τ .bool)) (.arr τ (.arr τ τ))) :=
+  .lam (.lam (.lam (.app (.app (.app .prim (.app (.app (.var rfl) (.var rfl)) (.var rfl))) (.var rfl)) (.var rfl))))
+theorem maxByF_typed (τ : Ty) : HasType Θ Δ G Γ (maxByF τ) (.arr (.arr τ (.arr τ .bool)) (.arr τ (.arr τ τ))) :=
+  .lam (.lam (.lam (.app (.app (.app .prim (.app (.app (.var rfl) (.var rfl)) (.var rfl))) (.var rfl)) (.var rfl))))
 theorem foldrF_typed (τ σ : Ty) : HasType Θ Δ G Γ (foldrF τ σ) (.arr (.arr τ (.arr σ σ)) (.arr σ (.arr (.list τ) σ))) :=
   .lam (.lam (.lam (.fold (.var rfl) (.var rfl) (.var rfl))))
 theorem anyF_typed (τ : Ty) : HasType Θ Δ G Γ (anyF τ) (.arr (.arr τ .bool) (.arr (.list τ) .bool)) :=
@@ -360,10 +424,37 @@ end Typing
 section Eval
 variable {Δ : DeclEnv} {I : Input} {t : Nat} {ρ : List Value}
 
-theorem ev_lt (τ : Ty) (h : τ.Data) {a b : Expr} {va vb : Value} (ha : Ev Δ I t ρ a va) (hb : Ev Δ I t ρ b vb) :
-    Ev Δ I t ρ (ltE τ h a b) (.bool (Value.blt va vb)) := by
-  have := Ev.appPrim (Ev.appPrim (Ev.prim (p := .lt τ h)) ha) hb
+theorem ev_lt (d : Dim) {a b : Expr} {m n : Nat} (ha : Ev Δ I t ρ a (.nat m)) (hb : Ev Δ I t ρ b (.nat n)) :
+    Ev Δ I t ρ (ltE d a b) (.bool (decide (m < n))) := by
+  have := Ev.appPrim (Ev.appPrim (Ev.prim (p := .lt d)) ha) hb
   simpa [ltE, app2, applyPrim, Prim.arity, Prim.compute] using this
+
+/-- The magnitude an ordered value compares by. -/
+def Ordered.key : {τ : Ty} → Ordered τ → Value → Option Nat
+  | _, .q _, .nat n => some n
+  | _, .sem s _, .sem s' (.nat n) => if s = s' then some n else none
+  | _, _, _ => none
+
+theorem ev_ltAt {τ : Ty} (o : Ordered τ) {a b : Expr} {va vb : Value} {m n : Nat}
+    (ha : Ev Δ I t ρ a va) (hb : Ev Δ I t ρ b vb) (hm : o.key va = some m) (hn : o.key vb = some n) :
+    Ev Δ I t ρ (ltAt o a b) (.bool (decide (m < n))) := by
+  cases o with
+  | q d =>
+    cases va with
+    | nat m' =>
+      cases vb with
+      | nat n' =>
+        simp only [Ordered.key, Option.some.injEq] at hm hn
+        subst hm hn
+        exact ev_lt d ha hb
+      | _ => simp [Ordered.key] at hn
+    | _ => simp [Ordered.key] at hm
+  | sem s d =>
+    rcases va with _ | _ | ⟨s₁, _ | m' | _ | _ | _ | _ | _ | _ | _⟩ | _ | _ | _ | _ | _ | _ <;> simp [Ordered.key] at hm
+    rcases vb with _ | _ | ⟨s₂, _ | n' | _ | _ | _ | _ | _ | _ | _⟩ | _ | _ | _ | _ | _ | _ <;> simp [Ordered.key] at hn
+    obtain ⟨rfl, rfl⟩ := hm
+    obtain ⟨rfl, rfl⟩ := hn
+    exact ev_lt d (.rep ha) (.rep hb)
 
 theorem ev_eq (τ : Ty) (h : τ.Data) {a b : Expr} {va vb : Value} (ha : Ev Δ I t ρ a va) (hb : Ev Δ I t ρ b vb) :
     Ev Δ I t ρ (eqE τ h a b) (.bool (Value.beq va vb)) := by
@@ -425,30 +516,66 @@ theorem ev_listLit (τ : Ty) : ∀ {es : List Expr} {vs : List Value}, (∀ i (h
   | [], _ :: _, _, hl => nomatch hl
   | _ :: _, [], _, hl => nomatch hl
 
-/-- **`min_spec`**: `min a b` is the smaller value under the structural order. -/
-theorem min_spec (τ : Ty) (h : τ.Data) {a b : Expr} {va vb : Value} (ha : Ev Δ I t ρ a va) (hb : Ev Δ I t ρ b vb) :
-    Ev Δ I t ρ (app2 (minF τ h) a b) (if Value.blt va vb then va else vb) := by
+/-- **`min_spec`**: `min a b` is the argument with the smaller magnitude —
+    the value itself, identity and all. -/
+theorem min_spec {τ : Ty} (o : Ordered τ) {a b : Expr} {va vb : Value} {m n : Nat}
+    (ha : Ev Δ I t ρ a va) (hb : Ev Δ I t ρ b vb) (hm : o.key va = some m) (hn : o.key vb = some n) :
+    Ev Δ I t ρ (app2 (minF o) a b) (if m < n then va else vb) := by
   refine .appClo (.appClo .lam ha .lam) hb ?_
-  exact ev_ite τ (ev_lt τ h (Ev.var (i := 1) rfl) (Ev.var (i := 0) rfl)) (Ev.var (i := 1) rfl) (Ev.var (i := 0) rfl)
+  have := ev_ite (Δ := Δ) (I := I) (t := t) τ (ev_ltAt o (Ev.var (i := 1) (ρ := vb :: va :: ρ) rfl) (Ev.var (i := 0) rfl) hm hn)
+    (Ev.var (i := 1) rfl) (Ev.var (i := 0) rfl)
+  simpa using this
 
-theorem max_spec (τ : Ty) (h : τ.Data) {a b : Expr} {va vb : Value} (ha : Ev Δ I t ρ a va) (hb : Ev Δ I t ρ b vb) :
-    Ev Δ I t ρ (app2 (maxF τ h) a b) (if Value.blt va vb then vb else va) := by
+theorem max_spec {τ : Ty} (o : Ordered τ) {a b : Expr} {va vb : Value} {m n : Nat}
+    (ha : Ev Δ I t ρ a va) (hb : Ev Δ I t ρ b vb) (hm : o.key va = some m) (hn : o.key vb = some n) :
+    Ev Δ I t ρ (app2 (maxF o) a b) (if m < n then vb else va) := by
   refine .appClo (.appClo .lam ha .lam) hb ?_
-  exact ev_ite τ (ev_lt τ h (Ev.var (i := 1) rfl) (Ev.var (i := 0) rfl)) (Ev.var (i := 0) rfl) (Ev.var (i := 1) rfl)
+  have := ev_ite (Δ := Δ) (I := I) (t := t) τ (ev_ltAt o (Ev.var (i := 1) (ρ := vb :: va :: ρ) rfl) (Ev.var (i := 0) rfl) hm hn)
+    (Ev.var (i := 0) rfl) (Ev.var (i := 1) rfl)
+  simpa using this
 
-theorem clamp_spec (τ : Ty) (h : τ.Data) {x lo hi : Expr} {vx vlo vhi : Value}
-    (hx : Ev Δ I t ρ x vx) (hlo : Ev Δ I t ρ lo vlo) (hhi : Ev Δ I t ρ hi vhi) :
-    Ev Δ I t ρ (app3 (clampF τ h) x lo hi)
-      (let m := if Value.blt vx vhi then vx else vhi; if Value.blt vlo m then m else vlo) := by
-  refine .appClo (.appClo (.appClo .lam hx .lam) hlo .lam) hhi ?_
-  exact max_spec τ h (Ev.var (i := 1) rfl) (min_spec τ h (Ev.var (i := 2) rfl) (Ev.var (i := 0) rfl))
+theorem key_ite {τ : Ty} (o : Ordered τ) {c : Prop} [Decidable c] {va vb : Value} {m n : Nat}
+    (hm : o.key va = some m) (hn : o.key vb = some n) : o.key (if c then va else vb) = some (if c then m else n) := by
+  by_cases hc : c <;> simp [hc, hm, hn]
 
-theorem inRange_spec (τ : Ty) (h : τ.Data) {x lo hi : Expr} {vx vlo vhi : Value}
-    (hx : Ev Δ I t ρ x vx) (hlo : Ev Δ I t ρ lo vlo) (hhi : Ev Δ I t ρ hi vhi) :
-    Ev Δ I t ρ (app3 (inRangeF τ h) x lo hi) (.bool (!Value.blt vx vlo && !Value.blt vhi vx)) := by
+theorem clamp_spec {τ : Ty} (o : Ordered τ) {x lo hi : Expr} {vx vlo vhi : Value} {kx klo khi : Nat}
+    (hx : Ev Δ I t ρ x vx) (hlo : Ev Δ I t ρ lo vlo) (hhi : Ev Δ I t ρ hi vhi)
+    (hkx : o.key vx = some kx) (hklo : o.key vlo = some klo) (hkhi : o.key vhi = some khi) :
+    Ev Δ I t ρ (app3 (clampF o) x lo hi)
+      (if klo < (if kx < khi then kx else khi) then (if kx < khi then vx else vhi) else vlo) := by
   refine .appClo (.appClo (.appClo .lam hx .lam) hlo .lam) hhi ?_
-  exact ev_and (ev_not (ev_lt τ h (Ev.var (i := 2) rfl) (Ev.var (i := 1) rfl)))
-    (ev_not (ev_lt τ h (Ev.var (i := 0) rfl) (Ev.var (i := 2) rfl)))
+  exact max_spec o (Ev.var (i := 1) rfl) (min_spec o (Ev.var (i := 2) rfl) (Ev.var (i := 0) rfl) hkx hkhi) hklo
+    (key_ite o hkx hkhi)
+
+theorem inRange_spec {τ : Ty} (o : Ordered τ) {x lo hi : Expr} {vx vlo vhi : Value} {kx klo khi : Nat}
+    (hx : Ev Δ I t ρ x vx) (hlo : Ev Δ I t ρ lo vlo) (hhi : Ev Δ I t ρ hi vhi)
+    (hkx : o.key vx = some kx) (hklo : o.key vlo = some klo) (hkhi : o.key vhi = some khi) :
+    Ev Δ I t ρ (app3 (inRangeF o) x lo hi) (.bool (!decide (kx < klo) && !decide (khi < kx))) := by
+  refine .appClo (.appClo (.appClo .lam hx .lam) hlo .lam) hhi ?_
+  exact ev_and (ev_not (ev_ltAt o (Ev.var (i := 2) (ρ := vhi :: vlo :: vx :: ρ) rfl) (Ev.var (i := 1) rfl) hkx hklo))
+    (ev_not (ev_ltAt o (Ev.var (i := 0) (ρ := vhi :: vlo :: vx :: ρ) rfl) (Ev.var (i := 2) rfl) hkhi hkx))
+
+/-- **`minBy_spec`**: the comparator form picks by the comparator's verdict. -/
+theorem minBy_spec (τ : Ty) {cmp a b : Expr} {vc va vb : Value} {r : Bool}
+    (hc : Ev Δ I t ρ cmp vc) (ha : Ev Δ I t ρ a va) (hb : Ev Δ I t ρ b vb)
+    (hcmp : ∃ g, Apply Δ I t vc va g ∧ Apply Δ I t g vb (.bool r)) :
+    Ev Δ I t ρ (app3 (minByF τ) cmp a b) (if r then va else vb) := by
+  refine .appClo (.appClo (.appClo .lam hc .lam) ha .lam) hb ?_
+  obtain ⟨g, hg, hr⟩ := hcmp
+  exact ev_ite τ (Ev.app_of_apply (Ev.app_of_apply (Ev.var (i := 2) rfl) (Ev.var (i := 1) rfl) hg) (Ev.var (i := 0) rfl) hr)
+    (Ev.var (i := 1) rfl) (Ev.var (i := 0) rfl)
+
+/-- **`minBy_recovers_min`**: the comparator `λa b. a < b` at an ordered
+    type makes `minBy` compute exactly `min` — the escape hatch loses
+    nothing, so a designer-defined order needs no class. -/
+theorem minBy_recovers_min {τ : Ty} (o : Ordered τ) {a b : Expr} {va vb : Value} {m n : Nat}
+    (ha : Ev Δ I t ρ a va) (hb : Ev Δ I t ρ b vb) (hm : o.key va = some m) (hn : o.key vb = some n) :
+    Ev Δ I t ρ (app3 (minByF τ) (.lam τ (.lam τ (ltAt o (.var 1) (.var 0)))) a b) (if m < n then va else vb) := by
+  have := minBy_spec (Δ := Δ) (I := I) (t := t) (ρ := ρ) τ (r := decide (m < n))
+    (cmp := .lam τ (.lam τ (ltAt o (.var 1) (.var 0)))) .lam ha hb
+    ⟨.clo (va :: ρ) (ltAt o (.var 1) (.var 0)), Or.inl ⟨_, _, rfl, .lam⟩,
+     Or.inl ⟨_, _, rfl, ev_ltAt o (Ev.var (i := 1) (ρ := vb :: va :: ρ) rfl) (Ev.var (i := 0) rfl) hm hn⟩⟩
+  simpa using this
 
 /-- **The recursor computes `List.foldr`** when the step closure implements
     `g` on the reachable accumulators. -/

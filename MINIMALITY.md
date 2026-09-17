@@ -87,11 +87,17 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | overflow policy (`dropOldest`/`dropNewest`) | no | explicit computation over the window | reject-deployment preserves semantics | no | Phase 9a (D-86): `sufficient_capacity_preserves`, `negE` |
 | `Ty.prod` / `pair` / `fst` / `snd` | **yes** (value composition only) | tuples, records | — | no | Phase 9b (D-88): `arrow_not_delayable`, `pair_state_delayable` |
 | `fold` (list recursor, term former) | **yes** | `map`/`any`/`all`/`contains`/`filter`/… are definitions | — | no | Phase 9b (D-89): `fold_total`; `any_spec`, `map_spec` |
-| `eq`/`lt` at every data type | **yes** (generalized; proof field) | `==`, `<`, `min`, `max`, `clamp`, `contains` | — | no | Phase 9b (D-90): closed capability {Data} |
+| `eq` at every data type (proof field) | **yes** | `==`, `contains`, `oneOf` | — | no | Phase 9b (D-90) |
+| `lt d` on quantities | **yes** (Phase 4 form, restored in 9c) | `<`, `min`, `max`, `clamp`, `inRange` | — | structural order on data: **yes** (removed) | Phase 9c (D-98): `lt_rejected`, `lt_only_on_quantities` |
+| Data capability | kernel evidence: the `eq` proof field; `delay`/`sync` premise | scheme variable `.data` | — | no | Phase 9c (D-99); claim: proved coextensive with Eq on this grammar (`Cap.eq_iff_data`) |
+| Eq capability | no — coincides with Data | scheme variable `.eq` (diagnostic name) | — | no | Phase 9c (D-99); claim: extensional coincidence, not a definition |
+| Ord capability | no — quantities, and declared-ordered concepts via `rep` + `lt d` | scheme variable `.ord`; `Ty.ordB O Θ`; `Stdlib.Ordered` | — | order on modes/pairs/lists/options/bools: **yes** | Phase 9c (D-98, D-99): `lt_rejected`, `min_mode_rejected`, `Cap.ord_not_data_converse` |
+| user-defined typeclasses / instance search | no | — | — | **yes** | Phase 9c (D-99): no behaviour-design case; claim: rejected among tested models |
+| explicit comparator arguments (`minBy`, `maxBy`) | no | yes — the escape hatch | — | no | Phase 9c (D-100): `minBy_recovers_min` (proved) |
 | `drop`, `toList` | **yes** (registered operators) | option elimination, `zip` | — | no | Phase 9b (D-91) |
 | rank-1 parametric polymorphism | no — families of monomorphic terms | generic definitions instantiated by matching | — | no | Phase 9b (D-92): `matchTy_sound`/`_complete`; `instances_are_monomorphic` |
 | type variables / `∀` in kernel types; `Λ`/`[τ]` in terms | no | — | — | **yes** | Phase 9b (D-92): prenex = instantiation; higher rank unused (`applyBoth_rank`) |
-| capability constraints | no | closed {Data} on scheme variables | — | user classes: **yes** | Phase 9b (D-93): `Scheme.instantiate_sound`, `minByF` |
+| capability constraints | no | closed {Data, Eq, Ord} on scheme variables (9c) | — | user classes: **yes** | Phase 9b/9c (D-93, D-99): `Scheme.instantiate_sound`, `minByF` |
 | definitional library (`min`…`zip`) | no | combinators inlined at use sites | — | no | Phase 9b (D-94): `lib_expansion`, `lib_eval_context_free` |
 | `fn` helper declarations | no | closed lambdas, inlined | — | no | Phase 9b (D-94) |
 | finite-set literal `x ∈ {…}` / `Set` type | no | `contains` over a list literal | — | `Set` type: **yes** | Phase 9b (D-95): `oneOf_mem`, `oneOf_dup_irrelevant` |
@@ -447,6 +453,14 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - CAN IT BE DESUGARED: it *is* the desugaring; the kernel sees monomorphic instances (`instances_are_monomorphic`)
 - VALIDATION DIFFERENCE: none
 - LEAN THEOREM / COUNTEREXAMPLE: `matchTy_sound`, `matchTy_complete`, `generic_preserves_identity`, `lib_expansion`
+
+### FEATURE: capability vocabulary {Data, Eq, Ord} (Phase 9c)
+- LAYER: surface (scheme variables); kernel evidence only for Data (the `eq` proof field, the `delay`/`sync` premise)
+- WHY IT EXISTS: ordering is not a property of data; equality is
+- WHAT BREAKS WITHOUT THE SPLIT: `mode1 < mode2`, `None < Some x`, lexicographic pairs/lists become language capabilities
+- CAN IT BE DESUGARED: Ord on a concept desugars to `lt d` on `rep`; Eq is Data; no class machinery
+- VALIDATION DIFFERENCE: none
+- LEAN THEOREM / COUNTEREXAMPLE: `Cap.eq_iff_data`, `Cap.ord_data`, `Cap.ord_not_data_converse`, `lt_rejected`, `eq_accepted`, `min_mode_rejected`, `minBy_recovers_min`
 
 ### FEATURE: exhaustive solver with soundness and completeness
 - LAYER: validation

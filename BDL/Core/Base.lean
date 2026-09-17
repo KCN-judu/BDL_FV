@@ -133,11 +133,13 @@ inductive Prim where
   | mul (d₁ d₂ : Dim)
   | div (d₁ d₂ : Dim)
   -- Phase 4: comparisons, booleans, conditionals, options (plain STLC data).
-  -- Phase 9b generalizes `lt`/`eq` from quantities to every *data* type:
-  -- the closed capability vocabulary is {Data}; structural order and
-  -- equality are defined on data values, never on closures.  The proof
-  -- field makes an inadmissible instance unwritable.
-  | lt (τ : Ty) (h : τ.Data)
+  -- Phase 9c (capability audit): `lt` is a *quantity* comparison only —
+  -- ordering is a property of dimensioned magnitudes, not of data in
+  -- general; an ordered concept compares through its representation at
+  -- elaboration (`Stdlib.Ordered`).  `eq` is structural equality on every
+  -- *data* type (Phase 9b); the proof field makes `eq` at a function type
+  -- unwritable — the kernel's only capability evidence.
+  | lt (d : Dim)
   | eq (τ : Ty) (h : τ.Data)
   | not
   | and
@@ -172,7 +174,7 @@ def Prim.ty : Prim → Ty
   | .sub d => .arr (.q d) (.arr (.q d) (.q d))
   | .mul d₁ d₂ => .arr (.q d₁) (.arr (.q d₂) (.q (d₁.add d₂)))
   | .div d₁ d₂ => .arr (.q d₁) (.arr (.q d₂) (.q (d₁.sub d₂)))
-  | .lt τ _ => .arr τ (.arr τ .bool)
+  | .lt d => .arr (.q d) (.arr (.q d) .bool)
   | .eq τ _ => .arr τ (.arr τ .bool)
   | .not => .arr .bool .bool
   | .and => .arr .bool (.arr .bool .bool)

@@ -31,34 +31,45 @@ open BDL BDL.Reactive BDL.Stdlib BDL.Poly
 
 def Brightness : SemanticId := ⟨40⟩
 def Opacity : SemanticId := ⟨41⟩
+def Mode : SemanticId := ⟨42⟩
+
+/-- Brightness and Opacity are ordered concepts; Mode is not.  All three are
+    represented by `q 0`. -/
+def O : OrdDecl := fun s => s = Brightness ∨ s = Opacity
+def Θ : ConceptEnv := fun s => if s = Brightness ∨ s = Opacity ∨ s = Mode then some (.q Dim.zero) else none
 
 /-- Three uses of `min` are three monomorphic kernel terms.  The scheme
-    `∀α:Data. α → α → α` exists only in the elaborator. -/
+    `∀α:Ord. α → α → α` exists only in the elaborator. -/
 theorem instances_are_monomorphic :
-    minF (.q Dim.Length) trivial ≠ minF (.sem Brightness) trivial ∧
-    minF (.sem Brightness) trivial ≠ minF (.sem Opacity) trivial ∧
-    (∀ Θ Δ G Γ, HasType Θ Δ G Γ (minF (.sem Brightness) trivial) (.arr (.sem Brightness) (.arr (.sem Brightness) (.sem Brightness)))) := by
-  refine ⟨by decide, by decide, fun _ _ _ _ => minF_typed _ _⟩
+    minF (.q Dim.Length) ≠ minF (.sem Brightness Dim.zero) ∧
+    minF (.sem Brightness Dim.zero) ≠ minF (.sem Opacity Dim.zero) ∧
+    (∀ Δ G Γ, HasType Θ Δ G Γ (minF (.sem Brightness Dim.zero))
+      (.arr (.sem Brightness) (.arr (.sem Brightness) (.sem Brightness)))) := by
+  refine ⟨by decide, by decide, fun _ _ _ => minF_typed _ (by simp [Ordered.WF, Θ, Brightness])⟩
 
 /-- Use-site inference is matching: from the argument type the elaborator
-    recovers the instance, uniquely. -/
-def minScheme : Scheme := ⟨.arr (.tvar 0) (.arr (.tvar 0) (.tvar 0)), [0]⟩
+    recovers the instance, uniquely; then the capability is checked. -/
+def minScheme : Scheme := ⟨.arr (.tvar 0) (.arr (.tvar 0) (.tvar 0)), [(0, .ord)]⟩
+def containsScheme : Scheme := ⟨.arr (.tvar 0) (.arr (.list (.tvar 0)) .bool), [(0, .eq)]⟩
 
 theorem min_instantiation :
-    (minScheme.instantiate (.arr (.sem Brightness) (.arr (.sem Brightness) (.sem Brightness)))).map (·.ty 0)
+    (minScheme.instantiate O Θ (.arr (.sem Brightness) (.arr (.sem Brightness) (.sem Brightness)))).map (·.ty 0)
       = some (.sem Brightness) ∧
-    -- a function-typed instance fails the constraint
-    minScheme.instantiate (.arr (.arr .bool .bool) (.arr (.arr .bool .bool) (.arr .bool .bool))) = none ∧
+    -- Mode is data and has equality, but no order: `min` at Mode is rejected
+    minScheme.instantiate O Θ (.arr (.sem Mode) (.arr (.sem Mode) (.sem Mode))) = none ∧
+    (containsScheme.instantiate O Θ (.arr (.sem Mode) (.arr (.list (.sem Mode)) .bool))).map (·.ty 0) = some (.sem Mode) ∧
+    -- a function-typed instance fails every capability
+    minScheme.instantiate O Θ (.arr (.arr .bool .bool) (.arr (.arr .bool .bool) (.arr .bool .bool))) = none ∧
     -- a mixed use has no instance at all
-    minScheme.instantiate (.arr (.sem Brightness) (.arr (.sem Opacity) (.sem Brightness))) = none := by
-  refine ⟨rfl, rfl, rfl⟩
+    minScheme.instantiate O Θ (.arr (.sem Brightness) (.arr (.sem Opacity) (.sem Brightness))) = none := by
+  refine ⟨rfl, rfl, rfl, rfl, rfl⟩
 
 /-- Dimension variables match the same way. -/
 def sumScheme : Scheme := ⟨.arr (.list (.q (.dvar 0))) (.q (.dvar 0)), []⟩
 
 theorem sum_instantiation :
-    (sumScheme.instantiate (.arr (.list (.q Dim.Length)) (.q Dim.Length))).map (·.dim 0) = some Dim.Length ∧
-    sumScheme.instantiate (.arr (.list (.q Dim.Length)) (.q Dim.Time)) = none := ⟨rfl, rfl⟩
+    (sumScheme.instantiate O Θ (.arr (.list (.q Dim.Length)) (.q Dim.Length))).map (·.dim 0) = some Dim.Length ∧
+    sumScheme.instantiate O Θ (.arr (.list (.q Dim.Length)) (.q Dim.Time)) = none := ⟨rfl, rfl⟩
 
 /-! ## §2 A toy System F, to measure Model D -/
 
@@ -131,19 +142,12 @@ theorem pair_state_delayable {Θ : ConceptEnv} {Δ : DeclEnv} {G : Grant} {a b :
     HasType Θ Δ G [] (.delay i e) (.prod a b) :=
   .delay ⟨ha, hb⟩ hi he
 
-/-! ## §4 Constrained polymorphism: the closed vocabulary suffices -/
+/-! ## §4 Constrained polymorphism: the closed vocabulary suffices
 
-/-- Model D (dictionary passing) collapses to ordinary function arguments:
-    a designer's custom order is an explicit comparator, no class needed. -/
-def minByF (τ : Ty) : Expr :=
-  .lam (.arr τ (.arr τ .bool)) (.lam τ (.lam τ (iteE τ (app2 (.var 2) (.var 1) (.var 0)) (.var 1) (.var 0))))
-
-theorem minByF_typed {Θ : ConceptEnv} {Δ : DeclEnv} {G : Grant} {Γ : Ctx} (τ : Ty) :
-    HasType Θ Δ G Γ (minByF τ) (.arr (.arr τ (.arr τ .bool)) (.arr τ (.arr τ τ))) :=
-  .lam (.lam (.lam (.app (.app (.app .prim (.app (.app (.var rfl) (.var rfl)) (.var rfl))) (.var rfl)) (.var rfl))))
-
-/-- The only constraint the library needs is `Data`; `eq` and `lt` on a
-    function type are not writable at all. -/
+Model D (dictionary passing) collapses to ordinary function arguments: a
+designer's custom order is an explicit comparator (`minByF`,
+`minBy_recovers_min` in `Stdlib`), no class needed.  `eq` on a function
+type is not writable at all; `lt` exists only on quantities. -/
 theorem no_eq_on_functions : ¬ (Ty.arr .bool .bool).Data := fun h => h
 
 end BDL.Experiments.Poly

@@ -1,10 +1,9 @@
 # REPORT — formal results so far
 
-Project state: **Phase 9b complete** (minimal data abstraction and the
-polymorphic equation language: products, the list recursor, generic
-data comparison in the kernel; rank-1 polymorphism as definitional
-families; the equation library proved; on top of 9a's list data and
-buffers).  Remaining: Phase 8c surface elaboration of the remaining
+Project state: **Phase 9c complete** (capability audit: equality on data,
+ordering on quantities and declared-ordered concepts only — the kernel's
+structural order removed; on top of 9b's products, list recursor and
+definitional polymorphism, and 9a's list data and buffers).  Remaining: Phase 8c surface elaboration of the remaining
 designer-facing forms + executable semantics; final minimality audit.
 Everything builds with `lake build`; no `sorry`; axioms used are `propext`
 and `Quot.sound` (the latter only through `funext` and standard `simp`
@@ -19,7 +18,7 @@ DeclInterface   = expectedType : Ty  ×  commitments : List PropertyId      (mon
 Ty              = bool | nat | arr Ty Ty | sem SemanticId | q Dim | opt Ty | list Ty | prod Ty Ty
                                                                             (Phase 2: nominal concepts; Phase 3: quantities; Phase 9a: lists; 9b: products)
 ConceptEnv Θ    maps SemanticId ↦ Option Ty                                 (Phase 3: representation binding, write-once, sem-free data)
-Prim            registered operators; dimension algebra lives in Prim.ty     (Phase 3; Phase 4 adds bool/opt ops; 9a list ops; 9b pairs, eq/lt on every data type)
+Prim            registered operators; dimension algebra lives in Prim.ty     (Phase 3; Phase 4 adds bool/opt ops; 9a list ops; 9b pairs, eq on every data type; lt on quantities only — 9c)
 declRef d       refers to a declaration by stable identity
 rep e / mk s e  observe / construct a semantic value                        (Phase 3; mk only under a grant)
 delay init e    the value of e at the previous activation of its own domain (Phase 4; = sync own)
@@ -2038,6 +2037,76 @@ and one list recursor, generic definitions instantiated at closed types.
 Library evaluation lemmas assume an "implements" hypothesis on the predicate
 value; `sum` types are encoded not added; the structural order on `sem s` is
 the representation's; no minimality theorem.
+
+## Phase 9c — Capability boundary audit: Data vs Eq vs Ord
+
+Question: does "may be delayed/transported as data" imply "has meaningful
+equality", and does that imply "has meaningful ordering"?  Phase 9b had
+answered yes to both by generalizing `lt` and `eq` to every `Data` type
+through a structural order.  The audit (`POLYMORPHIC_EQUATION_LANGUAGE_NOTE.md`
+§11) rejects the second implication and makes the kernel smaller.
+
+### 9c.1 Findings
+
+| expression | verdict | evidence |
+|---|---|---|
+| `temperature1 == / < temperature2` | Eq, Ord (`q d`) | `exI`; `q Length < q Time` still rejected |
+| `brightness1 < brightness2` | Ord by *declaration*, through `rep` | `Ordered.sem`, `exA`, `exJ` |
+| `mode1 == mode2` | Eq | `eq_accepted` |
+| `mode1 < mode2` | **rejected** | `lt_rejected`, `min_mode_rejected` |
+| `pair == pair`, `list == list`, `opt == opt` | Eq | `eq_accepted` |
+| `pair < pair`, `list < list`, `None < Some x`, `bool < bool` | **rejected** | `lt_rejected`, `Cap.ord_not_data_converse` |
+
+`Data ⇒ Eq` holds extensionally (`Cap.eq_iff_data`); `Eq ⇏ Ord`.
+
+### 9c.2 The change
+
+* Kernel: `lt` reverted to `lt (d : Dim)` on quantities (Phase-4 form);
+  `Value.blt`/`bltList` deleted — the kernel has no structural order at all;
+  `eq τ (h : τ.Data)` unchanged.  `lt_only_on_quantities`.
+* Surface: `Poly.Cap = data | eq | ord`, `Scheme.caps`, `Ty.ordB O Θ`
+  (quantities, and concepts declared ordered in `OrdDecl` with a quantity
+  representation), `Scheme.instantiate O Θ` with `instantiate_sound`;
+  `Cap.ord_data` (Ord ⇒ Data), `Cap.ord_not_data_converse`.
+* Stdlib: `Ordered τ` evidence (`q d` | `sem s d`), `Ordered.WF Θ`,
+  `ltAt` (quantity comparison, through `rep` on a concept); `minF`, `maxF`,
+  `clampF`, `inRangeF`, `inIntervalF` take `Ordered`; `containsF`/`oneOfE`
+  keep the `Data` proof; `map`/`fold`/`any`/`all`/`filter` need neither.
+  Specs restated with `Ordered.key` (the compared magnitude): `min_spec`,
+  `max_spec`, `clamp_spec`, `inRange_spec`; `ltAt_typed`, `*_typed` under
+  `Ordered.WF`.  Comparator escape hatch: `minByF`, `maxByF`, `minBy_spec`,
+  **`minBy_recovers_min`** (the comparator `λa b. a < b` makes `minBy`
+  compute `min` exactly).
+* Combinators admit `rep` (`Comb`); `HasType.comb_irrelevant` and
+  `lib_expansion` hold Θ fixed (typing of an ordered concept's comparison
+  reads its representation binding, which is write-once).
+
+### 9c.3 Models
+
+| model | verdict |
+|---|---|
+| A {Data} for eq and lt | rejected — conflates state with order |
+| B {Data, Eq}, lt on ordered shapes | the kernel's shape; the surface still needs Ord for concepts |
+| C {Data, Eq, Ord} closed | **adopted at the surface**; no kernel Ord evidence needed (`rep` + `lt d`) |
+| D user typeclasses | rejected — no case |
+| E comparators only | kept as escape hatch; loses nothing (`minBy_recovers_min`) |
+
+### 9c.4 Re-established (statements unchanged)
+
+`Ev.det`, `MEv.det`, `reactive_total`, `multi_domain_total`, `fold_total`,
+`mfold_total`, `Ev.tag_provenance`, `MEv.tag_provenance`, `Ev.pure`,
+`unfolds_preserves_eval`, `generic_preserves_identity`,
+`generic_preserves_dimension`, `forall_in_list`, `exists_in_list`,
+`buffer_window_correspondence`, `eval_flat_to_inst`, `eval_inst_to_flat`,
+`orig_iff_flat`; 178 theorems of the 9a/9b/9c modules on `propext`/`Quot.sound`.
+
+### 9c.5 Answer
+
+`Ty.Data` is a sufficient semantic boundary for equality and state, not
+for ordering.  Smallest closed split supporting all tested cases: surface
+{Data, Eq, Ord} with Eq ≡ Data (today) and Ord = quantities ∪
+declared-ordered concepts; kernel: `eq τ (h : τ.Data)` and `lt d` only.
+Claim strength: minimal among the tested models; no minimality theorem.
 
 ## Open items carried to later phases
 

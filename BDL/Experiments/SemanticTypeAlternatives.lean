@@ -163,7 +163,6 @@ def _root_.BDL.Prim.erase (ρ : SemanticId → Ty) : Prim → Prim
   | .toList τ => .toList (τ.erase ρ)
   -- Phase 9b: the comparison families carry their data proof; erasure keeps
   -- it when the binding is data (always, under `hρd` below).
-  | .lt τ h => if h' : (τ.erase ρ).Data then .lt (τ.erase ρ) h' else .lt τ h
   | .eq τ h => if h' : (τ.erase ρ).Data then .eq (τ.erase ρ) h' else .eq τ h
   | p => p
 
@@ -393,34 +392,13 @@ where
     | x :: xs, y :: ys => Ty.deq τ h x y && go τ h xs ys
     | _, _ => false
 
-def _root_.BDL.Ty.dlt : ∀ (τ : Ty), τ.Data → τ.denote → τ.denote → Bool
-  | .bool, _, a, b => !(show Bool from a) && (show Bool from b)
-  | .nat, _, a, b => decide ((show Nat from a) < (show Nat from b))
-  | .q _, _, a, b => decide ((show Nat from a) < (show Nat from b))
-  | .sem _, _, a, _ => (show Empty from a).elim
-  | .opt τ, h, a, b => match (show Option τ.denote from a), (show Option τ.denote from b) with
-    | Option.none, Option.some _ => true
-    | Option.some x, Option.some y => Ty.dlt τ h x y
-    | _, _ => false
-  | .list τ, h, a, b => go τ h (show List τ.denote from a) (show List τ.denote from b)
-  | .prod τ₁ τ₂, h, a, b =>
-    Ty.dlt τ₁ h.1 (show τ₁.denote × τ₂.denote from a).1 (show τ₁.denote × τ₂.denote from b).1 ||
-    (Ty.deq τ₁ h.1 (show τ₁.denote × τ₂.denote from a).1 (show τ₁.denote × τ₂.denote from b).1 &&
-     Ty.dlt τ₂ h.2 (show τ₁.denote × τ₂.denote from a).2 (show τ₁.denote × τ₂.denote from b).2)
-  | .arr _ _, h, _, _ => h.elim
-where
-  go (τ : Ty) (h : τ.Data) : List τ.denote → List τ.denote → Bool
-    | [], _ :: _ => true
-    | x :: xs, y :: ys => Ty.dlt τ h x y || (Ty.deq τ h x y && go τ h xs ys)
-    | _, _ => false
-
 def _root_.BDL.Prim.denote : ∀ p : Prim, p.ty.denote
   | .lit _ n => (show Nat from n)
   | .add _ => (show Nat → Nat → Nat from fun a b => a + b)
   | .sub _ => (show Nat → Nat → Nat from fun a b => a - b)
   | .mul _ _ => (show Nat → Nat → Nat from fun a b => a * b)
   | .div _ _ => (show Nat → Nat → Nat from fun a b => a / b)
-  | .lt τ h => (show τ.denote → τ.denote → Bool from Ty.dlt τ h)
+  | .lt _ => (show Nat → Nat → Bool from fun a b => decide (a < b))
   | .eq τ h => (show τ.denote → τ.denote → Bool from Ty.deq τ h)
   | .not => (show Bool → Bool from fun a => !a)
   | .and => (show Bool → Bool → Bool from fun a b => a && b)

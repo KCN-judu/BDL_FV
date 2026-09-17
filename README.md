@@ -13,14 +13,16 @@ lake build
 * `DESIGN_DECISIONS.md` — every model choice and rejected alternative
 * `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table
 
-Status: Phases 0–7, 8a/8b, 9a and 9b complete (lifecycle/refinement; cross-declaration
+Status: Phases 0–7, 8a/8b, 9a, 9b and 9c complete (lifecycle/refinement; cross-declaration
 preservation; semantic identity; representation binding + dimensions;
 reactive core; clock domains + synchronization; physical outputs +
 single-driver discipline; hardware constraint validation + resource
 allocation; behaviour systems — reusable components, fresh instantiation,
 port binding, hierarchical composition, flattening; behaviour grouping and
 component extraction; list data and lossless buffered cross-domain events;
-products, the list recursor and the polymorphic equation library).
+products, the list recursor and the polymorphic equation library;
+capability audit — equality on data, ordering on quantities and
+declared-ordered concepts only).
 Remaining: Phase 8c surface elaboration + executable semantics; final
 minimality audit.
 
