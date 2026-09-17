@@ -124,6 +124,7 @@ theorem infer_sound :
         | sem _ => simp [infer, hf, ha] at h
         | q _ => simp [infer, hf, ha] at h
         | opt _ => simp [infer, hf, ha] at h
+        | list _ => simp [infer, hf, ha] at h
         | arr dom cod =>
           simp [infer, hf, ha] at h
           obtain ⟨rfl, rfl⟩ := h
@@ -138,6 +139,7 @@ theorem infer_sound :
       | nat => simp [infer, he] at h
       | q _ => simp [infer, he] at h
       | opt _ => simp [infer, he] at h
+      | list _ => simp [infer, he] at h
       | arr _ _ => simp [infer, he] at h
   | Γ, .delay i e, τ, h => by
     by_cases hΓ : Γ = []

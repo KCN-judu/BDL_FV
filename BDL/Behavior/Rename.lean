@@ -37,21 +37,25 @@ def Ty.rename (σ : SemanticId → SemanticId) : Ty → Ty
   | .sem s => .sem (σ s)
   | .q d => .q d
   | .opt τ => .opt (τ.rename σ)
+  | .list τ => .list (τ.rename σ)
 
 theorem Ty.rename_data (σ : SemanticId → SemanticId) : ∀ τ : Ty, τ.Data → (τ.rename σ).Data
   | .bool, h | .nat, h | .q _, h | .sem _, h => h
   | .opt τ, h => Ty.rename_data σ τ h
+  | .list τ, h => Ty.rename_data σ τ h
   | .arr _ _, h => h.elim
 
 theorem Ty.rename_data_iff (σ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.rename σ).Data ↔ τ.Data
   | .bool | .nat | .q _ | .sem _ => Iff.rfl
   | .opt τ => Ty.rename_data_iff σ τ
+  | .list τ => Ty.rename_data_iff σ τ
   | .arr _ _ => Iff.rfl
 
 theorem Ty.rename_semFree (σ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.rename σ).SemFree ↔ τ.SemFree
   | .bool | .nat | .q _ => Iff.rfl
   | .sem _ => Iff.rfl
   | .opt τ => Ty.rename_semFree σ τ
+  | .list τ => Ty.rename_semFree σ τ
   | .arr a b => by
     simp only [Ty.rename, Ty.SemFree]
     exact and_congr (Ty.rename_semFree σ a) (Ty.rename_semFree σ b)
@@ -61,21 +65,24 @@ theorem Ty.rename_of_semFree (σ : SemanticId → SemanticId) : ∀ τ : Ty, τ.
   | .bool, _ | .nat, _ | .q _, _ => rfl
   | .sem _, h => h.elim
   | .opt τ, h => by simp [Ty.rename, Ty.rename_of_semFree σ τ h]
+  | .list τ, h => by simp [Ty.rename, Ty.rename_of_semFree σ τ h]
   | .arr a b, h => by simp [Ty.rename, Ty.rename_of_semFree σ a h.1, Ty.rename_of_semFree σ b h.2]
 
 theorem Ty.rename_grant (σ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.rename σ).grant = τ.grant.map σ
-  | .bool | .nat | .q _ | .opt _ => rfl
+  | .bool | .nat | .q _ | .opt _ | .list _ => rfl
   | .sem _ => rfl
   | .arr _ b => Ty.rename_grant σ b
 
 theorem Ty.rename_comp (σ₁ σ₂ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.rename σ₁).rename σ₂ = τ.rename (σ₂ ∘ σ₁)
   | .bool | .nat | .q _ | .sem _ => rfl
   | .opt τ => by simp [Ty.rename, Ty.rename_comp σ₁ σ₂ τ]
+  | .list τ => by simp [Ty.rename, Ty.rename_comp σ₁ σ₂ τ]
   | .arr a b => by simp [Ty.rename, Ty.rename_comp σ₁ σ₂ a, Ty.rename_comp σ₁ σ₂ b]
 
 theorem Ty.rename_id : ∀ τ : Ty, τ.rename (fun s => s) = τ
   | .bool | .nat | .q _ | .sem _ => rfl
   | .opt τ => by simp [Ty.rename, Ty.rename_id τ]
+  | .list τ => by simp [Ty.rename, Ty.rename_id τ]
   | .arr a b => by simp [Ty.rename, Ty.rename_id a, Ty.rename_id b]
 
 def Prim.rename (σ : SemanticId → SemanticId) : Prim → Prim
@@ -94,12 +101,19 @@ def Prim.rename (σ : SemanticId → SemanticId) : Prim → Prim
   | .some τ => .some (τ.rename σ)
   | .isSome τ => .isSome (τ.rename σ)
   | .getD τ => .getD (τ.rename σ)
+  | .nil τ => .nil (τ.rename σ)
+  | .cons τ => .cons (τ.rename σ)
+  | .length τ => .length (τ.rename σ)
+  | .take τ => .take (τ.rename σ)
+  | .reverse τ => .reverse (τ.rename σ)
+  | .head τ => .head (τ.rename σ)
 
 /-- Dimension algebra is untouched by renaming: the type of a renamed
     primitive is the renamed type. -/
 theorem Prim.rename_ty (σ : SemanticId → SemanticId) : ∀ p : Prim, (p.rename σ).ty = p.ty.rename σ
   | .lit _ _ | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ | .eq _ | .not | .and | .or => rfl
   | .ite _ | .none _ | .some _ | .isSome _ | .getD _ => rfl
+  | .nil _ | .cons _ | .length _ | .take _ | .reverse _ | .head _ => rfl
 
 /-! ## Terms -/
 

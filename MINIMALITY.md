@@ -74,12 +74,17 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | `sync src init e` (transport) | **yes** — the one temporal read | — | — | no | Phase 5 (D-45); `delay` = `sync own` |
 | `hold` / `latest` | no | yes → `sync` | — | no | Phase 5 |
 | `sample` | no | yes → `sync` at the destination's activation | — | no | Phase 5 |
-| `buffer` / event queue | no | yes → `sync` of a log + `delay` of a cursor (+ list data) | capacity | no | Phase 5 (D-48); object-language form pending `Ty.list` |
+| `buffer` / event queue | no | yes → five declarations over `sync` of a log + `delay` of a cursor + list data | capacity | no | Phase 5 (D-48); Phase 9a (D-85): `buffer_window_correspondence` |
 | `drop` | no | yes → head of the window | — | no | Phase 5 |
 | `coalesce μ` | no | yes → fold of the window | — | no | Phase 5 |
 | transport initialization (`init` on `sync`) | **yes** | shown | no | no | Phase 5: deterministic first activation |
 | scheduler / staging rule | no — strictly-before makes order irrelevant | — | — | **yes** | Phase 5: `scheduling_order_observable` shows why the alternative needs one |
-| `Ty.list` and list operators | pending | — | — | — | needed only to write the buffer in the object language |
+| `Ty.list` and list operators (`nil`/`cons`/`length`/`take`/`reverse`/`head`) | **yes** (data type + registered operators) | — | — | no | Phase 9a (D-83, D-84): `bounded_summary_not_lossless`; no new typing/evaluation/domain rule |
+| `Event τ` as a type | no | — | — | **yes** | Phase 9a: an event is a data-typed declaration in a domain; its lossless view is the window |
+| `latest` / `count` / `coalesce μ` as the transported representation | no | yes → computation over `window` | — | as transport: **yes** | Phase 9a Models A–C: `latest_not_lossless`, `count_not_lossless`, `sum_not_lossless` |
+| fixed-size event tuple | no | — | — | **yes** | Phase 9a Model D: `modelD_not_lossless` |
+| buffer capacity | no | annotation | **yes** (`CapacitySufficient`, `requiredCapacity`, periodic bound) | no | Phase 9a (D-86) |
+| overflow policy (`dropOldest`/`dropNewest`) | no | explicit computation over the window | reject-deployment preserves semantics | no | Phase 9a (D-86): `sufficient_capacity_preserves`, `negE` |
 | `OutputId` (sink resource identity) | **yes** | device names | — | no | Phase 6 (D-50): `type_keyed_binding_collides` |
 | output binding (drive edge `β`, `DriveWF`) | **yes** | "connect to actuator" | — | no | Phase 6 (D-51): type and clock equality only |
 | single-driver global invariant | **yes** | diagnostic | — | no | Phase 6 (D-52): `multiple_direct_drivers_rejected` |
@@ -384,6 +389,22 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - CAN IT BE DESUGARED: the pipeline `OutputId → DeviceKind → Requirements` is the desugaring
 - VALIDATION DIFFERENCE: C, D, E, H
 - LEAN THEOREM / COUNTEREXAMPLE: as named
+
+### FEATURE: list data (`Ty.list`, six operators)
+- LAYER: kernel (data type + registered operators)
+- WHY IT EXISTS: a lossless cross-domain window is unbounded sequence data (`bounded_summary_not_lossless`)
+- WHAT BREAKS WITHOUT IT: the Phase-5 buffer cannot be written in the object language; only lossy transport (`opt_loses_multiplicity_under_sync`)
+- CAN IT BE DESUGARED: no; every summary of bounded size is lossy
+- VALIDATION DIFFERENCE: none — no typing, evaluation, or domain rule added (`list_clock_conservative`)
+- LEAN THEOREM / COUNTEREXAMPLE: `list_data`, `reactive_total_with_lists`, `multi_domain_total_with_lists`, `latest_not_lossless`, `count_not_lossless`
+
+### FEATURE: buffered transport (`BDL.Buffer.decls`)
+- LAYER: surface elaboration (five declarations over `delay`/`sync`/list operators)
+- WHY IT EXISTS: order and multiplicity of cross-domain events are observable
+- WHAT BREAKS WITHOUT IT: nothing in the kernel; the designer writes the five declarations by hand
+- CAN IT BE DESUGARED: it *is* the desugaring; `buffer_window_correspondence` proves it equals the Phase-5 window
+- VALIDATION DIFFERENCE: capacity (`CapacitySufficient`); overflow is explicit and only reject-deployment preserves semantics
+- LEAN THEOREM / COUNTEREXAMPLE: `buffer_elaboration_well_typed`, `buffer_elaboration_well_clocked`, `buffer_window_correspondence`, `buffer_lossless`, `sufficient_capacity_preserves`, `negE`
 
 ### FEATURE: exhaustive solver with soundness and completeness
 - LAYER: validation

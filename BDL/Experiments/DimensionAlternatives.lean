@@ -84,11 +84,13 @@ def _root_.BDL.Ty.eraseDim : Ty → Ty
   | .q _ => .q Dim.zero
   | .arr a b => .arr a.eraseDim b.eraseDim
   | .opt τ => .opt τ.eraseDim
+  | .list τ => .list τ.eraseDim
   | τ => τ
 
 theorem _root_.BDL.Ty.eraseDim_data : ∀ {τ : Ty}, τ.Data → τ.eraseDim.Data
   | .bool, _ | .nat, _ | .q _, _ | .sem _, _ => trivial
   | .opt τ, h => Ty.eraseDim_data (τ := τ) h
+  | .list τ, h => Ty.eraseDim_data (τ := τ) h
   | .arr _ _, h => h.elim
 
 def _root_.BDL.Prim.eraseDim : Prim → Prim
@@ -104,6 +106,12 @@ def _root_.BDL.Prim.eraseDim : Prim → Prim
   | .some τ => .some τ.eraseDim
   | .isSome τ => .isSome τ.eraseDim
   | .getD τ => .getD τ.eraseDim
+  | .nil τ => .nil τ.eraseDim
+  | .cons τ => .cons τ.eraseDim
+  | .length τ => .length τ.eraseDim
+  | .take τ => .take τ.eraseDim
+  | .reverse τ => .reverse τ.eraseDim
+  | .head τ => .head τ.eraseDim
   | p => p
 
 theorem _root_.BDL.Prim.ty_eraseDim (p : Prim) : p.eraseDim.ty = p.ty.eraseDim := by

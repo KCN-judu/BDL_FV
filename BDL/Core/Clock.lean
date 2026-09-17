@@ -244,7 +244,7 @@ theorem mevalF_sound {S : Sched} {Δ : DeclEnv} {I : Input} :
         simp only [Option.some.injEq] at hm
         subst hm
         exact .appPrim (mevalF_sound hf) (mevalF_sound ha)
-      | bool _ | nat _ | sem _ _ | none | some _ => simp at hm
+      | bool _ | nat _ | sem _ _ | none | some _ | list _ => simp at hm
     | declRef d =>
       simp only [mevalF] at h
       cases hr : Δ.realizationOf d with
@@ -255,7 +255,7 @@ theorem mevalF_sound {S : Sched} {Δ : DeclEnv} {I : Input} :
       obtain ⟨ve, he, hm⟩ := h
       cases ve with
       | sem s w => simp only [Option.some.injEq] at hm; subst hm; exact .rep (mevalF_sound he)
-      | bool _ | nat _ | none | some _ | clo _ _ | prim _ _ => simp at hm
+      | bool _ | nat _ | none | some _ | clo _ _ | prim _ _ | list _ => simp at hm
     | mk s e =>
       simp only [mevalF, Option.map_eq_some_iff] at h
       obtain ⟨w, hw, rfl⟩ := h

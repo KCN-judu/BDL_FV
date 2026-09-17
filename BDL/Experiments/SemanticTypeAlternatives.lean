@@ -125,6 +125,7 @@ def _root_.BDL.Ty.erase (ρ : SemanticId → Ty) : Ty → Ty
   | .sem s => ρ s
   | .arr a b => .arr (a.erase ρ) (b.erase ρ)
   | .opt τ => .opt (τ.erase ρ)
+  | .list τ => .list (τ.erase ρ)
   | .bool => .bool
   | .nat => .nat
   | .q d => .q d
@@ -135,6 +136,7 @@ theorem _root_.BDL.Ty.erase_semFree (ρ : SemanticId → Ty) : ∀ {τ : Ty}, τ
   | .q _, _ => rfl
   | .sem _, h => h.elim
   | .opt τ, h => by simp [Ty.erase, Ty.erase_semFree ρ (τ := τ) h]
+  | .list τ, h => by simp [Ty.erase, Ty.erase_semFree ρ (τ := τ) h]
   | .arr a b, h => by simp [Ty.erase, Ty.erase_semFree ρ h.1, Ty.erase_semFree ρ h.2]
 
 /-- Registered operators are sem-free *except* the polymorphic ones instantiated
@@ -146,6 +148,12 @@ def _root_.BDL.Prim.erase (ρ : SemanticId → Ty) : Prim → Prim
   | .some τ => .some (τ.erase ρ)
   | .isSome τ => .isSome (τ.erase ρ)
   | .getD τ => .getD (τ.erase ρ)
+  | .nil τ => .nil (τ.erase ρ)
+  | .cons τ => .cons (τ.erase ρ)
+  | .length τ => .length (τ.erase ρ)
+  | .take τ => .take (τ.erase ρ)
+  | .reverse τ => .reverse (τ.erase ρ)
+  | .head τ => .head (τ.erase ρ)
   | p => p
 
 theorem _root_.BDL.Prim.ty_erase (ρ : SemanticId → Ty) (p : Prim) : (p.erase ρ).ty = p.ty.erase ρ := by
@@ -168,6 +176,7 @@ theorem _root_.BDL.Ty.erase_data (ρ : SemanticId → Ty) (hρ : ∀ s, (ρ s).D
   | .q _, _ => trivial
   | .sem s, _ => hρ s
   | .opt τ, h => Ty.erase_data ρ hρ (τ := τ) h
+  | .list τ, h => Ty.erase_data ρ hρ (τ := τ) h
   | .arr _ _, h => h.elim
 
 def _root_.BDL.DesignDecl.erase (ρ : SemanticId → Ty) (d : DesignDecl) : DesignDecl :=
@@ -341,6 +350,7 @@ def _root_.BDL.Ty.denote : Ty → Type
   | .q _ => Nat
   | .arr a b => a.denote → b.denote
   | .opt τ => Option τ.denote
+  | .list τ => List τ.denote
   | .sem _ => Empty
 
 def _root_.BDL.Prim.denote : ∀ p : Prim, p.ty.denote
@@ -359,6 +369,12 @@ def _root_.BDL.Prim.denote : ∀ p : Prim, p.ty.denote
   | .some τ => (show τ.denote → Option τ.denote from Option.some)
   | .isSome τ => (show Option τ.denote → Bool from Option.isSome)
   | .getD τ => (show Option τ.denote → τ.denote → τ.denote from Option.getD)
+  | .nil τ => (show List τ.denote from [])
+  | .cons τ => (show τ.denote → List τ.denote → List τ.denote from fun x xs => x :: xs)
+  | .length τ => (show List τ.denote → Nat from List.length)
+  | .take τ => (show Nat → List τ.denote → List τ.denote from fun k xs => xs.take k)
+  | .reverse τ => (show List τ.denote → List τ.denote from List.reverse)
+  | .head τ => (show List τ.denote → Option τ.denote from List.head?)
 
 /-- Interpretation of a context: a value for every variable. -/
 def _root_.BDL.Ctx.Interp (Γ : Ctx) : Type := ∀ (i : Nat) (τ : Ty), Γ[i]? = some τ → τ.denote
@@ -407,6 +423,7 @@ def _root_.BDL.Expr.eval {Θ : ConceptEnv} {Δ : DeclEnv} (δ : Δ.Interp) :
         | q _ => simp [infer, hf, ha] at h
         | sem _ => simp [infer, hf, ha] at h
         | opt _ => simp [infer, hf, ha] at h
+        | list _ => simp [infer, hf, ha] at h
         | arr dom cod =>
           simp [infer, hf, ha] at h
           obtain ⟨rfl, rfl⟩ := h
@@ -422,6 +439,7 @@ def _root_.BDL.Expr.eval {Θ : ConceptEnv} {Δ : DeclEnv} (δ : Δ.Interp) :
       | nat => simp [infer, he] at h
       | q _ => simp [infer, he] at h
       | opt _ => simp [infer, he] at h
+      | list _ => simp [infer, he] at h
       | arr _ _ => simp [infer, he] at h
   | .mk s e, _, _, _, h => by simp [infer, Grant.none] at h
   | .delay i e, Γ, γ, τ, h => by
@@ -462,6 +480,7 @@ def _root_.BDL.Ty.SemFree.inhabitant : ∀ {τ : Ty}, τ.SemFree → τ.denote
   | .nat, _ => (show Nat from 0)
   | .q _, _ => (show Nat from 0)
   | .opt _, _ => (show Option _ from Option.none)
+  | .list _, _ => (show List _ from [])
   | .arr _ b, h => fun _ => Ty.SemFree.inhabitant (τ := b) h.2
 
 /-- **Result 6.**  In an environment declaring only sem-free types, no closed

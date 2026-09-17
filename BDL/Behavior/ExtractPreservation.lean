@@ -802,6 +802,7 @@ theorem renOf_s (k : Nat) : (X.renOf k).s = fun s => s := by
 theorem _root_.BDL.Prim.rename_id : ∀ p : Prim, p.rename (fun s => s) = p
   | .lit _ _ | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ | .eq _ | .not | .and | .or => rfl
   | .ite τ | .none τ | .some τ | .isSome τ | .getD τ => by simp [Prim.rename, Ty.rename_id]
+  | .nil τ | .cons τ | .length τ | .take τ | .reverse τ | .head τ => by simp [Prim.rename, Ty.rename_id]
 
 /-- `d` is visible on side `k`: it is declared on that side, either as its
     home copy or as a port copy. -/

@@ -40,6 +40,8 @@ inductive Value where
   | some (v : Value)
   | clo (ρ : List Value) (body : Expr)
   | prim (p : Prim) (args : List Value)
+  /-- Phase 9a: an ordinary list value (the cross-domain window). -/
+  | list (vs : List Value)
   deriving Repr, Inhabited
 
 /-- Projections used to state example results decidably (`Value` is a nested
@@ -53,9 +55,9 @@ def Value.toBool? : Value → Option Bool
   | _ => Option.none
 
 def _root_.BDL.Prim.arity : Prim → Nat
-  | .lit _ _ => 0 | .none _ => 0
-  | .not | .isSome _ | .some _ => 1
-  | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ | .eq _ | .and | .or | .getD _ => 2
+  | .lit _ _ => 0 | .none _ => 0 | .nil _ => 0
+  | .not | .isSome _ | .some _ | .length _ | .reverse _ | .head _ => 1
+  | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ | .eq _ | .and | .or | .getD _ | .cons _ | .take _ => 2
   | .ite _ => 3
 
 /-- Saturated primitive evaluation.  Ill-shaped arguments (excluded by typing)
@@ -78,6 +80,13 @@ def _root_.BDL.Prim.compute : Prim → List Value → Value
   | .isSome _, [.none] => .bool false
   | .getD _, [.some x, _] => x
   | .getD _, [.none, d] => d
+  | .nil _, _ => .list []
+  | .cons _, [x, .list xs] => .list (x :: xs)
+  | .length _, [.list xs] => .nat xs.length
+  | .take _, [.nat k, .list xs] => .list (xs.take k)
+  | .reverse _, [.list xs] => .list xs.reverse
+  | .head _, [.list (x :: _)] => .some x
+  | .head _, [.list []] => .none
   | _, _ => .nat 0
 
 /-- Apply a primitive to one more argument: compute when saturated. -/
@@ -206,7 +215,7 @@ theorem evalF_sound {Δ : DeclEnv} {I : Input} :
         simp only [Option.some.injEq] at hm
         subst hm
         exact .appPrim (evalF_sound hf) (evalF_sound ha)
-      | bool _ | nat _ | sem _ _ | none | some _ => simp at hm
+      | bool _ | nat _ | sem _ _ | none | some _ | list _ => simp at hm
     | declRef d =>
       simp only [evalF] at h
       cases hr : Δ.realizationOf d with
@@ -217,7 +226,7 @@ theorem evalF_sound {Δ : DeclEnv} {I : Input} :
       obtain ⟨ve, he, hm⟩ := h
       cases ve with
       | sem s w => simp only [Option.some.injEq] at hm; subst hm; exact .rep (evalF_sound he)
-      | bool _ | nat _ | none | some _ | clo _ _ | prim _ _ => simp at hm
+      | bool _ | nat _ | none | some _ | clo _ _ | prim _ _ | list _ => simp at hm
     | mk s e =>
       simp only [evalF, Option.map_eq_some_iff] at h
       obtain ⟨w, hw, rfl⟩ := h
@@ -373,6 +382,7 @@ def RedSF (A : App) : Ty → Value → Prop
   | .nat, v => ∃ n, v = .nat n
   | .q _, v => ∃ n, v = .nat n
   | .opt τ, v => v = .none ∨ ∃ w, v = .some w ∧ RedSF A τ w
+  | .list τ, v => ∃ vs, v = .list vs ∧ ∀ w ∈ vs, RedSF A τ w
   | .arr a b, v => ∀ w, RedSF A a w → ∃ v', A v w v' ∧ RedSF A b v'
   | .sem _, _ => False
 
@@ -382,6 +392,7 @@ def Red (Θ : ConceptEnv) (A : App) : Ty → Value → Prop
   | .nat, v => ∃ n, v = .nat n
   | .q _, v => ∃ n, v = .nat n
   | .opt τ, v => v = .none ∨ ∃ w, v = .some w ∧ Red Θ A τ w
+  | .list τ, v => ∃ vs, v = .list vs ∧ ∀ w ∈ vs, Red Θ A τ w
   | .arr a b, v => ∀ w, Red Θ A a w → ∃ v', A v w v' ∧ Red Θ A b v'
   | .sem s, v => ∃ w, v = .sem s w ∧ ∀ R, Θ s = some R → RedSF A R w
 
@@ -400,6 +411,13 @@ theorem Red_semFree {Θ : ConceptEnv} {A : App} :
     · rintro (rfl | ⟨w, rfl, hw⟩)
       · exact Or.inl rfl
       · exact Or.inr ⟨w, rfl, (Red_semFree (τ := τ) h).mpr hw⟩
+  | .list τ, h, v => by
+    simp only [Red, RedSF]
+    constructor
+    · rintro ⟨vs, rfl, hvs⟩
+      exact ⟨vs, rfl, fun w hw => (Red_semFree (τ := τ) h).mp (hvs w hw)⟩
+    · rintro ⟨vs, rfl, hvs⟩
+      exact ⟨vs, rfl, fun w hw => (Red_semFree (τ := τ) h).mpr (hvs w hw)⟩
   | .arr a b, h, v => by
     simp only [Red, RedSF]
     constructor
@@ -424,6 +442,10 @@ theorem RedSF_data {A A' : App} :
     rcases h with rfl | ⟨w, rfl, hw⟩
     · exact Or.inl rfl
     · exact Or.inr ⟨w, rfl, RedSF_data (τ := τ) hd hw⟩
+  | .list τ, hd, v, h => by
+    simp only [RedSF] at h ⊢
+    obtain ⟨vs, rfl, hvs⟩ := h
+    exact ⟨vs, rfl, fun w hw => RedSF_data (τ := τ) hd (hvs w hw)⟩
 
 theorem Red_data {Θ : ConceptEnv} (hΘ : Θ.WF) {A A' : App} :
     ∀ {τ : Ty}, τ.Data → ∀ {v : Value}, Red Θ A τ v → Red Θ A' τ v
@@ -439,6 +461,10 @@ theorem Red_data {Θ : ConceptEnv} (hΘ : Θ.WF) {A A' : App} :
     rcases h with rfl | ⟨w, rfl, hw⟩
     · exact Or.inl rfl
     · exact Or.inr ⟨w, rfl, Red_data (τ := τ) hΘ hd hw⟩
+  | .list τ, hd, v, h => by
+    simp only [Red] at h ⊢
+    obtain ⟨vs, rfl, hvs⟩ := h
+    exact ⟨vs, rfl, fun w hw => Red_data (τ := τ) hΘ hd (hvs w hw)⟩
 
 /-- Environments related pointwise. -/
 def RedEnv (Θ : ConceptEnv) (A : App) (Γ : Ctx) (ρ : List Value) : Prop :=
@@ -528,6 +554,45 @@ theorem Red_prim {Θ : ConceptEnv} {A : App} (hA : A.HasPrim) (p : Prim) :
     rcases ho with rfl | ⟨w, rfl, hw⟩
     · simpa [applyPrim, Prim.arity, Prim.compute] using hd
     · simpa [applyPrim, Prim.arity, Prim.compute] using hw
+  | nil τ => exact ⟨[], by simp [applyPrim, Prim.arity, Prim.compute], fun _ h => by simp at h⟩
+  | cons τ =>
+    simp only [Prim.ty, Red, applyPrim, Prim.arity]
+    intro x hx
+    refine ⟨_, hA _ _ _, ?_⟩
+    simp only [applyPrim, Prim.arity]
+    rintro _ ⟨vs, rfl, hvs⟩
+    refine ⟨_, hA _ _ _, ?_⟩
+    refine ⟨x :: vs, by simp [applyPrim, Prim.arity, Prim.compute], ?_⟩
+    intro w hw
+    rcases List.mem_cons.mp hw with rfl | hw
+    · exact hx
+    · exact hvs w hw
+  | length τ =>
+    simp only [Prim.ty, Red, applyPrim, Prim.arity]
+    rintro _ ⟨vs, rfl, -⟩
+    exact ⟨_, hA _ _ _, vs.length, by simp [applyPrim, Prim.arity, Prim.compute]⟩
+  | take τ =>
+    simp only [Prim.ty, Red, applyPrim, Prim.arity]
+    rintro _ ⟨k, rfl⟩
+    refine ⟨_, hA _ _ _, ?_⟩
+    simp only [applyPrim, Prim.arity]
+    rintro _ ⟨vs, rfl, hvs⟩
+    refine ⟨_, hA _ _ _, vs.take k, by simp [applyPrim, Prim.arity, Prim.compute], ?_⟩
+    intro w hw
+    exact hvs w (List.mem_of_mem_take hw)
+  | reverse τ =>
+    simp only [Prim.ty, Red, applyPrim, Prim.arity]
+    rintro _ ⟨vs, rfl, hvs⟩
+    refine ⟨_, hA _ _ _, vs.reverse, by simp [applyPrim, Prim.arity, Prim.compute], ?_⟩
+    intro w hw
+    exact hvs w (List.mem_reverse.mp hw)
+  | head τ =>
+    simp only [Prim.ty, Red, applyPrim, Prim.arity]
+    rintro _ ⟨vs, rfl, hvs⟩
+    refine ⟨_, hA _ _ _, ?_⟩
+    cases vs with
+    | nil => exact Or.inl (by simp [applyPrim, Prim.arity, Prim.compute])
+    | cons x xs => exact Or.inr ⟨x, by simp [applyPrim, Prim.arity, Prim.compute], hvs x (List.mem_cons_self)⟩
 
 /-- **Fundamental theorem.**  In a causal, globally well-formed design with
     well-typed inputs, every well-typed term whose instantaneous references
@@ -653,6 +718,7 @@ inductive Value.Taints (s : SemanticId) : Value → Prop where
   | cloEnv {ρ : List Value} {body : Expr} {v : Value} : v ∈ ρ → Value.Taints s v → Value.Taints s (.clo ρ body)
   | cloBody {ρ : List Value} {body : Expr} : body.constructs s → Value.Taints s (.clo ρ body)
   | primArg {p : Prim} {args : List Value} {v : Value} : v ∈ args → Value.Taints s v → Value.Taints s (.prim p args)
+  | listElem {vs : List Value} {v : Value} : v ∈ vs → Value.Taints s v → Value.Taints s (.list vs)
 
 /-- A saturated primitive either returns one of its arguments or a fresh
     untagged value: it never introduces a tag. -/
@@ -665,6 +731,15 @@ theorem Prim.compute_taints {s : SemanticId} (p : Prim) (args : List Value)
     | (cases h; done)
     | (cases h with | someInner h' => (refine ⟨_, ?_, h'⟩; simp; done))
     | (rename_i c x y; cases c <;> simp only [Bool.false_eq_true, ↓reduceIte] at h <;> (refine ⟨_, ?_, h⟩; simp; done))
+    -- Phase 9a: list results are built from list arguments
+    | (cases h with | listElem hm _ => (simp at hm; done))
+    | (cases h with | listElem hm h' =>
+        (rcases List.mem_cons.mp hm with rfl | hm'
+         · (refine ⟨_, ?_, h'⟩; simp; done)
+         · (refine ⟨_, ?_, Value.Taints.listElem hm' h'⟩; simp; done)))
+    | (cases h with | listElem hm h' => (refine ⟨_, ?_, Value.Taints.listElem (List.mem_of_mem_take hm) h'⟩; simp; done))
+    | (cases h with | listElem hm h' => (refine ⟨_, ?_, Value.Taints.listElem (List.mem_reverse.mp hm) h'⟩; simp; done))
+    | (cases h with | someInner h' => (rename_i x xs; refine ⟨.list (x :: xs), ?_, Value.Taints.listElem List.mem_cons_self h'⟩; simp; done))
 
 theorem applyPrim_taints {s : SemanticId} (p : Prim) (args : List Value)
     (h : (applyPrim p args).Taints s) : ∃ v ∈ args, v.Taints s := by
@@ -783,6 +858,7 @@ inductive Value.HasClo : Value → Prop where
   | semInner {s : SemanticId} {v : Value} : Value.HasClo v → Value.HasClo (.sem s v)
   | someInner {v : Value} : Value.HasClo v → Value.HasClo (.some v)
   | primArg {p : Prim} {args : List Value} {v : Value} : v ∈ args → Value.HasClo v → Value.HasClo (.prim p args)
+  | listElem {vs : List Value} {v : Value} : v ∈ vs → Value.HasClo v → Value.HasClo (.list vs)
 
 abbrev Value.NoClo (v : Value) : Prop := ¬ v.HasClo
 
@@ -795,6 +871,15 @@ theorem Prim.compute_noClo (p : Prim) (args : List Value) (h : ∀ v ∈ args, v
     | (cases hc; done)
     | (cases hc with | someInner hc' => (refine h _ ?_ hc'; simp; done))
     | (rename_i c x y; cases c <;> simp only [Bool.false_eq_true, ↓reduceIte] at hc <;> (refine h _ ?_ hc; simp; done))
+    -- Phase 9a: list results are built from list arguments
+    | (cases hc with | listElem hm _ => (simp at hm; done))
+    | (cases hc with | listElem hm hc' =>
+        (rcases List.mem_cons.mp hm with rfl | hm'
+         · (refine h _ ?_ hc'; simp; done)
+         · (refine h _ ?_ (Value.HasClo.listElem hm' hc'); simp; done)))
+    | (cases hc with | listElem hm hc' => (refine h _ ?_ (Value.HasClo.listElem (List.mem_of_mem_take hm) hc'); simp; done))
+    | (cases hc with | listElem hm hc' => (refine h _ ?_ (Value.HasClo.listElem (List.mem_reverse.mp hm) hc'); simp; done))
+    | (cases hc with | someInner hc' => (rename_i x xs; refine h (.list (x :: xs)) ?_ (Value.HasClo.listElem List.mem_cons_self hc'); simp; done))
 
 theorem applyPrim_noClo (p : Prim) (args : List Value) (h : ∀ v ∈ args, v.NoClo) : (applyPrim p args).NoClo := by
   unfold applyPrim; split

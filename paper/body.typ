@@ -1413,10 +1413,33 @@ and `count` with `latest` each lose information and each identifies
 distinct windows; only the list is injective. So multiplicity and order
 are observable, buffering is required to keep them, buffering is a
 structured use of the existing state basis plus list data, and a bound
-on the buffer is a validation obligation. Writing the buffer in the
-object language needs a list type and a few list operators, which the
-kernel does not yet have. Until that is closed, the reduction of
-buffering to the two primitives is a semantic-level result.
+on the buffer is a validation obligation.
+
+Writing the buffer in the object language needs sequence data, and the
+kernel now has it: an ordinary list type $upright("list") thick tau$,
+data exactly when $tau$ is, with six registered operators (`nil`,
+`cons`, `length`, `take`, `reverse`, `head`) typed like every other
+primitive. No typing, evaluation, or domain rule was added, and every
+earlier theorem held unchanged. With it the buffer is five declarations:
+a source-side log `cons src (delay nil log)`, its transport
+`sync src nil log`, the length `seen` of the transported log, a cursor
+`delay 0 seen`, and the window `reverse (take (seen − cursor) logD)`.
+The correspondence is proved for every schedule, input, destination and
+tick: the window declaration evaluates, in the destination domain, to
+exactly the source's values at the window's activations, in order and
+with multiplicity. The list representation is injective on windows,
+whereas `latest`, `count`, a fold, and any summary bounded to a fixed
+number of newest entries each identify distinct windows --- so a
+lossless summary is necessarily unbounded, and the list is the smallest
+general sequence representation tested. Capacity remains validation: for
+a finite horizon sufficiency is decidable and the least sufficient
+capacity is computed with a proof; for periodic schedules one
+destination period suffices at every horizon. Overflow is never
+implicit. Dropping the oldest or newest entries is the identity under
+sufficient capacity and changes the trace otherwise; the only policy
+that preserves the kernel semantics is to reject the deployment. An
+event type is still not needed: an event is a data-typed declaration in
+a domain, and its lossless cross-domain view is the window.
 
 = Physical Outputs Without Arbitration
 <physical-outputs-without-arbitration>
@@ -1759,7 +1782,9 @@ the tested designs.
   [`ClockId`, clock environment, `Clocked`], [kernel], [direct wire ambiguous without it; equal rate is not same domain],
   [clock in the type], [removed], [forces polymorphism on every pure mapping],
   [`sync src init e`], [kernel], [one transport; `delay` is its diagonal; same-tick visibility makes scheduler order observable],
-  [event policies], [surface], [derived from the window; buffer = log + cursor],
+  [`list τ` with six operators], [kernel], [a lossless window is unbounded sequence data; no new typing, evaluation, or domain rule],
+  [buffer primitive, `Event τ` across domains], [removed], [buffer = five declarations over `delay`/`sync`/lists; proved equal to the window],
+  [event policies, capacity], [surface; validation], [policies are computations over the window; only reject-deployment preserves semantics],
   [`OutputId`, drive edge, `DriveWF`, `SingleDriver`], [kernel], [two drivers make the output non-functional; hidden policy observable],
   [effect rows, action values, arbitration], [removed], [rows duplicate edges or false-positive; values relocate the conflict],
   [hardware resources, requirements, solver], [validation], [feasibility is target-relative and not monotone],
@@ -2032,18 +2057,18 @@ probabilistic sensor estimates, distributed clock uncertainty, or hybrid
 semantics. These are substantial extensions, not footnotes.
 
 Several boundaries are internal to what was formalized. Causality is
-conservative for lambda-guarded cycles. The event buffer is derived on
-tick sets, not written in the object language, pending a list type. The
-agreement between unfolding and tick-by-tick evaluation is proved for
-first-order designs only. The StateHandler reduction covers the tested
-cases and not contexts with their own clocks. Hardware validation covers
-discrete pin and peripheral allocation with unary and binary
-constraints, and no numeric electrical or timing property. The
-explanation facility reports a first dead end, not a minimal core.
-Interface-level references --- commitments that mention other
-declarations --- are not modelled, so the dependency graph is over
-realizations only. Whether a realization may delegate its grant to a
-higher-order argument is untested. Affine units are not modelled.
+conservative for lambda-guarded cycles. The buffer correspondence
+assumes an input source; the list operators are the six the buffer and
+the tested policies need. The agreement between unfolding and
+tick-by-tick evaluation is proved for first-order designs only. The
+StateHandler reduction covers the tested cases and not contexts with
+their own clocks. Hardware validation covers discrete pin and peripheral
+allocation with unary and binary constraints, and no numeric electrical
+or timing property. The explanation facility reports a first dead end,
+not a minimal core. Interface-level references --- commitments that
+mention other declarations --- are not modelled, so the dependency graph
+is over realizations only. Whether a realization may delegate its grant
+to a higher-order argument is untested. Affine units are not modelled.
 
 == Risks of the design
 <risks-of-the-design>

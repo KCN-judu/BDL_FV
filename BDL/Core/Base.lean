@@ -56,6 +56,10 @@ inductive Ty where
   /-- Phase 4: optional value.  `opt τ` streams are the single-domain model
       of events (at most one occurrence per tick). -/
   | opt (τ : Ty)
+  /-- Phase 9a: ordinary list data.  The cross-domain *window* of source
+      occurrences is a `list τ` at the destination; `Event` is still not a
+      type, and buffering is surface elaboration over `delay`/`sync`. -/
+  | list (τ : Ty)
   deriving DecidableEq, Repr
 
 /-- A type mentioning no semantic concept. -/
@@ -63,6 +67,7 @@ def Ty.SemFree : Ty → Prop
   | .sem _ => False
   | .arr a b => a.SemFree ∧ b.SemFree
   | .opt τ => τ.SemFree
+  | .list τ => τ.SemFree
   | _ => True
 
 instance : ∀ τ : Ty, Decidable τ.SemFree
@@ -71,6 +76,7 @@ instance : ∀ τ : Ty, Decidable τ.SemFree
   | .q _ => inferInstanceAs (Decidable True)
   | .sem _ => inferInstanceAs (Decidable False)
   | .opt τ => instDecidableSemFree τ
+  | .list τ => instDecidableSemFree τ
   | .arr a b =>
     have := instDecidableSemFree a
     have := instDecidableSemFree b
@@ -81,6 +87,7 @@ instance : ∀ τ : Ty, Decidable τ.SemFree
 def Ty.Data : Ty → Prop
   | .arr _ _ => False
   | .opt τ => τ.Data
+  | .list τ => τ.Data
   | _ => True
 
 instance : ∀ τ : Ty, Decidable τ.Data
@@ -89,7 +96,13 @@ instance : ∀ τ : Ty, Decidable τ.Data
   | .q _ => inferInstanceAs (Decidable True)
   | .sem _ => inferInstanceAs (Decidable True)
   | .opt τ => instDecidableData τ
+  | .list τ => instDecidableData τ
   | .arr _ _ => inferInstanceAs (Decidable False)
+
+/-- **`list_data`** (Phase 9a): a list is data exactly when its elements
+    are, so lists may be delayed and transported like any other data. -/
+theorem Ty.list_data (τ : Ty) : (Ty.list τ).Data ↔ τ.Data := Iff.rfl
+theorem Ty.list_semFree (τ : Ty) : (Ty.list τ).SemFree ↔ τ.SemFree := Iff.rfl
 
 /-- Registered pure operators (the paper's `p(e₁,…,eₙ)`).  Dimension algebra
     lives entirely in their types; typing an application is ordinary STLC. -/
@@ -111,6 +124,15 @@ inductive Prim where
   | some (τ : Ty)
   | isSome (τ : Ty)
   | getD (τ : Ty)
+  -- Phase 9a: list data — constructors and a first-order eliminator set.
+  -- No `fold`: primitives never apply closures, so a general eliminator
+  -- would need a new evaluation rule; the buffer needs none of it.
+  | nil (τ : Ty)
+  | cons (τ : Ty)
+  | length (τ : Ty)
+  | take (τ : Ty)
+  | reverse (τ : Ty)
+  | head (τ : Ty)
   deriving DecidableEq, Repr
 
 def Prim.ty : Prim → Ty
@@ -129,6 +151,12 @@ def Prim.ty : Prim → Ty
   | .some τ => .arr τ (.opt τ)
   | .isSome τ => .arr (.opt τ) .bool
   | .getD τ => .arr (.opt τ) (.arr τ τ)
+  | .nil τ => .list τ
+  | .cons τ => .arr τ (.arr (.list τ) (.list τ))
+  | .length τ => .arr (.list τ) (.q Dim.zero)
+  | .take τ => .arr (.q Dim.zero) (.arr (.list τ) (.list τ))
+  | .reverse τ => .arr (.list τ) (.list τ)
+  | .head τ => .arr (.list τ) (.opt τ)
 
 /-- Stable identity of a design declaration — an ordinary declaration name,
     not a novel abstraction (Phase 1, REPORT §1.5).  A wrapper rather than a

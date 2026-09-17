@@ -134,6 +134,7 @@ theorem rinfer_sound {Θ : ConceptEnv} {Δ : DeclEnv} {P : Policy} :
         | nat => simp [rinfer, hf, ha] at h
         | q _ => simp [rinfer, hf, ha] at h
         | opt _ => simp [rinfer, hf, ha] at h
+        | list _ => simp [rinfer, hf, ha] at h
         | sem _ => simp [rinfer, hf, ha] at h
         | arr dom cod =>
           simp [rinfer, hf, ha] at h
@@ -149,6 +150,7 @@ theorem rinfer_sound {Θ : ConceptEnv} {Δ : DeclEnv} {P : Policy} :
       | nat => simp [rinfer, he] at h
       | q _ => simp [rinfer, he] at h
       | opt _ => simp [rinfer, he] at h
+      | list _ => simp [rinfer, he] at h
       | arr _ _ => simp [rinfer, he] at h
   | Γ, .mk s e, τ, h => by
     by_cases hp : P.allows s
@@ -260,6 +262,7 @@ def _root_.BDL.Ty.isSourceB (t : SemanticId) : Ty → Bool
   | .nat => false
   | .q _ => false
   | .opt _ => false   -- `none` inhabits every option type: an absent event is no source
+  | .list _ => false  -- `nil` inhabits every list type
   | .sem s => decide (s = t)
   | .arr a b => !a.isSourceB t && b.isSourceB t
 
@@ -277,6 +280,7 @@ def _root_.BDL.Ty.tdenote (t : SemanticId) : Ty → Type
   | .nat => Nat
   | .q _ => Nat
   | .opt τ => Option (τ.tdenote t)
+  | .list τ => List (τ.tdenote t)
   | .arr a b => a.tdenote t → b.tdenote t
   | .sem s => PLift (s ≠ t)
 
@@ -290,6 +294,7 @@ def _root_.BDL.Ty.tinfo (t : SemanticId) : ∀ τ : Ty, TInfo t τ
   | .nat => ⟨fun _ => (show Nat from 0), fun h => by simp [Ty.IsSource, Ty.isSourceB] at h⟩
   | .q _ => ⟨fun _ => (show Nat from 0), fun h => by simp [Ty.IsSource, Ty.isSourceB] at h⟩
   | .opt _ => ⟨fun _ => (show Option _ from Option.none), fun h => by simp [Ty.IsSource, Ty.isSourceB] at h⟩
+  | .list _ => ⟨fun _ => (show List _ from []), fun h => by simp [Ty.IsSource, Ty.isSourceB] at h⟩
   | .sem s =>
     ⟨fun h => ⟨by simpa [Ty.IsSource, Ty.isSourceB] using h⟩,
      fun h x => PLift.down x (by simpa [Ty.IsSource, Ty.isSourceB] using h)⟩
@@ -309,6 +314,7 @@ theorem _root_.BDL.Ty.SemFree.not_source {t : SemanticId} : ∀ {τ : Ty}, τ.Se
   | .nat, _ => by simp [Ty.IsSource, Ty.isSourceB]
   | .q _, _ => by simp [Ty.IsSource, Ty.isSourceB]
   | .opt _, _ => by simp [Ty.IsSource, Ty.isSourceB]
+  | .list _, _ => by simp [Ty.IsSource, Ty.isSourceB]
   | .sem _, h => h.elim
   | .arr a b, h => by
     have := Ty.SemFree.not_source (t := t) (τ := b) h.2
@@ -355,6 +361,7 @@ def REval {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {P : Policy} {t : Seman
         | nat => simp [rinfer, hf, ha] at h
         | q _ => simp [rinfer, hf, ha] at h
         | opt _ => simp [rinfer, hf, ha] at h
+        | list _ => simp [rinfer, hf, ha] at h
         | sem _ => simp [rinfer, hf, ha] at h
         | arr dom cod =>
           simp [rinfer, hf, ha] at h
@@ -372,6 +379,7 @@ def REval {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {P : Policy} {t : Seman
       | nat => simp [rinfer, he] at h
       | q _ => simp [rinfer, he] at h
       | opt _ => simp [rinfer, he] at h
+      | list _ => simp [rinfer, he] at h
       | arr _ _ => simp [rinfer, he] at h
   | .mk s e, Γ, _, τ, h => by
     by_cases hp : P.allows s

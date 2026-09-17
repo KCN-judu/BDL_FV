@@ -586,3 +586,46 @@ system uses `W + n` and `2W + n`; further instances `3W + n`, ….
 **D-82. Nested groups are a relation on the flat group list.**
 Rejected: a recursive group type.  Reason: no kernel significance to
 represent (`nested_no_semantics`).
+
+## Phase 9a
+
+**D-83. `Ty.list τ` is a kernel data type; the object-language buffer needs it and nothing else.**
+Rejected: `latest` (Model A), `count` (B), `coalesce μ` (C), a fixed
+tuple (D) as the transported representation — each identifies distinct
+windows (`latest_not_lossless`, `count_not_lossless`, `sum_not_lossless`,
+`modelD_not_lossless`); every summary bounded to the newest `k` entries
+is lossy (`bounded_summary_not_lossless`).  Reason: Phase 5 showed
+multiplicity and order observable; a lossless summary is injective and
+therefore unbounded.  Claim strength: the list is the smallest general
+sequence representation *tested*, not the only possible one.
+
+**D-84. Six list operators, registered through `Prim.ty`: `nil`, `cons`, `length`, `take`, `reverse`, `head`.**
+Rejected: list typing/evaluation/domain rules; a general folding
+combinator in the kernel.  Reason: the buffer and every tested policy
+need only these; typing is primitive application, evaluation is
+`applyPrim`, `Clocked` has no list clause (`list_clock_conservative`).
+Every earlier theorem is generic in primitives and held unchanged.
+
+**D-85. The buffer is a surface elaboration into five declarations over `delay`/`sync`.**
+`log @src := cons src (delay nil log)`, `logD @dst := sync src nil log`,
+`seen := length logD`, `cursor := delay 0 seen`,
+`window := reverse (take (seen − cursor) logD)`.  Rejected: a buffer
+primitive; `Event τ`; a scheduler order; same-tick visibility.  Reason:
+`buffer_window_correspondence` (Theorem M) — for every schedule, input,
+domain and tick the window evaluates to the Phase-5 window exactly — with
+K/L for typing and clocking.  The Phase-5 `buffer_from_log_and_cursor` is
+reused.
+
+**D-86. Capacity is validation; overflow policies are explicit; only rejecting the deployment preserves semantics.**
+`CapacitySufficient` (decidable for a finite horizon), `requiredCapacity`
+(least sufficient, proved), `periodic_capacity_sufficient` (one
+destination period suffices for periodic schedules at every horizon).
+`dropOldest`/`dropNewest` are functions of the unbounded window: identity
+under sufficient capacity (`sufficient_capacity_preserves`), trace-changing
+under insufficient capacity (`negE`).  Rejected: implicit overflow in the
+kernel.
+
+**D-87. Buffered transport is a Phase-8a binding choice, not a transport kind.**
+A sensor component provides both its event and its log; binding the log
+through `sync nil` yields the window (`transport_trace`), binding the
+event yields `latest` (`latest_transport_loses`).  No new binding kind.
