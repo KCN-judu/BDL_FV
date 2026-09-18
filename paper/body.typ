@@ -16,13 +16,16 @@ could become a standalone paper.
 
 Two repositories are described. The formal development is
 `KCN-judu/BDL_FV`, a Lean 4 project (Lean 4.33.1, no external
-libraries); its state as of this revision is commit `3b4f11b` (Phase
-11), with the phases up to `bd87b66` (Phase 10b) also referenced by
-their commit ids. The production implementation is `KCN-judu/BDL`, a
-Rust toolchain with a Flutter authoring environment; its state as of
-this revision is commit `f1ce82c`. Statements about "production" are
-statements about that revision, dated 2026-09-18, and the document says
-so where the state is likely to move.
+libraries); its state as of this revision is the Phase 12 commit that
+follows `69caa3a` (the monograph rewrite), with `3b4f11b` (Phase 11) and
+`bd87b66` (Phase 10b) also referenced by their commit ids. The
+production implementation is `KCN-judu/BDL`, a Rust toolchain with a
+Flutter authoring environment; its state as of this revision is commit
+`3c6c8be` (the Unit-domain normalization, ADR-0029, protocol 0.14),
+which supersedes the `f1ce82c` snapshot the previous revision described;
+where a statement is only known to hold at `f1ce82c` the text says so.
+Statements about "production" are statements about `3c6c8be`, dated
+2026-09-18, and the document says so where the state is likely to move.
 
 == Claim strength
 <claim-strength>
@@ -108,8 +111,15 @@ because none of these exercises the point.
     compose operations, unit ownership],
     [Phase 11 --- natural expression surface], [binders and ranges as
     conservative desugaring],
-    [this rewrite], [the monograph structure, production architecture,
-    correspondence and deviations, ledgers, open agenda],
+    [the monograph rewrite (`69caa3a`)], [the monograph structure,
+    production architecture, correspondence and deviations, ledgers,
+    open agenda],
+    [production P11 and ADR-0029 (`3c6c8be`)], [the natural forms
+    implemented; one canonical type per relationship, the empty product
+    `()` as the unit domain, protocol 0.13/0.14],
+    [Phase 12 --- unit-domain normalization], [`() -> B` as an interface
+    normalization whose value is the kernel type `B`\; the source role
+    as a realization state; `A -> ()` shown unable to name a consumer],
   )]
   , kind: table
   )
@@ -225,15 +235,17 @@ judgment; and nominal physical outputs with a single explicit driver
 each. A validation layer outside the kernel decides whether a design can
 be placed on a declared target board. Later phases added, each for a
 reason recorded in Parts IV--VII, list and product data with one
-recursor, behavior components and groups, and an exact model of units
-and charts; nothing that was removed has returned.
+recursor, behavior components and groups, an exact model of units and
+charts, and an interface-level account of the canonical type `() -> B`
+that leaves the kernel without a unit; nothing that was removed has
+returned.
 
 The conference manuscript from which this document grew presented three
 views of the same language --- the design problem and the designer's
 vocabulary, the formal architecture, and the interaction model that
 connects them --- and ended where the formal development then ended,
 with an elaboration architecture that had not been implemented. The
-situation has changed. As of production commit `f1ce82c` (2026-09-18) an
+situation has changed. As of production commit `3c6c8be` (2026-09-18) an
 elaborator, a compiler to executable IR and to a `no_std` Rust core, a
 daemon, and the Studio authoring environment with its Formula Composer
 exist and are described in Parts IX--X; what has #emph[not] changed is
@@ -936,9 +948,9 @@ The development builds with Lean 4.33.1 with no `sorry`. The axioms used
 by every theorem are propositional extensionality and quotient
 soundness, the latter only through function extensionality and the
 choice-free rational quotient of Part VII; classical choice is absent,
-and each phase re-audited the whole development for it. As of `3b4f11b`
-the sources are 51 modules: 11 in `Core`, 12 in `Behavior`, 10 in
-`Surface`, 2 in `Validation`, and 16 experiment modules holding
+and each phase re-audited the whole development for it. As of Phase 12
+the sources are 53 modules: 11 in `Core`, 12 in `Behavior`, 11 in
+`Surface`, 2 in `Validation`, and 17 experiment modules holding
 alternatives, counterexamples and executed examples. Every trace,
 assignment, unsatisfiability result and executed example reported here
 was obtained by running a proved-sound interpreter or solver inside the
@@ -962,7 +974,7 @@ architectural result of the formal development.
     ]
     let cell(body) = rect(width: 100%, inset: 3.5pt, radius: 2pt, stroke: 0.4pt, fill: white)[#text(size: 7pt)[#body]]
     stack(dir: ttb, spacing: 3pt,
-      band([Surface (designer-facing)], [semantic properties · Mapping Blocks · temporal modifiers · contexts · device kinds · units and charts · generic equations · groups and components · display names], luma(245)),
+      band([Surface (designer-facing)], [semantic properties · Mapping Blocks · canonical types `domain(inputs) -> B` · temporal modifiers · contexts · device kinds · units and charts · generic equations · groups and components · display names], luma(245)),
       align(center)[#text(size: 7pt)[elaboration #sym.arrow.b #h(1.2em) diagnostics #sym.arrow.t]],
       band([Kernel], [
         #grid(columns: (1fr, 1fr), gutter: 3pt,
@@ -1011,7 +1023,7 @@ Evidence that is not meant to survive refinement --- the existence of a
 pin assignment on a particular board --- is re-established after every
 change and is never merged with the first kind.
 
-@fig:arch shows the layers as they stand after Phase 11; the kernel band
+@fig:arch shows the layers as they stand after Phase 12; the kernel band
 now also holds list and product data with one recursor (Part IV) and the
 behavior-component constructs (Part VI), and the validation band holds
 deployment capacity (Part V). What is notable about the arrangement is
@@ -1183,6 +1195,126 @@ commitment set whose growth is a first-class operation on a
 declared-but-undefined name, and that the kernel imposes a stability
 condition on the validation layer. Neither is a new type-theoretic
 mechanism, and no such claim is made.
+
+== Zero-input relationships: the unit domain (Phase 12)
+<zero-input-relationships-the-unit-domain-phase-12>
+A relationship declared with no inputs ---
+`mapping TempSensor : RoomTemp`, `mapping boost : Brightness` --- is
+typed by the kernel at its output: `expectedType = B`. Production
+(ADR-0029, `3c6c8be`) gives the same relationship a #emph[canonical
+type] `() -> B`, with `()` the empty product, so that every relationship
+has one type shape `domain(inputs) -> B`: `domain([]) = ()`,
+`domain([A]) = A`, `domain([A, B, …]) = A × (B × …)`. The surface spells
+`mapping f : B` as shorthand for `mapping f : () -> B`\; `f`, `f()` and
+`f(())` are one reference; `()` is refused as a value anywhere else, as
+an output, and as a value form; hover and Explain show the canonical
+type and the sentence "its canonical domain is `()`, the empty product;
+the kernel encodes `() -> B` as `B`". Production's `bdl_ir::Ty` has a
+`Unit` constructor for this --- a real IR type with the ordinary
+predicates --- that never types a Core term, a representation or a
+runtime value. ISS-0014 asked whether the kernel and the canonical type
+agree by theorem.
+
+Phase 12 (`Surface/UnitDomain.lean`) answers without adding a unit to
+the kernel. The canonical types live in an #emph[interface layer] above
+it --- `CTy` is the kernel's `Ty` plus `unit`, interface arrows and
+domain products --- and the kernel interface type is the value of a
+normalization function on them (#strong[formally proved]):
+
+$ upright(e l i m)\(upright(c a n o n i c a l)\(s\)\)= upright(e n c o d e)\(s\)\,#h(2em) upright(e n c o d e)\(chevron.l\[thin\]\,B chevron.r\)= B\,quad upright(e n c o d e)\(chevron.l A_1\,dots.h\,A_n\;B chevron.r\)= A_1 arrow.r dots.h.c arrow.r A_n arrow.r B\, $
+
+where `elim` performs unit elimination (`() -> B ↦ B`) and currying
+(`(A × B) -> C ↦ A -> (B -> C)`), is total by a weight both steps
+decrease, and has no value on the bare unit --- `elim () = none`: the
+unit is never the type of anything. The encodings are inverse over every
+signature whose output is not an arrow, hence over every concept
+signature (`decode_encode`, `canonicalOfKernel_encode`,
+`encode_injective`, `canonical_injective`), which is production's
+inverse test as a theorem for all signatures. The categorical slogan
+`Hom(1, B) ≅ B` is thus, in this model, definitional at the kernel (the
+realization obligation of `() -> B` #emph[is] `⊢ e : B` in the empty
+context, `zero_input_obligation`, by `Iff.rfl`), a theorem at the
+interface (the inverse pair), and a bijection denotationally
+(`homUnit : (1 → β) ≅ β`).
+
+Why the unit is eliminated #emph[before] the kernel is a theorem, not a
+preference. The literal alternative --- realize `() -> B` as a lambda
+over the unique argument and read it by application --- is refused by
+typing: no term `λx. delay i e` has any type, for any binder domain,
+because `delay` and `sync` are typed only in the empty context
+(`delay_not_under_binder`, `sync_not_under_binder`), while
+`delay init e : B` is a legal realization of `() -> B` under the kernel
+encoding (`zero_input_memory`). A kernel unit binder would forbid memory
+in every zero-input declaration; a counter
+`boost := delay 0 (boost + 1)` would become untypable. `lams_typed`
+states the general case: a formula body checked in the context of its
+inputs is a realization of the encoded type under `n` binders, and for
+no inputs there is no binder.
+
+The three spellings are one term (`refForms_agree`), so they share
+typing, evaluation and the clock judgment by reflexivity
+(`HasType.refForms`, `Clocked.refForms`). Two theorems say what the
+unique argument could have carried, and that it carries nothing: a
+reference's value at a tick is independent of the local environment ---
+a realized declaration evaluates in the empty environment, an unresolved
+one is read from the input stream (`Ev.declRef_env_irrelevant`,
+`MEv.declRef_env_irrelevant`) --- and two readings in one tick agree
+under any two environments (`same_tick_same_value`). There is no
+per-reference call to repeat; a zero-input declaration is evaluated as a
+declaration, once per activation, and the reader observes that value. No
+unit clock, no extra activation, no evaluation step.
+
+#strong[The source role is a realization state, not a type shape.]
+`() -> A` describes the shape of a signature; a #emph[source] is a
+declaration with no realization, whose value at every tick is provided
+by the environment: `Source Δ d := realizationOf d = none`, and
+`source_value` gives that value as `I(d, t)` in every domain and under
+every environment --- indexed by the declaration and the tick alone,
+which is the formal sense in which the unit argument carries no temporal
+or environmental information. A resolved `() -> A` never consults the
+input stream (`resolved_not_source`); it is not a sensor, and every
+mathematical `() -> A` is not one either. Production's #emph[simulation
+input] --- Studio offers a declaration as an input when it is unresolved
+and unit-domain --- is `SimulationInput := Source ∧ UnitDomain`, a
+narrowing the kernel does not need (its input stream provides a value
+for every unresolved declaration, arrow-typed ones included) and that is
+recorded as surface policy over the same semantics: on a unit-domain
+source the two agree (`SimulationInput.value`). No `source` kind exists
+in either model; production's `Signature::is_unit_domain` is the one
+predicate, and the formal `UnitDomain Δ d` is the same predicate on the
+kernel type.
+
+The two production consequences of the unit domain are corollaries of
+existing rules (#strong[formally proved]). Only a value can be
+remembered or transported: a well-typed `sync` or `delay` of a reference
+forces the referenced type to be data, hence not an arrow, hence
+unit-domain (`transport_needs_unit_domain`, `delay_needs_unit_domain`)
+--- production's diagnostic #emph[f has inputs, so its value cannot be
+carried across timing domains] is this theorem's message. And a driver
+of a sink is a value of the accepted type, so when the sink accepts a
+concept the driver is unit-domain (`driver_is_unit_domain`, from
+`DriveWF`). Part VIII takes up the dual form `A -> ()`.
+
+Executed (#strong[executable example],
+`Experiments/UnitDomainExamples.lean`): the lamp's signatures round-trip
+through both encodings and `elim` computes them;
+`boost := delay 0 (boost + 1)` read as `boost`, `boost()` and
+`boost(())` gives `0, 1, 3` at ticks `0, 1, 3`, and the same under a
+non-empty local environment; the unresolved `TempSensor` reads the input
+while `boost` ignores it entirely; `infer` accepts `delay … : Q0` in the
+empty context and refuses a binder around it; `sync` of `boost` and of
+`TempSensor` is typed and `sync` of the one-input `dimByTilt` is
+refused.
+
+Verdicts (#strong[informed by FV]): unit in the canonical interface
+notation --- keep, above the kernel; a kernel unit type, a unit runtime
+value, a unit term --- remove; a source semantic kind --- remove, derive
+from the realization state; the source surface role --- keep in the
+surface; `A -> ()` as a physical sink --- remove (Part VIII); the
+output/drive boundary --- keep. Production's correspondence row for
+ADR-0029 can move from #emph[engineering choice] to #emph[formally
+proved] at the interface and #emph[transcribed] at the kernel encoding,
+and ISS-0014 can close.
 
 == Semantic Identity and Representation
 <semantic-identity-and-representation>
@@ -1749,18 +1881,26 @@ interval type, general comprehension (generators, `yield`, `where`) and
 a general quantifier are removed --- nested binders cover every required
 case, and the forms are finite list equations.
 
-As of production revision `f1ce82c` the natural binder syntax is
-#strong[not implemented]: the textual grammar has `x in […]` membership
-and rules `x => …` as equation arguments (`docs/spec/textual-syntax.md`
-§15), and the Phase-11 forms are formal guidance for the next milestone.
-The production recommendations recorded with the phase: `all`, `any`,
-`map`, `filter` and `in` as contextual keywords only in the binder head,
-so existing names keep parsing; the local visible in the body only; the
-natural form kept as authored and never reconstructed from Core; `..`
-binding tighter than `in` and looser than arithmetic, legal only as the
-right operand of `in`\; local inference exactly `binder_local_type`\;
-the Composer representing a binder as a node with a fresh local backed
-by `desugar_rename`\; diagnostics in concept language ("`5` is not a
+At production revision `f1ce82c` the natural binder syntax was not
+implemented; at `3c6c8be` it is (P11, protocol 0.13,
+#strong[production-tested]): `bdl-elab::formula::binder` lowers the
+three forms once to the equation library, the parser keeps them as their
+own nodes and the formatter keeps the spelling authored, binder locals
+are lexically scoped to the body, and the tests
+`natural_forms_lower_to_the_same_core_as_the_call_forms`,
+`binder_locals_are_elements_scoped_to_the_body` and
+`natural_form_mistakes_are_named_in_their_own_words` discharge the
+Phase-11 claims by differential elaboration; the Composer draws binders
+and ranges with local chips (`ComposeAction.binder`, `range`). The
+production recommendations recorded with the phase, which the
+implementation followed: `all`, `any`, `map`, `filter` and `in` as
+contextual keywords only in the binder head, so existing names keep
+parsing; the local visible in the body only; the natural form kept as
+authored and never reconstructed from Core; `..` binding tighter than
+`in` and looser than arithmetic, legal only as the right operand of
+`in`\; local inference exactly `binder_local_type`\; the Composer
+representing a binder as a node with a fresh local backed by
+`desugar_rename`\; diagnostics in concept language ("`5` is not a
 collection", "Mode values have no order, so `in lo .. hi` does not
 apply").
 
@@ -2894,6 +3034,44 @@ them --- event-latched activation with exit-wins, state-local output
 choice, nested choice with an output --- are ordinary declarations with
 one driver and were run as such.
 
+=== Why `A -> ()` is not a sink (Phase 12)
+<why-a---is-not-a-sink-phase-12>
+Once zero-input relationships have the canonical type `() -> A` (Part
+III), the dual form suggests itself: could a physical consumer be a
+relationship `A -> ()`, a function that takes a value and returns
+nothing? The kernel has no unit type, so the form cannot be written;
+Phase 12 records why it should not become writable (#strong[formally
+proved], denotationally). In a pure total language every function into
+the one-point type is the same function ---
+`unit_codomain_collapse : ∀ f g : A → 1, f = g`, by function
+extensionality alone --- so two "consumers" `sink₁ sink₂ : A -> ()` are
+indistinguishable (`consumers_indistinguishable`): nothing in a value of
+that type says #emph[which] physical output receives `A`, or that
+anything receives it at all. The kernel's evaluation relation has no
+effect component (`eval_independent_of_drives`); a derivation relates a
+tick, an environment, a term and a value, and the physical consequence
+of a value lives outside it. Naming a receiver needs an effect or output
+semantics, and BDL already has exactly one: the sink identity
+`OutputId`, the drive edge with `DriveWF` (the driver's type equals the
+accepted type, in the sink's domain), `SingleDriver` and
+`CompleteOutputs`. The receiver is named by the edge, the value
+delivered is the driver's, of type `A`, and the driver is a unit-domain
+declaration whenever the sink accepts a concept
+(`driver_is_unit_domain`). This is a design result, not a preference:
+physical consumption stays on the drive boundary, and `A -> ()` is
+removed from consideration.
+
+The separation this makes explicit is worth stating once, because Part
+IX depends on it. #emph[Behavior semantics] is environment-provided
+inputs (`I(d, t)`), pure internal computation (`Ev`/`MEv`), and output
+obligations (`DriveWF`, `CompleteOutputs`, `PhysicalOutput`).
+#emph[Realization] is sensor reads, ADCs and buses on the input side,
+and GPIO, PWM and device I/O on the output side --- the platform
+adapter's business, named nowhere in the kernel. A source is not a read;
+a drive edge is not a write. Both are boundaries at which the
+environment provides and receives values, and the kernel's theorems are
+about what happens between them.
+
 == Target-Specific Hardware Validation
 <target-specific-hardware-validation>
 Everything to this point is board-independent. A design that is typed,
@@ -3337,9 +3515,18 @@ core must preserve (`docs/spec/runtime-semantics.md`):
   pair per element (ISS-0013); no fusion of `map → filter` chains,
   because each is linear and measured and a fused emission was not
   justified by the numbers.
+- #strong[The realization boundary.] A source (an unresolved unit-domain
+  declaration) is an #emph[input slot] of `step`, filled by the adapter
+  from a sensor, a bus or a simulation trace; a driven output is an
+  #emph[output field] of the step's result, committed by the adapter to
+  GPIO or PWM. Neither is a function call inside the core: a zero-input
+  relationship compiles to a zero-argument accessor of the committed
+  value (its unit argument erased, ADR-0029), and a sink is a field, not
+  an `A -> ()` callback (Part VIII). The core therefore has no device
+  vocabulary at all.
 - #strong[Targets.] The core is target-independent. macOS and Windows
   are first-class hosts for the toolchain; no platform adapter exists at
-  `f1ce82c` --- Embassy is roadmap priority 1; an RP2040 board file is
+  `3c6c8be` --- Embassy is roadmap priority 1; an RP2040 board file is
   not yet present.
 
 Current cost figures are recorded, not optimized: a lamp core is \~95
@@ -3843,8 +4030,18 @@ planned.
     `candidates`], [`bdl-ide::formula` projection, slot,
     compose], [informed by FV; production-tested
     (`formula_composer.rs`)],
-    [natural binder syntax], [`Natural.lean`], [not
-    implemented], [formal guidance only],
+    [natural binder
+    syntax], [`Natural.lean`], [`bdl-elab::formula::binder` (P11,
+    protocol 0.13)], [transcribed; production-tested
+    (`natural_forms_lower_to_the_same_core_as_the_call_forms`)],
+    [unit-domain canonical type], [`UnitDomain.lean` `elim_canonical`,
+    `decode_encode`, `zero_input_obligation`, `refForms_agree`,
+    `source_value`], [`bdl_ir::Ty::Unit`, `Ty::of_signature`,
+    `Ty::kernel_of_signature`, `Ty::canonical_mapping_ty`,
+    `Signature::is_unit_domain` (ADR-0029, protocol 0.14)], [formally
+    proved at the interface; transcribed at the kernel encoding;
+    production-tested (`…_the_encodings_are_inverse`,
+    `…_argument_is_erased`)],
   )]
   , kind: table
   )
@@ -3912,14 +4109,26 @@ planned.
     point/difference validation does not exist], [a designer cannot
     write `20 °C`], [ISS-0004 open], [future: the point/difference
     validation, or a decision not to need it],
-    [natural binder syntax], [formal guidance landed after the
-    production snapshot], [none], [---], [next milestone],
+    [`bdl_ir::Ty::Unit` exists; the formal kernel `Ty` has no
+    unit], [production wants one type language for the interface and the
+    kernel encoding; the formal model keeps the canonical types in a
+    separate `CTy` above the kernel], [none semantically: `Ty::Unit`
+    never types a Core term, a representation or a runtime value, which
+    is exactly `elim unit = none`], [`elim_canonical`\; the production
+    tests that the encodings are inverse and the argument is
+    erased], [not planned: the formal `CTy` #emph[is] the record that
+    `Unit` is an interface type],
+    [simulation inputs are unresolved #emph[unit-domain] declarations;
+    the kernel `Input` provides for every unresolved declaration], [an
+    environment provides values, not functions], [none: on a unit-domain
+    source the two agree (`SimulationInput.value`)], [`source_value`,
+    `resolved_not_source`], [not planned; recorded as surface policy],
   )]
   , kind: table
   )
 
-== Implementation status snapshot (production `f1ce82c`, 2026-09-18)
-<implementation-status-snapshot-production-f1ce82c-2026-09-18>
+== Implementation status snapshot (production `3c6c8be`, 2026-09-18)
+<implementation-status-snapshot-production-3c6c8be-2026-09-18>
 Implemented and exercised by named tests: the language core through
 outputs and completeness; formula language v0 with the slot; the unit
 registry with linear charts offered and affine charts as infrastructure;
@@ -3930,14 +4139,18 @@ hardware and deployment analysis with Nano and a larger board file;
 behavior systems, groups, packaging, versions and substitution; the
 unified project format with migration; the layout service; text ↔ graph
 synchronisation; the IDE service and LSP with a VS Code extension; the
-protocol and daemon at 0.12; the standard concept library. Partial:
-Studio (the Formula view's remaining pieces are listed in production's
-status page). Planned, designed and not implemented: any platform
-adapter, build orchestration, flash, telemetry, supplied Rust
-components. Not implemented by decision: user enums (open, ISS-0005),
-temporal modifiers and contexts in the surface (ISS-0010), a surface
-form for occurrence windows (ISS-0001), record syntax, `forall`/`exists`
-sugar, `Set`/interval/sum types.
+protocol and daemon at 0.14 (0.13 added the binder and range nodes, 0.14
+the unit kind); the natural forms (P11); one canonical type per
+relationship with the empty product as its unit domain (ADR-0029); the
+standard concept library. Partial: Studio (the Formula view's remaining
+pieces are listed in production's status page). Planned, designed and
+not implemented: any platform adapter, build orchestration, flash,
+telemetry, supplied Rust components. Not implemented by decision: user
+enums (open, ISS-0005), temporal modifiers and contexts in the surface
+(ISS-0010), a surface form for occurrence windows (ISS-0001), record
+syntax, `forall`/`exists` sugar, `Set`/interval/sum types; an `A -> ()`
+consumer form (`()` is refused in output position, in agreement with
+Phase 12).
 
 = Part XII --- Rejected Alternatives and the Minimality Ledger
 <part-xii-rejected-alternatives-and-the-minimality-ledger>
@@ -4091,6 +4304,17 @@ counterexample or theorem, and verdict.
     groups], [Counterexamples 5 and 6: spurious dependencies], [REMOVE],
     [kernel `sum` type], [enums], [encoded as tag × optional payload
     (`exM`)], [DEFER],
+    [kernel unit type / unit value / unit term], [the literal reading of
+    `() -> B`], [`elim unit = none`\; a unit binder around memory is
+    untypable (`delay_not_under_binder`); the kernel encoding permits
+    memory (`zero_input_memory`)], [REMOVE --- KEEP `()` IN THE
+    INTERFACE LAYER],
+    [a `source` semantic kind], [sensors as a kind of declaration], [the
+    source role is `realizationOf d = none`\; a resolved `() -> A` never
+    reads the input (`resolved_not_source`)], [REMOVE / DERIVE],
+    [`A -> ()` as a physical consumer], [the dual of `() -> A`], [every
+    pure total `A -> 1` is one function (`consumers_indistinguishable`);
+    the drive edge names the receiver], [REMOVE],
     [numeric rates in the kernel], [periods], [a rate induces a
     schedule; validation data], [MOVE TO VALIDATION],
     [buffer capacity, overflow policy], [bounded
@@ -4137,6 +4361,13 @@ Not rewritten to look inevitable:
     Composer)], [a second representation of the formula to keep in step
     with the text], [the slot `?` in the text; every action a byte-range
     edit (ADR-0028)],
+    [a relationship without inputs as "a value declaration of type `B`",
+    tested by `inputs.is_empty()` at every layer (production before
+    ADR-0029)], [no record said what the type of such a relationship
+    #emph[is]\; six layers each carried their own special case], [one
+    canonical type `domain(inputs) -> B` with `()` for no inputs, one
+    predicate `is_unit_domain`, the kernel encoding by unit elimination
+    proved exact (Phase 12)],
     [a fixed-capacity list type with an overflow error (considered)], [a
     runtime failure the formal model does not have; a type depending on
     a deployment fact], [`Vec` under a validated bound; refusal on
@@ -4239,7 +4470,7 @@ none is hidden in a "future work" sentence.
   term former like `fold`\; or a decision that the encoding is the
   language.
 + #strong[Natural surface evaluation.] Phase 11's forms are proved
-  conservative and not yet implemented; whether designers read
+  conservative and, at `3c6c8be`, implemented; whether designers read
   `all reading in readings:` better than `all(readings, reading => …)`
   is an empirical question.
 + #strong[A designer user study.] No usability, learnability,
@@ -4726,8 +4957,33 @@ are in `KCN-judu/BDL_FV`\; production locations in `KCN-judu/BDL` at
     D-107--D-110], [affine charts hidden (ISS-0004)],
     [binder syntax is conservative desugaring], [`desugar_rename`,
     `binder_local_type`, `binder_*_eval`, `range_eval`,
-    `binder_clock`], [not implemented], [---], [D-111--D-114], [next
-    milestone],
+    `binder_clock`], [`bdl-elab::formula::binder`
+    (P11)], [`natural_forms_lower_to_the_same_core_as_the_call_forms`,
+    parser tests], [D-111--D-114; ADR-0028 second amendment], [no parser
+    in the model],
+    [`() -> B` is a conservative interface normalization whose kernel
+    value is `B`], [`elim_canonical`, `decode_encode`,
+    `canonicalOfKernel_encode`, `zero_input_obligation`, `lams_typed`,
+    `refForms_agree`, `same_tick_same_value`,
+    `Clocked.refForms`], [`bdl_ir::Ty::{Unit, of_signature, kernel_of_signature, canonical_mapping_ty}`,
+    `Signature::is_unit_domain`], [`…_the_encodings_are_inverse`,
+    `…_argument_is_erased`,
+    `the_shorthand_and_the_explicit_unit_domain_are_one_declaration`], [D-115--D-117;
+    ADR-0029], [`elim` proved on canonical types; `()` in output
+    position refused by production],
+    [a unit binder in the kernel would forbid
+    memory], [`delay_not_under_binder`, `sync_not_under_binder`,
+    `zero_input_memory`], [`delay`/`sync` typed outside binders
+    (transcribed)], [`exD`], [D-116; ADR-0029 alternatives], [---],
+    [the source role is a realization state; `A -> ()` cannot name a
+    consumer], [`source_value`, `resolved_not_source`,
+    `SimulationInput.value`, `unit_codomain_collapse`,
+    `consumers_indistinguishable`, `driver_is_unit_domain`,
+    `transport_needs_unit_domain`], [simulation inputs
+    `!hasDefinition && isUnitDomain`\;
+    `reference.transport_of_relationship`\; the drive edge], [Studio
+    simulation tests; `exC`, `exE`], [D-118--D-120], [the narrowing to
+    unit-domain sources is surface policy],
     [axiom discipline], [every theorem on `propext`/`Quot.sound`\; no
     `sorry`\; no `Classical.choice` (audited per
     phase)], [---], [---], [---], [---],
@@ -4781,8 +5037,12 @@ are in `KCN-judu/BDL_FV`\; production locations in `KCN-judu/BDL` at
     [units and charts], [Part VII], [`Surface/Units.lean`,
     `Charts.lean`, `Rational.lean`], [ADR-0028
     amendment], [`bdl-elab::units`],
-    [natural binders], [Part
-    IV], [`Surface/Natural.lean`], [---], [---],
+    [natural binders], [Part IV], [`Surface/Natural.lean`], [ADR-0028
+    second amendment], [`bdl-elab::formula::binder`, Studio Composer],
+    [unit-domain canonical type; source role; `A -> ()` rejected], [Part
+    III, Part
+    VIII], [`Surface/UnitDomain.lean`], [ADR-0029], [`bdl_ir::ty`,
+    `bdl-model::Signature::is_unit_domain`, `bdl-ide::explain`],
     [LSP is an adapter], [Part IX], [---], [ADR-0017], [`bdl-lsp`],
     [three information levels], [Part X], [---], [ADR-0018], [Studio],
     [generated Rust implements the reference evaluator], [Part

@@ -13,7 +13,7 @@ lake build
 * `DESIGN_DECISIONS.md` — every model choice and rejected alternative
 * `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table
 
-Status: Phases 0–7, 8a/8b, 9a–9c, 10, 10b and 11 complete (lifecycle/refinement; cross-declaration
+Status: Phases 0–7, 8a/8b, 9a–9c, 10, 10b, 11 and 12 complete (lifecycle/refinement; cross-declaration
 preservation; semantic identity; representation binding + dimensions;
 reactive core; clock domains + synchronization; physical outputs +
 single-driver discipline; hardware constraint validation + resource
@@ -26,7 +26,10 @@ declared-ordered concepts only; unit coordinates and Formula-Composer
 dimension inference as surface elaboration; affine charts — conversion
 as a groupoid of affine isomorphisms over exact choice-free rationals,
 point/delta downgraded to optional validation; natural binder and range
-syntax as conservative desugaring).
+syntax as conservative desugaring; unit-domain normalization — the
+canonical type `() -> B` as an interface normalization whose value is the
+kernel type `B`, the source role as a realization state, `A -> ()` not a
+sink).
 Remaining: Phase 8c surface elaboration + executable semantics; final
 minimality audit.
 
@@ -56,6 +59,11 @@ minimality audit.
   `x in lo .. hi`, `x ?? d` desugared to the Phase-9 library; scoping,
   alpha-equivalence, typing, evaluation and clocks proved
   (`NATURAL_SYNTAX_NOTE.md` is the design note, with production guidance)
+* `BDL/Surface/UnitDomain.lean` — Phase 12: canonical types with the empty
+  product above the kernel, unit elimination as a computed normalization
+  inverse to uncurrying, `f`/`f()`/`f(())` as one reference, the source
+  role as environment provision, `A -> ()` shown unable to name a consumer
+  (`UNIT_DOMAIN_NOTE.md` is the design note, with production guidance)
 
 Kernel in one line: `DeclEnv : DeclId → Option DesignDecl`, where a
 `DesignDecl` is a stable id, a `DeclInterface` (expected type + monotone

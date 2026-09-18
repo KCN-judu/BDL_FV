@@ -512,6 +512,38 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - VALIDATION DIFFERENCE: none; the 9c order policy applies unchanged to ranges
 - LEAN THEOREM / COUNTEREXAMPLE: `desugar_rename`, `binder_local_type`, `binder_all_eval`, `range_eval`, `binder_clock`, `negatives`
 
+### FEATURE: unit-domain canonical type `() -> B` (Phase 12)
+- LAYER: interface normalization above the kernel (`UnitDomain.CTy`, `canonical`, `elim`)
+- WHY IT EXISTS: one canonical type per relationship (production ADR-0029); Explain and hover show `() -> B`
+- WHAT BREAKS WITHOUT IT: nothing semantic; the kernel interface type `B` is the normalization's value
+- CAN IT BE DESUGARED: entirely — `elim (canonical s) = some (encode s)`; `() -> B ↦ B`, `(A, B) -> C ↦ A -> B -> C`
+- VALIDATION DIFFERENCE: none; no clock, no activation, no evaluation step
+- LEAN THEOREM / COUNTEREXAMPLE: `elim_canonical`, `decode_encode`, `canonicalOfKernel_encode`, `zero_input_obligation`, `refForms_agree`, `Clocked.refForms`
+
+### FEATURE: kernel unit type / unit value / unit term (Phase 12)
+- LAYER: REMOVE
+- WHY IT WAS CONSIDERED: the literal reading of `() -> B` as a lambda over `()`
+- WHAT BREAKS WITH IT: memory in zero-input declarations — `delay`/`sync` are typed only in the empty context
+- CAN IT BE DESUGARED: the other way round — the unit is eliminated before Core
+- VALIDATION DIFFERENCE: none
+- LEAN THEOREM / COUNTEREXAMPLE: `delay_not_under_binder`, `sync_not_under_binder`, `zero_input_memory`, `elim_unit = none`, `exD`
+
+### FEATURE: source role (Phase 12)
+- LAYER: surface/interface (`Source`, `SimulationInput`); derived, never a kind
+- WHY IT EXISTS: an unresolved declaration is provided by the environment; Studio offers it as a simulation input
+- WHAT BREAKS WITHOUT IT: nothing in the kernel — `refInput` already provides every unresolved declaration
+- CAN IT BE DESUGARED: it is `realizationOf d = none` (+ unit domain for the production narrowing)
+- VALIDATION DIFFERENCE: none
+- LEAN THEOREM / COUNTEREXAMPLE: `source_value`, `resolved_not_source`, `SimulationInput.value`, `exC`
+
+### FEATURE: `A -> ()` as a physical consumer (Phase 12)
+- LAYER: REMOVE
+- WHY IT WAS CONSIDERED: the dual of `() -> A`
+- WHAT BREAKS WITH IT: nothing is gained — every pure total `A -> 1` is one function; it cannot name a receiver
+- CAN IT BE DESUGARED: no; the drive edge (`OutputId`, `DriveWF`) is the sink abstraction
+- VALIDATION DIFFERENCE: none
+- LEAN THEOREM / COUNTEREXAMPLE: `unit_codomain_collapse`, `consumers_indistinguishable`, `driver_is_unit_domain`
+
 ### FEATURE: Formula Composer inference (Phase 10)
 - LAYER: editor/surface (never executed)
 - WHY IT EXISTS: type-directed assembly of formulas with holes

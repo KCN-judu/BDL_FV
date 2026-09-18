@@ -827,3 +827,50 @@ generators/`yield`/`where`; `∀`/`∃` syntax.
 
 **D-114. `x ?? d` desugars to `getD`.**
 Trivially conservative (`coalesce_typed`, `exI`).
+
+## Phase 12
+
+**D-115. The canonical type `domain(inputs) -> B` with `domain([]) = ()` lives above the kernel; the kernel interface type is its normalization.**
+`UnitDomain.lean`: `CTy` (production's `Ty` with `Unit`), `canonical`,
+`encode`, `elim`; `elim_canonical`, `decode_encode`,
+`canonicalOfKernel_encode`, `canonical_injective`.  Rejected: `Ty.unit`,
+`Value.unit`, `Expr.unit` in the kernel.  Reason: the encoding is an
+exact bijection over concept signatures and a computed normalization, so a
+kernel unit would add a type that no term has (`elim unit = none`).
+
+**D-116. `() -> B` is realized at `B` in the empty context; no unit binder.**
+`zero_input_obligation` (`Iff.rfl`), `lams_typed`.  Rejected: literal
+`λ(). body` realizations and `app (declRef f) ()` references.  Reason:
+`delay_not_under_binder`/`sync_not_under_binder` — a binder of any domain
+around memory is untypable, so the literal encoding would forbid memory in
+every zero-input declaration; `zero_input_memory` shows the kernel encoding
+permits it.  The unit must be eliminated before Core.
+
+**D-117. `f`, `f()`, `f(())` are one reference; a reading is not a call.**
+`RefForm.desugar`, `refForms_agree`, `Ev/MEv.declRef_env_irrelevant`,
+`same_tick_same_value`, `Clocked.refForms`.  Rejected: a per-reference
+application evaluated in the reader's environment.  Reason: the value is
+indexed by `(d, t)` and independent of `ρ`; nothing the unique argument
+could carry reaches the semantics.
+
+**D-118. The source role is a realization state, not a type shape and not a kind.**
+`Source := realizationOf d = none`; `UnitDomain := tyView d` not an arrow;
+`SimulationInput := Source ∧ UnitDomain` (production's narrowing).
+`source_value`, `resolved_not_source`, `SimulationInput.value`.
+Rejected: a `source` semantic kind; equating every `() -> A` with a sensor.
+Reason: a resolved `() -> A` never consults `I`; an unresolved one is
+environment provision at `(d, t)`, whatever its type.
+
+**D-119. `A -> ()` is not a physical sink; the drive edge is.**
+`homUnit`, `unit_codomain_collapse`, `consumers_indistinguishable`,
+`eval_independent_of_drives`; Phase 6's `OutputId`, `DriveWF`,
+`SingleDriver`, `CompleteOutputs` retained (`driver_is_unit_domain` ties
+"may drive" to the drive rule).  Rejected: unit-returning consumer
+functions.  Reason: all pure total functions into the unit are equal, so
+the type cannot name a receiver; consumption needs an effect/output
+semantics, which the drive edge already is.
+
+**D-120. Transport and memory of a relationship require the unit domain — as corollaries.**
+`transport_needs_unit_domain`, `delay_needs_unit_domain` from the `Data`
+premise of `sync`/`delay`.  Production's `reference.transport_of_relationship`
+is this theorem's diagnostic.
