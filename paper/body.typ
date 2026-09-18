@@ -1152,11 +1152,26 @@ $Theta thick s = upright("some") thick\(upright("q") thick d\)$.
 
 Units are surface. A literal `n u` elaborates to a dimensioned literal
 scaled by the unit's factor; changing the unit changes the value, never
-the type, and mixed-unit addition works after elaboration. Only linear
-scaling is modelled. Affine units such as degrees Celsius against kelvin
-are not, and the earlier draft's treatment of them as distinct semantic
-types for absolute values and differences remains a surface proposal
-without formal backing.
+the type, and mixed-unit addition works after elaboration. Expressing a
+quantity in a unit --- its #emph[coordinate] --- and building a quantity
+from a coordinate are the same arithmetic against a unit constant:
+`inUnit(q, u)` is `q` divided by the unit's scale and has dimension
+zero, `withUnit(x, u)` is `x` times the scale and has the unit's
+dimension, and a conversion between two units is their composition; each
+is elaborated, none is a kernel construct, and a unit choice never
+reaches a type (`1 m` and `100 cm` are equal values of one type). The
+unit laws --- round trips, derived conversion, dimension safety --- are
+proved over an abstract scalar domain and instantiated by a symbolic
+group in which `π` is a generator, so that a degree is exactly `π/180`
+radian; the executable kernel truncates to naturals and production
+approximates in floating point. A preferred display unit is
+presentation: it changes the number shown and no judgment of the design.
+Affine scales such as degrees Celsius are not linear (`0 °C` is
+`273.15 K`), yet their literals and coordinates elaborate exactly by
+adding an offset; what the dimension cannot express is that the sum of
+two absolute temperatures is not an absolute temperature --- a
+point/difference sort the surface language does not yet have, so Celsius
+arithmetic remains deferred while Celsius conversion does not.
 
 = A Minimal Reactive Semantics
 <a-minimal-reactive-semantics>
@@ -2076,7 +2091,9 @@ or timing property. The explanation facility reports a first dead end,
 not a minimal core. Interface-level references --- commitments that
 mention other declarations --- are not modelled, so the dependency graph
 is over realizations only. Whether a realization may delegate its grant
-to a higher-order argument is untested. Affine units are not modelled.
+to a higher-order argument is untested. Affine units are modelled for
+conversion and display only; the point/difference sort their arithmetic
+needs is not.
 
 == Risks of the design
 <risks-of-the-design>

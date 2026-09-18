@@ -730,3 +730,44 @@ superclasses (no case); deriving order from declaration/constructor order
 `minBy_recovers_min`: the comparator escape hatch loses nothing.
 Combinators admit `rep` (needed by ordered concepts); their typing is
 independent of Δ and G and reads Θ only through write-once bindings.
+
+## Phase 10
+
+**D-101. Units remain entirely surface; coordinate extraction and quantity construction are elaborated quantity arithmetic.**
+`inUnit q u := div q (lit d scale(u))`, `withUnit x u := mul x (lit d scale(u))`,
+`n u := withUnit n u`.  Rejected: runtime unit values (no case delays,
+syncs, stores or compares a unit), units in `Ty` (`1 m` and `100 cm`
+would differ in type), a kernel conversion primitive (`convert` is the
+composition: `convert_eq`, `convert_trans`).  Reason: `inUnitE_typed`,
+`inUnitE_safe`, `withUnitE_typed`, `withUnitE_is_quantity`,
+`unitOps_no_construction`.
+
+**D-102. Unit semantics are stated exactly over an abstract scalar domain; the kernel's `Nat` and production's floats are models.**
+`Scalars K` with `Sym` (free abelian group on `2,3,5,127,π`): π is a
+generator, `deg = π/180` exact.  The `Nat` registry uses canonical
+sub-units and has no radian; round trip 2 holds under divisibility only.
+Rejected: pretending π is rational; hiding float approximation.
+
+**D-103. A unit is an identity with a dimension and a scale; spelling is presentation.**
+`Unit K = ⟨id, dim, scale⟩`; symbols and display names live in the
+registry's presentation columns.  `unitsFor` is sound and complete
+relative to the registry.
+
+**D-104. The Formula Composer's formal basis is typed holes with local bidirectional dimension inference — no unification.**
+`PExpr`, `check`, `solve` (add/sub propagate; mul `r−d`; div `r+d`, `d−r`);
+`solve_sound`, `solve_complete`; candidates from the solved dimension
+(`candidates_sound/_complete`).  Two-hole operands are unsolved, not
+searched.  Rejected: a general constraint solver; executing partial terms.
+
+**D-105. Preferred display units are presentation, not design.**
+`Presentation` beside `Design`; every kernel judgment is unchanged by
+construction (`presentation_irrelevant_*`); ordering compares canonical
+magnitudes (`ordering_ignores_presentation`).  Design guidance: literal
+unit = semantic source (in the formula text); concept preferred unit =
+authoring metadata; simulation unit = UI state.
+
+**D-106. Affine units: conversion and literals are safe elaboration now; arithmetic needs a point/difference sort and is deferred.**
+`celsius_not_linear`; `affLitE`/`affInUnitE` exact (`K/180` basis);
+`delta_is_linear`; `sum_of_points_is_not_a_point` while `sum_well_typed`.
+Rejected: a kernel temperature type; faking °C with a scale; deferring
+conversion too.  Deferred: `AffSort` in the surface language.

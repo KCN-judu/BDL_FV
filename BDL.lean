@@ -40,3 +40,7 @@ import BDL.Surface.Stdlib
 import BDL.Surface.Generic
 import BDL.Experiments.PolyAlternatives
 import BDL.Experiments.EquationExamples
+import BDL.Surface.Units
+import BDL.Surface.Composer
+import BDL.Surface.Affine
+import BDL.Experiments.UnitExamples

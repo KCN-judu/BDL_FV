@@ -37,9 +37,9 @@ open BDL BDL.Experiments.Semantic BDL.Experiments.RepBinding
 
 /-! ## Dimension algebra is just `Prim.ty` -/
 
-example : (Prim.mul Dim.Length Dim.Time).ty = .arr (.q Dim.Length) (.arr (.q Dim.Time) (.q ⟨1, 1, 0⟩)) := by
+example : (Prim.mul Dim.Length Dim.Time).ty = .arr (.q Dim.Length) (.arr (.q Dim.Time) (.q ⟨1, 1, 0, 0, 0⟩)) := by
   decide
-example : (Prim.div Dim.Length Dim.Time).ty = .arr (.q Dim.Length) (.arr (.q Dim.Time) (.q ⟨1, -1, 0⟩)) := by
+example : (Prim.div Dim.Length Dim.Time).ty = .arr (.q Dim.Length) (.arr (.q Dim.Time) (.q ⟨1, -1, 0, 0, 0⟩)) := by
   decide
 
 def lenSensor  : DeclId := ⟨60⟩
@@ -61,7 +61,7 @@ theorem dimension_mismatch_rejected :
 
 /-- Quotients compute their dimension. -/
 theorem velocity_typed :
-    HasType ConceptEnv.empty Δdim Grant.none [] velocity (.q ⟨1, -1, 0⟩) := by decide
+    HasType ConceptEnv.empty Δdim Grant.none [] velocity (.q ⟨1, -1, 0, 0, 0⟩) := by decide
 
 /-- **`dimensional_addition_requires_equal_dimensions`** — by inversion of
     ordinary application typing against `Prim.ty`. -/

@@ -23,21 +23,46 @@ structure ClockId where
   n : Nat
   deriving DecidableEq, Repr
 
-/-- Physical dimension as an exponent vector over three base dimensions
-    (Phase 3).  Enough to test the abstraction; not an SI catalogue. -/
+/-- Physical dimension as an exponent vector over base dimensions
+    (Phase 3; Phase 10 adds mass and temperature for the unit and
+    formula-composer cases).  Enough to test the abstraction; not an SI
+    catalogue — the base set is not a kernel decision, the group structure
+    is. -/
 structure Dim where
   length : Int
   time   : Int
   angle  : Int
+  mass   : Int := 0
+  temp   : Int := 0
   deriving DecidableEq, Repr
 
 namespace Dim
-def zero : Dim := ⟨0, 0, 0⟩
-def add (a b : Dim) : Dim := ⟨a.length + b.length, a.time + b.time, a.angle + b.angle⟩
-def sub (a b : Dim) : Dim := ⟨a.length - b.length, a.time - b.time, a.angle - b.angle⟩
-def Length : Dim := ⟨1, 0, 0⟩
-def Time   : Dim := ⟨0, 1, 0⟩
-def Angle  : Dim := ⟨0, 0, 1⟩
+def zero : Dim := ⟨0, 0, 0, 0, 0⟩
+def add (a b : Dim) : Dim :=
+  ⟨a.length + b.length, a.time + b.time, a.angle + b.angle, a.mass + b.mass, a.temp + b.temp⟩
+def sub (a b : Dim) : Dim :=
+  ⟨a.length - b.length, a.time - b.time, a.angle - b.angle, a.mass - b.mass, a.temp - b.temp⟩
+def Length : Dim := ⟨1, 0, 0, 0, 0⟩
+def Time   : Dim := ⟨0, 1, 0, 0, 0⟩
+def Angle  : Dim := ⟨0, 0, 1, 0, 0⟩
+def Mass   : Dim := ⟨0, 0, 0, 1, 0⟩
+def Temp   : Dim := ⟨0, 0, 0, 0, 1⟩
+
+/-! Dimensions form an abelian group under `add` with inverse `sub zero`:
+    the algebra the Formula Composer solves one-hole equations in. -/
+theorem add_comm (a b : Dim) : a.add b = b.add a := by
+  simp [Dim.add, Int.add_comm]
+theorem add_assoc (a b c : Dim) : (a.add b).add c = a.add (b.add c) := by
+  simp [Dim.add, Int.add_assoc]
+theorem add_zero (a : Dim) : a.add zero = a := by simp [Dim.add, zero]
+theorem zero_add (a : Dim) : zero.add a = a := by simp [Dim.add, zero]
+theorem sub_self (a : Dim) : a.sub a = zero := by simp [Dim.sub, zero]
+theorem add_sub_cancel (a b : Dim) : (a.add b).sub b = a := by simp [Dim.add, Dim.sub]
+theorem sub_add_cancel (a b : Dim) : (a.sub b).add b = a := by simp [Dim.add, Dim.sub]
+theorem add_sub_cancel_left (a b : Dim) : (a.add b).sub a = b := by
+  simp only [Dim.add, Dim.sub]
+  have h : ∀ x y : Int, x + y - x = y := fun x y => by omega
+  simp [h]
 end Dim
 
 inductive Ty where

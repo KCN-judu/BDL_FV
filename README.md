@@ -13,7 +13,7 @@ lake build
 * `DESIGN_DECISIONS.md` — every model choice and rejected alternative
 * `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table
 
-Status: Phases 0–7, 8a/8b, 9a, 9b and 9c complete (lifecycle/refinement; cross-declaration
+Status: Phases 0–7, 8a/8b, 9a–9c and 10 complete (lifecycle/refinement; cross-declaration
 preservation; semantic identity; representation binding + dimensions;
 reactive core; clock domains + synchronization; physical outputs +
 single-driver discipline; hardware constraint validation + resource
@@ -22,7 +22,8 @@ port binding, hierarchical composition, flattening; behaviour grouping and
 component extraction; list data and lossless buffered cross-domain events;
 products, the list recursor and the polymorphic equation library;
 capability audit — equality on data, ordering on quantities and
-declared-ordered concepts only).
+declared-ordered concepts only; unit coordinates and Formula-Composer
+dimension inference as surface elaboration, affine arithmetic deferred).
 Remaining: Phase 8c surface elaboration + executable semantics; final
 minimality audit.
 
@@ -39,6 +40,11 @@ minimality audit.
   library with its typing/evaluation theorems, nominality through generics
   (`POLYMORPHIC_EQUATION_LANGUAGE_NOTE.md` is the design note, with the
   production guidance)
+* `BDL/Surface/Units.lean`, `Composer.lean`, `Affine.lean` — Phase 10:
+  unit coordinates (`inUnit`/`withUnit` as elaborated arithmetic, exact
+  symbolic scales with π), typed holes with sound and complete local
+  dimension inference, presentation invariance, affine counterexamples
+  (`UNITS_NOTE.md` is the design note, with the production guidance)
 
 Kernel in one line: `DeclEnv : DeclId → Option DesignDecl`, where a
 `DesignDecl` is a stable id, a `DeclInterface` (expected type + monotone

@@ -50,7 +50,20 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | `Q[d]` = `Ty.q Dim` | yes | — | — | no | `dimension_mismatch_rejected`; baseline is its erasure (D-31) |
 | dimension algebra | yes, in `Prim.ty` only | — | — | no | no dimension-specific typing rule needed |
 | dimensions as metadata / validation | — | — | not formalized | — | engineering preference; not universally ruled out (§3.5) |
-| units | no | yes → scaled dimensioned literal | — | no | `unit_scaling_preserves_dimension` (D-32); affine units pending |
+| units | no | yes → scaled dimensioned literal | — | no | `unit_scaling_preserves_dimension` (D-32); Phase 10 below |
+| Unit as kernel type | no | — | — | **yes** | Phase 10 (D-101): `1 m`/`100 cm` same type, equal value (`exA`) |
+| Unit as runtime value | no | — | — | **yes** | Phase 10 (D-101): no case delays/syncs/stores/compares a unit |
+| scaled literal `n u` | no | yes → `lit d (n·scale)` | — | no | `litE_typed`, `lit_normalizes` |
+| coordinate extraction `inUnit` | no | yes → `div q (lit d scale)` | — | no | `inUnitE_typed`, `inUnitE_safe`, `inUnit_withUnit_nat` |
+| quantity construction `withUnit` | no | yes → `mul x (lit d scale)` | — | no | `withUnitE_typed`, `withUnitE_is_quantity` |
+| explicit `convert` | no | stdlib convenience over the two | — | as a primitive: **yes** | `convert_eq`, `convert_trans`, `ev_convertE` |
+| unit registry | no | elaboration data (`id, dim, scale`) | — | no | `unitsFor_sound/_complete` (D-103) |
+| preferred display unit | no | authoring/UI | — | no | `presentation_irrelevant_*` (D-105) |
+| partial-expression holes | no | editor (`PExpr`) | — | no | not executed (D-104) |
+| local dimension inference | no | editor (`solve`) | — | no | `solve_sound`, `solve_complete` (D-104) |
+| candidate unit inference | no | editor | — | no | `candidates_sound/_complete` |
+| affine literals / coordinates | no | yes → `lit (n·s+off)`, `(q−off)/s` | — | no | `affine_roundtrip_ev` (D-106) |
+| affine arithmetic safety (point/delta sort) | no | **deferred** surface sort | — | — | `sum_of_points_is_not_a_point` (D-106) |
 | semantic–dimension association | in `Θ` (not in `SemanticId`, not in `Ty.sem`, not in `DeclInterface`) | — | — | — | `same_dimension_does_not_imply_same_semantic_identity` (D-33) |
 | `Sem[n,d]` two-index constructor | no | no | no | **yes** | replaced by `Ty.sem s` + `Θ s = some (q d)` |
 | `delay init e` (data-typed, top level) | **yes** | — | — | no | Phase 4: the only state primitive (D-34, D-35) |
@@ -461,6 +474,22 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - CAN IT BE DESUGARED: Ord on a concept desugars to `lt d` on `rep`; Eq is Data; no class machinery
 - VALIDATION DIFFERENCE: none
 - LEAN THEOREM / COUNTEREXAMPLE: `Cap.eq_iff_data`, `Cap.ord_data`, `Cap.ord_not_data_converse`, `lt_rejected`, `eq_accepted`, `min_mode_rejected`, `minBy_recovers_min`
+
+### FEATURE: unit coordinates (Phase 10)
+- LAYER: surface elaboration; a registry as data; presentation for display units
+- WHY IT EXISTS: designers author and read quantities in units; a coordinate is needed for normalization and display
+- WHAT BREAKS WITHOUT IT: nothing in the kernel; `inUnit`/`withUnit` are `div`/`mul` against a unit constant
+- CAN IT BE DESUGARED: entirely (`inUnitE`, `withUnitE`, `convertE`)
+- VALIDATION DIFFERENCE: none; dimension safety is the existing `Prim.ty` rule (`inUnitE_safe`)
+- LEAN THEOREM / COUNTEREXAMPLE: `inUnit_withUnit`, `withUnit_inUnit`, `convert_eq`, `presentation_irrelevant_eval`, `celsius_not_linear`
+
+### FEATURE: Formula Composer inference (Phase 10)
+- LAYER: editor/surface (never executed)
+- WHY IT EXISTS: type-directed assembly of formulas with holes
+- WHAT BREAKS WITHOUT IT: no kernel effect; the editor could not offer units or operands
+- CAN IT BE DESUGARED: n/a — it is analysis over `Dim`'s group laws
+- VALIDATION DIFFERENCE: none
+- LEAN THEOREM / COUNTEREXAMPLE: `solve_sound`, `solve_complete`, `candidates_sound`, `candidates_complete`, `exG`, `exH`
 
 ### FEATURE: exhaustive solver with soundness and completeness
 - LAYER: validation
