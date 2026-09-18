@@ -1,61 +1,69 @@
-// BDL paper - ACM-inspired Typst layout.
-// Primary editable source: paper.md -> body.typ (generated with Pandoc).
-// This file supplies the paper chrome and two-column layout.
+// BDL Design and Formalization Monograph - Typst layout.
+// Primary editable source: paper.md -> body.typ (generated with Pandoc via build.sh).
+// This file supplies the document chrome and a single-column monograph layout.
 
 #set page(
   paper: "us-letter",
-  margin: (top: 0.58in, bottom: 0.62in, left: 0.68in, right: 0.68in),
+  margin: (top: 0.9in, bottom: 0.9in, left: 1.0in, right: 1.0in),
   numbering: "1",
   number-align: center,
 )
-#set text(font: "Libertinus Serif", size: 9pt, lang: "en")
-#set par(justify: true, leading: 0.52em)
-#set heading(numbering: "1.1")
-#set enum(indent: 1.15em, body-indent: 0.45em)
-#set list(indent: 1.05em, body-indent: 0.45em)
-#show raw: set text(font: "DejaVu Sans Mono", size: 0.9em)
+#set text(font: "Libertinus Serif", size: 10pt, lang: "en")
+#set par(justify: true, leading: 0.6em)
+#set heading(numbering: none)
+#set enum(indent: 1.15em, body-indent: 0.5em)
+#set list(indent: 1.05em, body-indent: 0.5em)
+#show raw: set text(font: "DejaVu Sans Mono", size: 0.88em)
+#show table: set text(size: 8.6pt)
+#show table.cell: set align(left + top)
+#show table.cell: set par(justify: false)
+#show table.cell.where(y: 0): set text(weight: "bold")
+#set table(inset: (x: 4pt, y: 3pt), stroke: (x: none, y: 0.3pt))
 
-#show heading.where(level: 1): set text(font: "Libertinus Serif", size: 10.2pt, weight: "bold")
-#show heading.where(level: 2): set text(font: "Libertinus Serif", size: 9.2pt, weight: "bold")
-#show heading.where(level: 3): set text(font: "Libertinus Serif", size: 9pt, weight: "bold", style: "italic")
+#show heading.where(level: 1): it => {
+  pagebreak(weak: true)
+  v(6pt)
+  set text(font: "Libertinus Serif", size: 15pt, weight: "bold")
+  it
+  v(6pt)
+}
+#show heading.where(level: 2): set text(font: "Libertinus Serif", size: 11.5pt, weight: "bold")
+#show heading.where(level: 3): set text(font: "Libertinus Serif", size: 10.2pt, weight: "bold", style: "italic")
 
-#let smallcaps(body) = text(font: "Libertinus Serif", weight: "bold", size: 8.2pt, body)
-
+// ---------------------------------------------------------------- title page
 #align(center)[
-  #text(font: "Libertinus Serif", size: 17pt, weight: "bold")[
-    Executable Behavioral Design for Industrial Designers
+  #v(2.2in)
+  #text(font: "Libertinus Serif", size: 24pt, weight: "bold")[
+    BDL Design and Formalization Monograph
   ]
-  #v(3pt)
-  #text(size: 11.2pt, weight: "bold")[
-    Signature-First Relationships, Progressive Refinement, and a Mechanically Derived Kernel
+  #v(10pt)
+  #text(size: 13pt)[
+    A Behavior Design Language for Industrial Designers: \
+    Motivation, Mechanically Derived Kernel, Production Toolchain, \
+    Correspondence, Rejected Alternatives and Open Agenda
   ]
-  #v(7pt)
-  #text(size: 9.2pt)[ZHU ZHEHAO]
-  #linebreak()
-  #text(size: 8.3pt, style: "italic")[Research Design Draft]
+  #v(24pt)
+  #text(size: 11pt)[ZHU ZHEHAO]
+  #v(6pt)
+  #text(size: 9.5pt, style: "italic")[Living technical record — revision of 2026-09-18]
+  #v(4pt)
+  #text(size: 9pt)[
+    Formal development `KCN-judu/BDL_FV` at `3b4f11b` · production `KCN-judu/BDL` at `f1ce82c`
+  ]
+  #v(1.6in)
+  #block(width: 88%)[
+    #set par(justify: true)
+    #set text(size: 9.3pt)
+    This document is the authoritative narrative record of BDL. It is not a paper and is not written to a page limit; it records what the language is, why each construct exists or was rejected, which theorem or executed example supports each claim, how production implements it, where production deviates from the formal model, and what remains open. Every claim carries a strength label (formally proved, executable example, informed by FV, production-tested, design recommendation). No usability claim in it has been tested with users.
+  ]
 ]
 
-#v(10pt)
+#pagebreak()
 
-#smallcaps[ABSTRACT]
-#v(2pt)
-#set text(size: 8.5pt)
-Industrial products increasingly embed sensing, temporal logic, software, and control, yet industrial designers still lack a behavioral design medium with the immediacy that CAD provides for geometry. Existing prototyping and visual-programming tools reduce implementation cost but preserve engineering-oriented representations such as state transitions, execution steps, callbacks, or node-level computation. This paper proposes BDL, a Behavior Design Language whose primary artifacts are typed product relationships. A Mapping Block is created from a semantic signature, for example $?f: upright("Tilt") arrow.r upright("Brightness")$, and may remain unresolved while the surrounding design is authored and checked; the claim is not that designers think signature-first but that an unresolved relationship is a legal, statically meaningful state, so that stopping between declaration and realization costs nothing. The kernel beneath the surface was derived by a mechanized design-space exploration in Lean 4: each construct of an earlier draft was formalized, attacked with counterexamples, and kept only when the tested alternatives failed for a stated reason. What survived is an environment of named declarations with frozen types, monotone public commitments, and write-once realizations, under which refining one declaration preserves every client; nominal semantic types with a representation binding that licenses construction only inside a declaration whose signature announces the concept; physical dimensions carried in primitive operator types; one temporal primitive that reads a clock domain at its previous activation, of which single-domain delay is a special case, with deterministic evaluation that is total exactly on causal designs; nominal clock domains checked by a judgment rather than a type; and nominal physical outputs with one explicit driver each. Signal and event types, effect rows, action requests, and runtime arbitration were removed. A separate validation layer decides, with a solver proved sound and complete for its finite fragment, whether a design fits a declared microcontroller, and its evidence is kept apart from the evidence that survives refinement. The paper states each result with its claim strength, and connects the two through a designer interaction model: a running lamp design carried from named product concepts, through undefined relationships, local formulas, temporal qualifiers, and contexts, to one final target per output, explicit crossings between clock domains, and a board chosen last, with the workspace keeping a valid design distinct from a deployable one. An evaluation plan follows; no elaborator, editor, or user study has yet been built.
+// ---------------------------------------------------------------- contents
+#outline(title: [Contents], indent: 1.2em, depth: 2)
 
-#v(6pt)
-#smallcaps[CCS CONCEPTS]
-#text(size: 8.3pt)[Human-centered computing $arrow.r$ User interface programming; Software and its engineering $arrow.r$ Domain specific languages; Theory of computation $arrow.r$ Type theory; Software and its engineering $arrow.r$ Formal language definitions; Applied computing $arrow.r$ Computer-aided design.]
+#pagebreak()
 
-#v(4pt)
-#smallcaps[KEYWORDS]
-#text(size: 8.3pt)[industrial design, product behavior, executable design intent, type systems, synchronous reactive semantics, clock domains, refinement, mechanized design-space exploration, hardware feasibility, design tools]
-
-#v(8pt)
-#line(length: 100%, stroke: 0.45pt)
-#v(6pt)
-
-#set text(size: 9pt)
-#columns(2, gutter: 0.22in)[
-  #include "body.typ"
-  #bibliography("references.bib", style: "ieee", title: "References")
-]
+#include "body.typ"
+#bibliography("references.bib", style: "ieee", title: "References")

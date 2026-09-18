@@ -1,4 +1,122 @@
-= Introduction
+= About this document
+<about-this-document>
+This is the #emph[BDL Design and Formalization Monograph]: the
+authoritative narrative record of the Behavior Design Language --- its
+motivation, its designer-facing vocabulary, its formal kernel and the
+mechanized design-space exploration that derived it, the derived
+language constructs, the production compiler and runtime, the Studio
+authoring environment, the correspondence between the formal model and
+production, the alternatives that were rejected and why, and the
+questions that remain open. It is not written to a page limit. It is
+written so that, months or years from now, a reader can answer why BDL
+has a construct, why it lacks another, which theorem or counterexample
+supports each decision, how the idea is implemented, where production
+differs from the model, what evidence already exists, and which parts
+could become a standalone paper.
+
+Two repositories are described. The formal development is
+`KCN-judu/BDL_FV`, a Lean 4 project (Lean 4.33.1, no external
+libraries); its state as of this revision is commit `3b4f11b` (Phase
+11), with the phases up to `bd87b66` (Phase 10b) also referenced by
+their commit ids. The production implementation is `KCN-judu/BDL`, a
+Rust toolchain with a Flutter authoring environment; its state as of
+this revision is commit `f1ce82c`. Statements about "production" are
+statements about that revision, dated 2026-09-18, and the document says
+so where the state is likely to move.
+
+== Claim strength
+<claim-strength>
+Every substantive claim in this document carries one of five labels,
+used consistently in the text, in the ledgers of Part XIV, and in
+production's own records (`docs/project/formal-correspondence.md`, the
+`fv` field of each ADR):
+
+#figure(
+  align(center)[#table(
+    columns: (50%, 50%),
+    align: (auto,auto,),
+    table.header([label], [means],),
+    table.hline(),
+    [#strong[formally proved]], [a named Lean theorem proves the stated
+    property of the formal model; it never proves the Rust or Dart
+    code],
+    [#strong[executable example]], [a concrete design run through the
+    proved-sound interpreter inside the proof checker (`decide`), or
+    through production's differential test harness],
+    [#strong[informed by FV]], [a formal result or counterexample
+    bounded an engineering choice],
+    [#strong[production-tested]], [executable tests (differential,
+    golden, property, end-to-end) support a production claim],
+    [#strong[design hypothesis / recommendation]], [no formal or
+    empirical backing is claimed; a position taken for stated reasons],
+  )]
+  , kind: table
+  )
+
+"Minimal" is never claimed globally. Where the formal development says
+minimal it means #emph[minimal among the tested candidates], or
+#emph[the smallest design found that supports the required cases], and
+the text says which.
+
+== How the document is organized
+<how-the-document-is-organized>
+Part I states the problem and the design position. Part II is the
+language as a designer meets it --- vocabulary and interaction. Parts
+III--VIII are the formal development: the kernel of declarations,
+identity and dimensions; the data and equation language; reactive and
+temporal semantics including cross-domain buffering; behavior systems
+and groups; quantities, units, charts and the Formula Composer's formal
+basis; outputs, hardware validation and deployment capacity. Parts IX--X
+describe production: the compiler and runtime, and Studio. Part XI is
+the formal-to-production correspondence, including an explicit
+deviations table. Part XII is the rejected-alternatives and minimality
+ledger. Part XIII is limitations and the open research agenda, including
+the empirical questions no study has yet answered. Part XIV is the
+evidence ledger, the design-decision index and notes on which slices
+could become papers. Related work follows.
+
+Recurring examples are used throughout: the lamp (`Tilt → Brightness`),
+a fast sensor read by a slow consumer, a grouped behavior extracted into
+a component, an Arduino Nano allocation, and Celsius/Fahrenheit with
+sensor calibration. Where a section introduces a different example it is
+because none of these exercises the point.
+
+== Revision log
+<revision-log>
+#figure(
+  align(center)[#table(
+    columns: (50%, 50%),
+    align: (auto,auto,),
+    table.header([milestone], [what the record gained],),
+    table.hline(),
+    [2026-09, conference manuscript (Phases 0--7)], [motivation,
+    designer vocabulary, interaction model, the kernel through hardware
+    validation, claim-strength discipline; the manuscript is archived
+    beside this document],
+    [Phase 8a/8b --- behavior systems and groups], [components, fresh
+    instantiation, bindings, flattening, substitutability; groups as
+    authoring metadata and their extraction],
+    [Phase 9a --- list data and lossless buffering], [`list τ`, the
+    object-language window, capacity as validation],
+    [Phase 9b/9c --- data and equation language], [products, the list
+    recursor, rank-1 definitional polymorphism, the capability audit
+    that reverted structural ordering],
+    [Phase 10/10b --- units, charts, Formula Composer basis], [unit
+    coordinates, exact symbolic scales, local dimension inference,
+    affine charts and the AffSort revision],
+    [production Formula Composer (P10a/P10b)], [the projection, slots,
+    compose operations, unit ownership],
+    [Phase 11 --- natural expression surface], [binders and ranges as
+    conservative desugaring],
+    [this rewrite], [the monograph structure, production architecture,
+    correspondence and deviations, ledgers, open agenda],
+  )]
+  , kind: table
+  )
+
+= Part I --- Motivation: Behavior as Design Material
+<part-i-motivation-behavior-as-design-material>
+== Introduction
 <introduction>
 Industrial design is increasingly concerned with products whose behavior
 is determined not only by geometry, materials, and mechanisms, but also
@@ -23,36 +141,36 @@ their behavioral representations still inherit important assumptions
 from programming and state-machine formalisms.
 
 A concrete instance of the resulting cost appeared in a two-day
-introductory hardware workshop that one of the authors designed and
-taught for ten participants with no prior embedded experience. Two of
-the available sensors behaved in opposite ways: the ambient-light sensor
-reports larger values as illumination increases, while the distance
-sensor reports smaller values as the target recedes. Participants lost
-track of which was which, repeatedly and across the whole group. This
-pattern suggests a representational problem rather than merely a
-syntactic one. Whether a reading rises or falls with the quantity it
-measures is a stable fact about a device, and in the code they were
-writing there was nowhere to record it. It survived only as a sign
-buried inside an expression and had to be reconstructed each time it was
-needed. The obstacle was not syntax. A piece of semantic information had
-no place to live.
+introductory hardware workshop that the author designed and taught for
+ten participants with no prior embedded experience. Two of the available
+sensors behaved in opposite ways: the ambient-light sensor reports
+larger values as illumination increases, while the distance sensor
+reports smaller values as the target recedes. Participants lost track of
+which was which, repeatedly and across the whole group. This pattern
+suggests a representational problem rather than merely a syntactic one.
+Whether a reading rises or falls with the quantity it measures is a
+stable fact about a device, and in the code they were writing there was
+nowhere to record it. It survived only as a sign buried inside an
+expression and had to be reconstructed each time it was needed. The
+obstacle was not syntax. A piece of semantic information had no place to
+live.
 
-This paper proposes a different boundary. The goal is not to make
-engineering representations merely easier for designers to use. The goal
-is to define a #emph[native representation of product behavior for
-design itself], while retaining enough formal structure for static
-checking, simulation, and eventual implementation.
+BDL draws a different boundary. The goal is not to make engineering
+representations merely easier for designers to use. The goal is to
+define a #emph[native representation of product behavior for design
+itself], while retaining enough formal structure for static checking,
+simulation, and eventual implementation.
 
-We call the proposed system #strong[BDL], a Behavior Design Language.
-BDL is organized around a working hypothesis: when a behavioral
-relationship is first specified, #emph[what kind of relationship should
-exist] is frequently settled before its exact implementation is. A
-designer may know that #strong[Tilt influences Brightness] before
-deciding the transfer function; that #strong[CupPickedUp] should
-activate a behavior before deciding which sensor and threshold detect
-pickup; or that a safety condition should suppress an actuator before
-choosing the device driver. Therefore the primary design artifact should
-be the #emph[typed relationship], not the procedure that computes it.
+The system is #strong[BDL], a Behavior Design Language. BDL is organized
+around a working hypothesis: when a behavioral relationship is first
+specified, #emph[what kind of relationship should exist] is frequently
+settled before its exact implementation is. A designer may know that
+#strong[Tilt influences Brightness] before deciding the transfer
+function; that #strong[CupPickedUp] should activate a behavior before
+deciding which sensor and threshold detect pickup; or that a safety
+condition should suppress an actuator before choosing the device driver.
+Therefore the primary design artifact should be the #emph[typed
+relationship], not the procedure that computes it.
 
 The central example is a Mapping Block. Instead of decomposing a design
 into procedural steps such as “read tilt,” “calculate brightness,” and
@@ -73,7 +191,8 @@ they should be trained to. It is that an unresolved typed relationship
 is a legal, statically meaningful state of the design, so that stopping
 between declaring a relationship and realizing it costs nothing. Whether
 designers make use of that position, and at what level of task
-complexity, is an empirical question that this paper leaves open.
+complexity, is an empirical question that remains open; Part XIII states
+it as such and lists the studies that would answer it.
 
 #figure(image("assets/mapping_block.png", width: 95.0%, alt: "A signature-first Mapping Block. The flow graph contains one semantic relationship, Tilt -> Brightness; the formula is attached to the block rather than represented as an additional execution step."),
   caption: [
@@ -104,23 +223,26 @@ operators; one temporal primitive that reads a clock domain at its
 previous activation; nominal clock domains with a separate domain
 judgment; and nominal physical outputs with a single explicit driver
 each. A validation layer outside the kernel decides whether a design can
-be placed on a declared target board.
+be placed on a declared target board. Later phases added, each for a
+reason recorded in Parts IV--VII, list and product data with one
+recursor, behavior components and groups, and an exact model of units
+and charts; nothing that was removed has returned.
 
-The paper is organized as three views of the same language. The first is
-the design problem and the vocabulary a designer sees. The second is the
-formal architecture that gives that vocabulary a precise meaning, stated
-for each construct with what was proved, what was rejected by
-counterexample, and what was merely preferred. The third, which connects
-the two, is the interaction model: what a designer does in the
-environment over the life of a design, what can be left undecided, and
-what the tool says when something is wrong. An elaboration architecture
-and an evaluation plan follow; no elaborator, editor, firmware
-generator, or user study has yet been built, and the paper does not
-report one.
+The conference manuscript from which this document grew presented three
+views of the same language --- the design problem and the designer's
+vocabulary, the formal architecture, and the interaction model that
+connects them --- and ended where the formal development then ended,
+with an elaboration architecture that had not been implemented. The
+situation has changed. As of production commit `f1ce82c` (2026-09-18) an
+elaborator, a compiler to executable IR and to a `no_std` Rust core, a
+daemon, and the Studio authoring environment with its Formula Composer
+exist and are described in Parts IX--X; what has #emph[not] changed is
+that no user study has been run, and every statement in this document
+about what designers find natural remains a hypothesis (Part XIII).
 
-= The Representation Problem
+== The Representation Problem
 <the-representation-problem>
-== The target user is not a programmer with fewer syntax skills
+=== The target user is not a programmer with fewer syntax skills
 <the-target-user-is-not-a-programmer-with-fewer-syntax-skills>
 Many low-code and visual programming systems reduce textual syntax while
 preserving the underlying computational ontology: variables,
@@ -146,7 +268,7 @@ continuations, clock variables, and bus transactions. These may remain
 inspectable in an expert or debugging view, but they are not the primary
 design medium.
 
-== A flow graph is a dependency view, not a program counter
+=== A flow graph is a dependency view, not a program counter
 <a-flow-graph-is-a-dependency-view-not-a-program-counter>
 BDL uses a flow-like canvas because causal and functional paths are
 useful visual structures. The arrows do #strong[not] mean “execute the
@@ -182,7 +304,7 @@ typing untouched, and leaves every commitment that was already
 discharged in place, provided the evidence for those commitments does
 not depend on what was still unknown.
 
-== Cognitive budget
+=== Cognitive budget
 <cognitive-budget>
 The surface language must remain intentionally small. Each additional
 primitive has a cost in learnability, visibility, consistency, and
@@ -202,7 +324,7 @@ primitive. Every cross-domain policy reduces to one transport primitive
 plus ordinary data. Every output-selection policy reduces to ordinary
 computation upstream of a single drive edge.
 
-== Progressive disclosure is a semantic property
+=== Progressive disclosure is a semantic property
 <progressive-disclosure-is-a-semantic-property>
 A design tool can be visually simple and still force premature
 decisions. BDL instead treats progressive disclosure as part of the
@@ -215,13 +337,21 @@ permitted but reopens the validation of dependents. That distinction is
 made precise in the section on declarations, and it is the organizing
 principle of the interaction model.
 
-= BDL from the Designer's Side
+= Part II --- BDL from the Designer's Side
+<part-ii-bdl-from-the-designers-side>
+This part is the language as a designer meets it, unchanged in substance
+from the conference manuscript except where production has since fixed a
+detail; where Studio's realization of an interaction differs from the
+model described here, Part X says so. The vocabulary is introduced first
+and the interaction model second.
+
+== BDL from the Designer's Side
 <bdl-from-the-designers-side>
 This section presents the language as a designer encounters it. Every
 construct here is a surface form; the architecture section states which
 forms are kernel primitives and which are derived.
 
-== Semantic properties and signatures
+=== Semantic properties and signatures
 <semantic-properties-and-signatures>
 The first-class visual object in BDL is a #emph[semantic property], not
 a raw scalar. Examples include `Tilt`, `Brightness`, `Temperature`,
@@ -250,7 +380,7 @@ communicates much of the design intent. More refined signatures can add
 dimensions and representation constraints without forcing those details
 into the main canvas.
 
-== Mapping Blocks
+=== Mapping Blocks
 <mapping-blocks>
 A Mapping Block has a stable identity, a display name, a signature, an
 optional definition, and a set of declared properties. A definition may
@@ -293,7 +423,7 @@ signature and an equation are written together in a functional language.
 What the record guarantees is that stopping between the two costs
 nothing.
 
-== Time-varying values and occurrences
+=== Time-varying values and occurrences
 <time-varying-values-and-occurrences>
 The designer sees two kinds of temporal thing. A quantity such as tilt
 or temperature has a value whenever its domain is active. An occurrence
@@ -310,7 +440,7 @@ where several occurrences may fall between two observations, a buffered
 transport is required, and it is derived from the same two primitives as
 everything else temporal.
 
-== Time as a modifier, not a waiting instruction
+=== Time as a modifier, not a waiting instruction
 <time-as-a-modifier-not-a-waiting-instruction>
 The surface language avoids `wait(300 ms)` as a primary construct
 because `wait` suggests a suspended sequential thread. Instead, BDL uses
@@ -333,7 +463,7 @@ concrete input trace; the duration-qualified forms `after`, `for`,
 `while`, and `until` are compositions of these with comparisons and
 activation and were not separately executed.
 
-== Behavioral contexts
+=== Behavioral contexts
 <behavioral-contexts>
 A StateHandler is not a program-counter location. Its surface meaning
 is:
@@ -370,7 +500,7 @@ output. Contexts that carry their own clock domain, and nesting across
 independently clocked contexts, were not examined, and nothing here says
 how they would elaborate.
 
-== Physical outputs
+=== Physical outputs
 <physical-outputs>
 A design computes values; it does not move hardware. Physical effect
 happens only through an explicit binding of one declaration to one named
@@ -387,7 +517,7 @@ The change is discussed in the section on physical outputs, where the
 tested alternatives are shown either to duplicate the single-driver rule
 or to move the conflict into a collector that must itself be a policy.
 
-== Supplied computation blocks
+=== Supplied computation blocks
 <supplied-computation-blocks>
 Some product behavior is genuinely easier to state as code than as a
 diagram. Recursive filters, Kalman estimators, spectral transforms, and
@@ -415,7 +545,7 @@ several places is instantiated into fresh declarations by the
 elaborator, because temporal state belongs to declarations rather than
 to functions.
 
-= Designer Interaction Model
+== Designer Interaction Model
 <designer-interaction-model>
 The previous section described what a designer sees. This one describes
 what a designer does. It is written as the interaction architecture the
@@ -438,7 +568,7 @@ predicates --- does not appear as ordinary vocabulary at all. It can be
 reached through an explanation view, described at the end of this
 section, but the designer is not expected to go there.
 
-== A running scenario
+=== A running scenario
 <a-running-scenario>
 Consider a table lamp that responds to being handled. When the lamp is
 picked up and tilted, its brightness follows the tilt, so that a user
@@ -456,7 +586,7 @@ condition that competes with an interaction for the same output, two
 quantities that update at very different rates, and a deployment step at
 which the design meets a board.
 
-== Starting from intent
+=== Starting from intent
 <starting-from-intent>
 The designer begins by naming the concepts the product is about: `Tilt`,
 `Brightness`, `Temperature`, `Held`. None of these is a sensor or a
@@ -489,7 +619,7 @@ something to compute; in a statechart the relationship is not a
 first-class object at all. Here it is the primary object, and its
 incompleteness is a state the tool understands.
 
-== Refining a relationship locally
+=== Refining a relationship locally
 <refining-a-relationship-locally>
 When the designer opens `dimByTilt`, the canvas does not change. A local
 editor appears, offering a formula field, a curve to drag, a table of
@@ -517,7 +647,7 @@ product's behavior, legible to someone who does not want to read
 equations. A reviewer sees that brightness follows tilt; a designer who
 wants the curve opens the block.
 
-== Time and history
+=== Time and history
 <time-and-history>
 The lamp should hold its brightness when set down. The designer selects
 the wire from `dimByTilt` to the light and adds the qualifier
@@ -549,7 +679,7 @@ primitive reads a clock domain at its previous activation, is the
 subject of the reactive section. The designer does not need to know it,
 though the explanation view will show it.
 
-== Contexts as places
+=== Contexts as places
 <contexts-as-places>
 The tilt behavior should only apply while the lamp is held. The designer
 draws a context named `Held`, with its activation condition attached ---
@@ -575,7 +705,7 @@ shows and what the reactive section justifies for the cases that were
 examined. Contexts with their own clocks are outside those cases, and
 the tool should say so rather than elaborate them silently.
 
-== One output, one final target
+=== One output, one final target
 <one-output-one-final-target>
 The lamp's light is a physical output. The designer connects `dimByTilt`
 (inside `Held`) to it. Then the warning behavior is built: a `Warm`
@@ -612,7 +742,7 @@ The status line on an output reads #emph[output-complete] when exactly
 one final target drives it, and reports each undriven output the product
 requires until then.
 
-== Values that move at different speeds
+=== Values that move at different speeds
 <values-that-move-at-different-speeds>
 The temperature sensor updates once a second. Tilt updates fifty times a
 second. The designer records this not as two rates but as two
@@ -641,7 +771,7 @@ changes nothing about which relationships are valid. Moving a concept
 from one domain to another does, and the tool treats that as an edit: it
 reopens every relationship that read the concept.
 
-== Choosing a board
+=== Choosing a board
 <choosing-a-board>
 Until this point the design has said nothing about hardware. The
 physical outputs are named --- `light`, `heater` --- and each has a
@@ -683,7 +813,7 @@ and still not fit the chosen board. The two are reported in different
 places and worded differently, so that neither is mistaken for the
 other.
 
-== What the workspace says at each stage
+=== What the workspace says at each stage
 <what-the-workspace-says-at-each-stage>
 @fig:levels lists the states a design passes through. They are not a row
 of compiler badges. Each is meant to answer three questions about the
@@ -729,7 +859,7 @@ not shown the way a property the tool computed is shown. A latency bound
 that rests on a declared worst-case execution time is weaker than one
 derived from the design, and the two must not look alike.
 
-== Looking underneath
+=== Looking underneath
 <looking-underneath>
 Most of the time the compact surface is all a designer sees. When
 behavior is surprising --- the lamp pulses once more than expected, or
@@ -750,7 +880,7 @@ mysterious. It is also where the kernel vocabulary is allowed to appear,
 for an engineer who receives the design and wants to know exactly what
 was generated.
 
-== The workflow as a whole
+=== The workflow as a whole
 <the-workflow-as-a-whole>
 Read end to end, the intended sequence is this. The designer names the
 concepts the product is about and draws the relationships between them,
@@ -774,7 +904,51 @@ deployable.
 Whether designers work this way when given the chance, and whether it
 helps them, are the questions the evaluation plan is written to answer.
 
-= From Surface to Kernel: Architecture
+= Part III --- The Formal Kernel: Declarations, Identity and Dimensions
+<part-iii-the-formal-kernel-declarations-identity-and-dimensions>
+== Method
+<method>
+The kernel was obtained by a method, and the method is part of the
+contribution. Each phase of the development took a family of candidate
+constructs from the earlier draft, formalized the smallest plausible
+version and its alternatives in Lean 4 without external libraries, and
+attacked each with the same questions. What does it reject that the
+others accept? What does it accept that it should not? Is it a special
+case of another? Which operations on a design are refinements under it,
+and which are edits? Constructs were promoted from the experiment
+modules to the kernel only after surviving, and the theorems about them
+were re-proved in the promoted form.
+
+The formal development labels each conclusion with one of six strengths
+--- formally proved, formally rejected by counterexample, reduction by
+proof, tested formulation redundant, engineering preference, not ruled
+out --- and this document maps them onto the five labels of the front
+matter: the first three are #strong[formally proved] (a counterexample
+and a reduction are theorems), the fourth and fifth are #strong[informed
+by FV] or #strong[design recommendation] according to whether a
+mechanized example bounded the choice, and the last is stated as open.
+Nothing in the development is a proven impossibility, and "minimal"
+always means minimal among the tested designs.
+
+== Scale and trust base
+<scale-and-trust-base>
+The development builds with Lean 4.33.1 with no `sorry`. The axioms used
+by every theorem are propositional extensionality and quotient
+soundness, the latter only through function extensionality and the
+choice-free rational quotient of Part VII; classical choice is absent,
+and each phase re-audited the whole development for it. As of `3b4f11b`
+the sources are 51 modules: 11 in `Core`, 12 in `Behavior`, 10 in
+`Surface`, 2 in `Validation`, and 16 experiment modules holding
+alternatives, counterexamples and executed examples. Every trace,
+assignment, unsatisfiability result and executed example reported here
+was obtained by running a proved-sound interpreter or solver inside the
+proof checker. Several theorems are recorded as trivial by definition
+--- the typing half of client stability is a one-liner, and the
+well-formedness of a refinement target is unused because the invariant
+was moved into the definition --- and they are reported as such rather
+than presented as content.
+
+== From Surface to Kernel: Architecture
 <from-surface-to-kernel-architecture>
 The system has three layers, and the boundary between them is the main
 architectural result of the formal development.
@@ -788,7 +962,7 @@ architectural result of the formal development.
     ]
     let cell(body) = rect(width: 100%, inset: 3.5pt, radius: 2pt, stroke: 0.4pt, fill: white)[#text(size: 7pt)[#body]]
     stack(dir: ttb, spacing: 3pt,
-      band([Surface (designer-facing)], [semantic properties · Mapping Blocks · temporal modifiers · contexts · device kinds · units · display names], luma(245)),
+      band([Surface (designer-facing)], [semantic properties · Mapping Blocks · temporal modifiers · contexts · device kinds · units and charts · generic equations · groups and components · display names], luma(245)),
       align(center)[#text(size: 7pt)[elaboration #sym.arrow.b #h(1.2em) diagnostics #sym.arrow.t]],
       band([Kernel], [
         #grid(columns: (1fr, 1fr), gutter: 3pt,
@@ -798,10 +972,12 @@ architectural result of the formal development.
           cell[clock domains, schedule, domain judgment],
           cell[physical sinks, drive edges, single driver, completeness],
           cell[global well-formedness: every realization satisfies its interface],
+          cell[lists, products, one recursor `fold`; `eq` on data],
+          cell[behavior components: fresh instantiation, bindings, flattening],
         )
       ], luma(235)),
       align(center)[#text(size: 7pt)[commitments and evidence #sym.arrow.b #h(1.2em) target board #sym.arrow.b]],
-      band([Validation (outside the kernel)], [evidence for commitments (monotone or environment-sensitive) · hardware feasibility: resources, capabilities, units, solver · numeric limits (not yet modelled)], luma(245)),
+      band([Validation (outside the kernel)], [evidence for commitments (monotone or environment-sensitive) · hardware feasibility: resources, capabilities, units, solver · deployment capacity for bounded collections · numeric limits (not modelled)], luma(245)),
     )
   },
   kind: image, supplement: [Figure],
@@ -809,12 +985,12 @@ architectural result of the formal development.
 ) <fig:arch>
 The #strong[surface] is what the designer authors: semantic properties,
 Mapping Blocks, temporal modifiers, contexts, device bindings, units,
-and display names. Everything in it elaborates to kernel objects, and
-the elaboration is one-directional: the kernel never needs to recover
-surface structure.
+generic equations, groups and components, and display names. Everything
+in it elaborates to kernel objects, and the elaboration is
+one-directional: the kernel never needs to recover surface structure.
 
-The #strong[kernel] is the formal object of this paper. It consists of
-an environment of declarations, a typing judgment, a tick-indexed
+The #strong[kernel] is the formal object of Parts III--VIII. It consists
+of an environment of declarations, a typing judgment, a tick-indexed
 evaluation relation over one or several clock domains, a domain
 judgment, and a small number of global well-formedness conditions: every
 realization satisfies its interface, the instantaneous dependency graph
@@ -835,8 +1011,11 @@ Evidence that is not meant to survive refinement --- the existence of a
 pin assignment on a particular board --- is re-established after every
 change and is never merged with the first kind.
 
-@fig:arch shows the layers. What is notable about the arrangement is how
-much of the earlier draft of BDL is absent from the kernel band.
+@fig:arch shows the layers as they stand after Phase 11; the kernel band
+now also holds list and product data with one recursor (Part IV) and the
+behavior-component constructs (Part VI), and the validation band holds
+deployment capacity (Part V). What is notable about the arrangement is
+how much of the earlier draft of BDL is absent from the kernel band.
 Reactive types, event types, effect rows, action requests, policy
 transformations, and a five-phase tick with a resolve step were all part
 of the draft kernel. Each was removed because it either added no
@@ -850,7 +1029,7 @@ is the single-driver and completeness conditions;
 #emph[hardware-feasible] is the validation layer's solver. Each is
 decidable for finite designs.
 
-= Declarations, Interfaces, and Refinement
+== Declarations, Interfaces, and Refinement
 <declarations-interfaces-and-refinement>
 The foundational kernel object is a #strong[design declaration],
 
@@ -869,7 +1048,7 @@ $Delta : upright("DeclId") arrow.r upright("Option") thick upright("DesignDecl")
 An unresolved declaration is one whose realization is `none`\; nothing
 else distinguishes it. Display names are not part of the kernel.
 
-== Typing through the type view
+=== Typing through the type view
 <typing-through-the-type-view>
 Terms refer to declarations by identity, $upright("declRef") thick d$.
 The typing judgment $Theta\;Delta\;G\;Gamma tack.r e : tau$ takes a
@@ -886,7 +1065,7 @@ a body exists. Inference is syntax-directed and decidable, and an
 inference function is proved sound, complete, and unique against the
 judgment.
 
-== Satisfaction, well-formedness, and refinement
+=== Satisfaction, well-formedness, and refinement
 <satisfaction-well-formedness-and-refinement>
 A realization $e$ #strong[satisfies] an interface $S$ when it has the
 expected type under the grant of that type and discharges every
@@ -919,7 +1098,7 @@ and a write-once realization, and
 $upright("EnvRefines") thick Delta_1 thick Delta_2$ lifts it pointwise
 while permitting new declarations.
 
-== Client stability
+=== Client stability
 <client-stability>
 Can a declaration be refined or realized without editing its clients,
 and without invalidating what was previously established about them? The
@@ -948,7 +1127,7 @@ non-monotonicity of that evidence can be derived from the failure of
 preservation. Any discharge mechanism intended to survive refinement
 must therefore be positive in the environment.
 
-== Refinement versus edit
+=== Refinement versus edit
 <refinement-versus-edit>
 The preservation theorems cover refinement only. The table lists the
 operations examined and their classification; each row is witnessed by
@@ -957,7 +1136,7 @@ $A : upright("nat") arrow.r upright("bool")$ is realized through an
 unresolved $B : upright("nat") arrow.r upright("nat")$.
 
 #block(width: 100%)[
-#set text(size: 7.3pt)
+#set text(size: 8pt)
 #table(
   columns: (1.15fr, 0.7fr, 1.35fr), align: left, inset: (x: 3pt, y: 2.6pt),
   stroke: (x: none, y: 0.3pt),
@@ -978,7 +1157,7 @@ Two rows deserve comment. Dropping a commitment changes no type, so the
 type checker is silent, yet $A$'s own commitment was discharged through
 $B$'s and is now unsupported. Commitments are therefore part of the
 interface in the same load-bearing sense as the expected type. That is a
-stronger position than the earlier draft of this paper took when it
+stronger position than the earlier draft of the language took when it
 described properties as merely attaching to a name. Detaching a
 realization, which that draft permitted as an ordinary operation, is an
 edit for the same reason: clients' typing is unaffected, but any
@@ -986,7 +1165,7 @@ evidence that consulted the body is void. The kernel does not forbid
 edits. It declines to promise anything about them, and the tool must
 reopen the validation of transitive dependents.
 
-== What persistent identity is
+=== What persistent identity is
 <what-persistent-identity-is>
 The earlier draft left open whether a persistent, referable identity for
 an unresolved relationship is a novel abstraction. It is not. Every
@@ -1003,11 +1182,11 @@ slightly non-standard is that the interface carries a growable
 commitment set whose growth is a first-class operation on a
 declared-but-undefined name, and that the kernel imposes a stability
 condition on the validation layer. Neither is a new type-theoretic
-mechanism, and the paper does not claim one.
+mechanism, and no such claim is made.
 
-= Semantic Identity and Representation
+== Semantic Identity and Representation
 <semantic-identity-and-representation>
-== Nominal concepts
+=== Nominal concepts
 <nominal-concepts>
 Suppose concepts were represented only by their representation types, so
 that `Tilt` and `MotorAngle` are both numbers. Then the wire
@@ -1051,7 +1230,7 @@ is well typed at its representation --- and the baseline is exactly what
 erasure leaves. Generated code is thus ordinary code; the semantic layer
 has no runtime residue.
 
-== Representation binding and the grant
+=== Representation binding and the grant
 <representation-binding-and-the-grant>
 Nominal identity alone leaves semantic values opaque. Without a way to
 observe a representation and construct a value, no mapping can be
@@ -1111,15 +1290,15 @@ The grant is a known shape --- a capability attached to a definition
 site, or equivalently the private constructor of an abstract type
 exported only to the module that declares it. Its contribution here is
 where the capability comes from: the signature the designer already
-wrote, so no annotation is added. The paper does not present it as a
-capability calculus. One consequence should be stated plainly. After all
-bodies are inlined into one executable program, that program is checked
-under the universal grant, because each construction was authorized at
-its own declaration. Semantic isolation is a property of the design
-graph and survives inlining as provenance, not as a type property of the
+wrote, so no annotation is added. It is not presented as a capability
+calculus. One consequence should be stated plainly. After all bodies are
+inlined into one executable program, that program is checked under the
+universal grant, because each construction was authorized at its own
+declaration. Semantic isolation is a property of the design graph and
+survives inlining as provenance, not as a type property of the
 executable.
 
-== Physical dimensions
+=== Physical dimensions
 <physical-dimensions>
 Physical quantities have type $upright("q") thick d$ for a dimension
 $d$, an exponent vector over a small set of base dimensions. There is no
@@ -1182,9 +1361,414 @@ two absolute temperatures should be permitted is a separate, optional
 validation question that the dimension does not decide and conversion
 does not need.
 
-= A Minimal Reactive Semantics
+= Part IV --- The Data and Equation Language
+<part-iv-the-data-and-equation-language>
+The kernel of Part III computes with booleans, counts, quantities,
+nominal concepts and optional values, and abstracts with lambdas over
+them. That is enough to state the theorems about identity, refinement,
+time and outputs, and it is not enough to write the equations designers
+actually write: a brightness clamped to a range, a mode tested against a
+finite set of modes, every sensor below a threshold, a pair of readings,
+a calibration mapped over a collection. Phases 9b and 9c asked for the
+smallest typed data/function basis that supports those equations without
+turning BDL into a general functional language, and Phase 11 asked
+whether the natural surface forms for them can be added with no semantic
+change at all. This Part records the whole investigation: the
+candidates, the counterexamples, the kernel additions, the definitional
+library, the capability audit that reversed one of Phase 9b's own
+decisions, and the surface forms.
+
+== The question and the hypothesis
+<the-question-and-the-hypothesis>
+The design direction was stated before the experiments: a very small
+core, parametric polymorphism, ordinary structured data, a rich
+definitional standard library, and intent-oriented abstractions at the
+UI. The hypothesis to test was a core of roughly `bool`, `nat`/`q d`,
+`sem s`, `A → B`, `A × B`, `opt A`, `list A`, plus rank-1 polymorphism
+--- with the instruction not to assume any proposed feature belongs in
+the kernel.
+
+The required cases were fixed in advance and every one is executed in
+`BDL/Experiments/EquationExamples.lean`: (A) clamp a brightness; (B) a
+mode in a finite set of modes; (C) every sensor below a temperature
+threshold; (D) any fault above a severity threshold; (E) a pair of
+temperature and humidity; (F) a calibration mapped over sensor values;
+(G) two sampled collections zipped; (H) an optional fallback; (I)
+dimension-preserving `min`\; (J) semantic-type-preserving generic
+functions; (K) range membership; (L) a piecewise rule combining a range,
+a collection predicate and a boolean; and (M), added when production's
+`enum LampMode { Off, Automatic, Manual(Brightness) }` was inspected, an
+enumeration with a payload.
+
+== What entered the kernel, and why each item could not be derived
+<what-entered-the-kernel-and-why-each-item-could-not-be-derived>
+Four additions were made to the kernel; each was tested against a
+derivation first.
+
+#strong[Products.] `Ty.prod a b`, `Value.pair`, and the operators
+`pair : a → b → a × b`, `fst`, `snd`. A pair is data exactly when both
+components are (`Ty.prod_data`). The derivation that was tried and
+rejected is the Church encoding. It fails twice. First, a Church pair is
+an arrow, and arrows are not data: nothing of function type can be
+delayed or transported (`arrow_not_delayable`, #strong[formally proved]
+by inversion of the `delay` and `sync` typing rules, which require
+`τ.Data`). Paired #emph[state] --- a delayed reading with its timestamp
+--- therefore needs a data product. Second, a Church pair used as a
+first-class value needs rank-2 types: in the toy System F of
+`PolyAlternatives.lean`, the type of `fst` on Church pairs has rank 2
+(`church_fst_rank`), and in the prenex fragment a pair instantiated at
+one result type serves only one projection
+(`church_pair_prenex_one_projection`). Products are value composition
+only. They are never a component interface, an output bundle or a system
+boundary --- Phase 8b's Counterexample 5 shows what a tuple-returning
+declaration does to the dependency graph.
+
+#strong[The list recursor.] `Expr.fold f z l`, with
+`fold f z [x₁,…,xₙ] = f x₁ (… (f xₙ z))`, is a #emph[term former], not a
+registered operator. The kernel has no recursion, deliberately; a total
+language needs an eliminator for its inductive data, and this is the one
+construct in BDL that applies a function value in the course of
+evaluation. Registered operators still never apply closures. Its
+evaluation rule unrolls syntactically through the environment:
+
+$ frac(Delta\;I\;t\;rho tack.r f arrow.b.double v_f quad z arrow.b.double v_z quad l arrow.b.double\[thin\], upright("fold") thick f thick z thick l arrow.b.double v_z) #h(2em) frac(f arrow.b.double v_f quad z arrow.b.double v_z quad l arrow.b.double x : : x s quad\[x s\,v_z\,v_f\]tack.r upright("fold") thick\#2 thick\#1 thick\#0 arrow.b.double r quad\[r\,x\,v_f\]tack.r\#2 thin\#1 thin\#0 arrow.b.double v, upright("fold") thick f thick z thick l arrow.b.double v) $
+
+The recursive premise evaluates the syntactic term
+`fold (var 2) (var 1) (var 0)` in an environment holding the three
+values; this keeps `Ev` an ordinary inductive relation with no mutual
+recursion, so every earlier proof by induction on `Ev` extends by one
+case. Totality is a separate lemma by induction on the list
+(`fold_total`, `mfold_total`), and the fundamental theorem's `fold` case
+uses it. Every collection operation --- `map`, `filter`, `any`, `all`,
+`contains`, `append`, `sum`, `zip`, and, through `toList`, the option
+eliminators --- is a definition over it (below). The alternative of one
+primitive per operation was rejected because a primitive cannot apply a
+closure and each would need its own evaluation rule; the alternative of
+bounded unrolling was rejected because lists (the Phase-9a buffer) are
+unbounded.
+
+#strong[Equality at every data type.] `eq τ (h : τ.Data)`: structural
+equality on data values --- booleans, numbers, `none`/`some`, pairs and
+lists componentwise, semantic values by concept and representation ---
+with the proof of `τ.Data` carried #emph[in the syntax]. This is the
+kernel's only capability evidence: an equality on a function type is
+unwritable rather than ill-typed, which keeps the `prim` typing rule
+unconditional. Before Phase 9b, equality existed only at quantities, and
+production encoded boolean equality as `(a ∧ b) ∨ (¬a ∧ ¬b)`. On
+first-order values structural equality is equality (`Value.beq_iff`,
+#strong[formally proved] by a mutual induction over the nested value
+type).
+
+#strong[Two first-order operators.] `drop τ` (the dual of `take`) and
+`toList τ : opt τ → list τ`. The second is the one that matters: without
+it an optional value has no eliminator that does not need a default ---
+`getD` needs a fallback of the payload type, which a generic `mapOpt`
+cannot produce --- and with it `fold` over a list of length at most one
+is the option eliminator (`optElimF`, `mapOptF`). `drop` lets `zip` be
+derived.
+
+Every earlier theorem --- determinism, totality in one and many domains,
+provenance, unfolding, the Phase-8 preservation results, the Phase-9a
+buffer --- was re-established without change of statement. The logical
+relation gained the product clause; the fundamental theorem gained the
+`fold` case; the `Wiring` fragment gained a variant with variables for
+the recursor's environment-passing sub-derivations (`Ev.noCloV`,
+`Ev.foldCons_move`).
+
+== Polymorphism: rank-1, by families, no kernel type variable
+<polymorphism-rank-1-by-families-no-kernel-type-variable>
+The five models compared, with the verdicts:
+
+#figure(
+  align(center)[#table(
+    columns: (33.33%, 33.33%, 33.33%),
+    align: (auto,auto,auto,),
+    table.header([model], [verdict], [evidence],),
+    table.hline(),
+    [A --- monomorphic STLC kernel], [kept, unchanged], [typing rules
+    unchanged; `HasType.unique`],
+    [B --- per-type duplication], [what the kernel #emph[sees] after
+    elaboration], [`instances_are_monomorphic`: three uses of `min` are
+    three kernel terms],
+    [C --- rank-1 parametric], [#strong[adopted, as definitional
+    families]], [every library entry is `Ty → Expr` (or `Dim → Expr`);
+    `*_typed` proves its scheme at every instance],
+    [D --- System F (`Λ`, `[τ]`, `∀`)], [rejected], [the toy `FTy` with
+    `rank` measures what it would add; its prenex fragment #emph[is]
+    instantiation of families],
+    [E --- higher rank], [rejected], [every candidate use has rank ≥ 2
+    (`applyBoth_rank`, `existential_rank`) and a rank-1 replacement
+    (`applyBoth_replacement`)],
+  )]
+  , kind: table
+  )
+
+Why C needs no kernel support: a use site always has #emph[closed]
+argument types. Every declaration's expected type is frozen and closed
+since Phase 1, and `infer` is bottom-up, so finding the instance of a
+scheme is one-way #emph[matching] of the scheme's pattern against closed
+types --- decidable, returning the unique substitution on the pattern's
+variables (`matchTy_sound`, `matchTy_complete`, #strong[formally proved]
+in `Surface/Poly.lean`). There is no unification of two open types, no
+let-generalization inside expressions, and no principal-type search:
+those problems arise when a definition's type is inferred from its body,
+and BDL definitions carry their signature (mappings do; a helper `fn`
+would). Dimension polymorphism (`sum : list (q d) → q d`, `min` at
+`q d`) uses the same mechanism with dimension pattern variables; no kind
+system, no `Type + Dim` universe, because the dimension algebra already
+lives in the primitive table.
+
+The scheme model: `PTy` is the kernel's type formers over type variables
+and dimension patterns (`PDim.const d | PDim.dvar n`); `Subst` maps both
+kinds of variable; `Scheme = ⟨pattern, caps⟩` where
+`caps : List (Nat × Cap)` names, per variable, what it needs;
+`Scheme.instantiate O Θ τ` matches then checks the capabilities and is
+sound (`Scheme.instantiate_sound`). The two failure points have
+designer-level explanations --- #emph[no instance] ("expected a
+collection") and #emph[capability failed] ("cannot compare functions"\;
+"Mode values can be compared for equality, but they have no default
+order") --- and a nominal mismatch is reported by the kernel's unique
+typing as "Brightness and Opacity are different concepts", never as a
+unification residue, because there is no unification.
+
+== Capabilities: the audit that reverted a decision
+<capabilities-the-audit-that-reverted-a-decision>
+Phase 9b's first form generalized both `eq` and `lt` to every data type
+through a structural order on values: booleans `false < true`, numbers,
+`none < some`, pairs and lists lexicographically, concepts by
+representation. It was formally consistent --- `Red_prim` held,
+determinism held --- and the closed capability vocabulary collapsed to
+`{Data}`. Phase 9c audited it and rejected it.
+
+The audit asked, for each type, whether `==` and `<` have a
+domain-natural meaning for a behavior designer:
+
+#figure(
+  align(center)[#table(
+    columns: (33.33%, 33.33%, 33.33%),
+    align: (auto,auto,auto,),
+    table.header([expression], [meaning], [verdict],),
+    table.hline(),
+    [`temperature1 == temperature2`, `<`], [magnitude comparison of one
+    quantity], [Eq, Ord (`q d`\; `q Length < q Time` still rejected)],
+    [`brightness1 < brightness2`], [the concept is a magnitude the
+    designer declared ordered], [Ord #emph[by declaration], through the
+    representation],
+    [`mode1 == mode2`], [same mode], [Eq],
+    [`mode1 < mode2`], [none --- any order would come from a code, a
+    constructor tag or a `SemanticId`], [rejected],
+    [`pair1 == pair2`], [same reading], [Eq],
+    [`pair1 < pair2`], [lexicographic order is a mathematical
+    convenience with no design meaning], [rejected],
+    [`list1 == list2`], [same collection in the same order], [Eq],
+    [`list1 < list2`], [none], [rejected],
+    [`optional1 == optional2`], [both absent, or both present and
+    equal], [Eq],
+    [`None < Some x`], [a constructor-tag artifact], [rejected],
+  )]
+  , kind: table
+  )
+
+So `Data ⇒ Eq` holds (extensionally on this type grammar:
+`Cap.eq_iff_data`), but `Eq ⇏ Ord`. An implementation may need a total
+order on values for maps, canonical forms, serialization and tests; that
+is toolchain-internal and is not `<` in BDL. The kernel's structural
+order (`Value.blt`) was deleted and `lt` restored to `lt (d : Dim)` on
+quantities --- the Phase-4 form --- which made Phase 9b #emph[smaller].
+The surface vocabulary became `Cap = data | eq | ord` (`Poly.Cap`):
+`data` is what `delay`/`sync` need and what the `eq` proof field checks;
+`eq` coincides with `data` today and is kept as a separate name because
+it answers a different question and is what diagnostics say; `ord` is a
+#emph[surface] capability --- a quantity, or a concept the designer
+declared ordered (`OrdDecl`) and represented by a quantity (`Ty.ordB`)
+--- with no kernel counterpart, because an ordered concept compares as
+`lt d` on `rep`, a term the kernel already admits. Enumerations follow
+the same rule: equality is natural, declaration order is never silently
+behavioral order.
+
+Ordering in the library is evidence-indexed: `Ordered τ` is `q d`, or
+`sem s d` for a concept declared ordered with representation `q d`
+(well-formed against Θ: `Ordered.WF`); `ltAt o a b` is `lt d a b` on a
+quantity and `lt d (rep a) (rep b)` on a concept, so `min`, `max`,
+`clamp`, `inRange`, `inInterval` return one of their arguments with
+identity intact. The comparator escape hatch `minBy`/`maxBy` needs no
+declaration and loses nothing: `minBy_recovers_min` (#strong[formally
+proved]) shows the comparator `λa b. a < b` makes `minBy` compute
+exactly `min`. Negative examples on realistic concepts:
+`mode1 == mode2`, `pair == pair`, `list == list`, `opt == opt` accepted;
+`mode < mode`, `pair < pair`, `list < list`, `None < Some`,
+`bool < bool` rejected at the surface (`lt_rejected`,
+`min_mode_rejected`) and unwritable in the kernel
+(`lt_only_on_quantities`).
+
+Production adopted this as ADR-0025 and refined it as ADR-0026: two
+values of one concept compare as that concept (`==` always, `<` and the
+ordered equations only while the concept is declared ordered); two
+values of different concepts never compare, whatever their
+representations; a concept beside a #emph[plain value of its
+representation] --- `tilt < 10 deg` --- is observed and compared as that
+representation, because the designer wrote a number. The remaining
+asymmetry is visible and intended: `min(o1, o2)` is refused while
+`min(o1, 0.5)` is not, and Explain shows the observation.
+
+== The definitional library
+<the-definitional-library>
+`Surface/Stdlib.lean` is the reference for production's `bdl-equations`.
+Each entry is a closed de Bruijn term indexed by types: `idF τ`,
+`constF τ σ`, `swapF a b`, `minF o`, `maxF o`, `clampF o`, `inRangeF o`,
+`inIntervalF o`, `minByF τ`, `maxByF τ`, `foldrF τ σ`, `anyF τ`,
+`allF τ`, `containsF τ h`, `mapF τ σ`, `filterF τ`, `appendF τ`,
+`sumF d`, `optElimF τ σ`, `mapOptF τ σ`, `getOrElseF τ`, `zipF a b`\;
+`listLit`, `oneOfE` (a finite-set literal is `contains` over a list
+literal); records as right-nested pairs with positional projections
+(`recTy`, `recE`, `projE`). `zip` is derived through `fold`, `take 1`,
+`drop 1` and `reverse`, folding over the reversed first list with the
+remaining second list and the accumulated pairs in a pair --- not
+pretty, and the point is that it is derivable.
+
+Every entry is a #strong[combinator]: variables, literals, lambdas,
+applications, registered operators, the recursor and, since 9c, `rep`
+--- no reference, no state, no transport, no `mk`. For combinators,
+proved once: typing is independent of the design and the grant and reads
+Θ only through write-once representation bindings
+(`HasType.comb_irrelevant`); the value is the same in every design at
+every tick under every input (`lib_eval_context_free`, from the kernel
+lemma `Ev.pure`: a pure term in a pure environment is context-free); the
+term is clocked in every domain (`lib_clocked`); nothing is constructed
+(`Comb.noConstruct`); and the four together as the inlining statement
+`lib_expansion`. This is what lets production inline an equation at each
+use without creating a declaration --- a library entry as a declaration
+would be monomorphic and would enter the dependency graph (D-94).
+
+The evaluation specifications connect each entry to the mathematical
+function: `any_spec` (`List.any`), `all_spec`, `contains_spec`
+(`List.any (beq x)`), `map_spec`, `filter_spec`, `min_spec`, `max_spec`,
+`clamp_spec`, `inRange_spec` (by the compared magnitudes `Ordered.key`),
+each #strong[formally proved] through a general `fold_spec`: the
+recursor computes `List.foldr g` whenever the step closure implements
+`g` on the reachable accumulators. From these, finite quantification is
+a fold: `forall_in_list` (`∀ x ∈ xs, P x` iff `all xs P` evaluates to
+`true`) and `exists_in_list`\; a finite-set literal means membership
+(`oneOf_mem`, via `beq_iff`), and duplicates do not change the answer
+(`oneOf_dup_irrelevant`), so no uniqueness convention and no `Set` type.
+An interval is a pair with a convention and membership is a function of
+the pair. A predicate is an ordinary `α → bool`.
+
+Nominality survives all of it: `generic_preserves_identity` ---
+#emph[any] family typed at `α → α → α`, instantiated at concept `s`,
+rejects an argument of concept `s' ≠ s`, the representations never
+consulted; `generic_preserves_dimension` for `q d` vs `q d'`\;
+`pair_projections_keep_concepts`\; `map_keeps_concepts`\;
+`eq_across_concepts_rejected`. Executed: `min` at Brightness typed and
+Opacity rejected though both are `q 0` underneath (`exJ`), and the same
+for lengths and times (`exI`).
+
+== Enumerations, records, sets: what was encoded and what was deferred
+<enumerations-records-sets-what-was-encoded-and-what-was-deferred>
+Production's textual syntax declares enumerations with payloads and
+matches on them. Phase 9b encoded `LampMode` as a tag paired with an
+optional payload, with `match` as conditionals on the tag (`exM`,
+executed), and deferred a kernel sum type: nothing tested needs more
+than the encoding gives, and the cost of a kernel `sum` would be one
+more eliminator term former, exactly like `fold`. Production keeps user
+enums open (ISS-0005). Records are positional nested pairs; labels
+resolve to positions at elaboration; row polymorphism was rejected
+because no case needs a function generic over record shapes. Sets are
+list literals with `contains`\; set algebra is list definitions when
+needed; nothing tested observes a canonical form.
+
+== The expressiveness ceiling
+<the-expressiveness-ceiling>
+Total, first-order-data computation over booleans, quantities, nominal
+concepts, options, lists and pairs, with higher-order functions and one
+list recursor; generic definitions instantiated at closed types; no
+general recursion, no type abstraction in terms, no sums yet (encoded),
+no unbounded quantification. This is a design recommendation backed by
+the executed cases and the proved library, minimal among the tested
+candidates; it is not a minimality theorem. The seven questions the
+phase was asked have the answers: rank-1 by families constrained by
+`{Data, Eq, Ord}` is the weakest useful polymorphism; products belong in
+the data core; no `Set` type; finite `∀`/`∃` reduce to folds, proved; no
+existentials (Phase 8a components hide by fresh instantiation); no user
+typeclasses; and the ceiling above.
+
+== The natural expression surface (Phase 11)
+<the-natural-expression-surface-phase-11>
+Designers should be able to write
+
+```
+all reading in readings:
+    reading in 10 deg .. 45 deg
+```
+
+while the semantics stays exactly the verified Phase-9 machinery. Phase
+11 tested that binder syntax and closed ranges are #emph[conservative]
+surface abstractions and proved it for a six-form fragment
+(`Surface/Natural.lean`). The surface model `NatExpr` has an embedded
+closed core term, a named binder local, application, the four binders
+`all/any/map/filter x in xs: body` with the element type chosen by local
+inference, a range `x in lo .. hi` with its `Ordered` evidence, and a
+coalesce `x ?? d`. Elaboration `desugar` is one-way, under a binder
+stack:
+
+```
+all x in xs: p    ↦  app2 (allF τ) (lam τ p') xs'        (any, map, filter alike)
+x in lo .. hi     ↦  app3 (inRangeF o) x' lo' hi'
+x ?? d            ↦  app2 (getOrElseF τ) x' d'
+```
+
+A binder local #emph[is] the kernel's lambda parameter: `desugar`
+resolves a name to its de Bruijn index --- nearest binder first --- and
+adds nothing. #strong[Formally proved]: nearest-binder scoping,
+shadowing, an unbound name is an error rather than a free variable,
+ambient references are untouched (`desugar_local_nearest`,
+`desugar_shadow`, `desugar_unbound`, `desugar_core`); alpha-equivalence
+--- renaming a binder and its occurrences to a name fresh in the
+expression and the stack leaves the elaboration unchanged
+(`desugar_rename`, `alpha`), which is what a Formula Composer generating
+fresh locals needs; no `mk` is introduced (`desugar_constructs`); typing
+of each form with the local #emph[forced] to the collection's element
+type by inversion (`binder_local_type`) and range bounds forced to the
+value's nominal type (`range_bounds_forced`); evaluation exactly the
+library's (`binder_all_eval`, … from `all_spec`, `any_spec`, `map_spec`,
+`filter_spec`\; `natural_forall`, `natural_exists`\; `range_eval` =
+`lo ≤ x ∧ x ≤ hi`); and clocks of the elaborated term are the operands'
+(`binder_clock`, `range_clock`).
+
+Executed: the call form and the natural form elaborate to literally the
+same term; `angle in 10 deg .. 45 deg` after unit elaboration, with the
+boundary values checked; nested `all row in rows: any v in row: v > 0`\;
+shadowing where the inner `x` ranges over `ys`\; alpha renaming under
+shadowing; `Tilt` ranges with `Tilt` bounds accepted, `q Angle` bounds
+rejected, and accepted through `rep`\; a `MotorAngle` predicate rejected
+on a `Tilt` local; the required negatives (`all x in 5: true`,
+`filter x in xs: 5`, `angle in 2 s .. 3 s`, an unordered concept in a
+range, a binder variable outside its body). Verdicts: binders,
+`BinderKind`, the range node and `??` are surface desugaring; an
+interval type, general comprehension (generators, `yield`, `where`) and
+a general quantifier are removed --- nested binders cover every required
+case, and the forms are finite list equations.
+
+As of production revision `f1ce82c` the natural binder syntax is
+#strong[not implemented]: the textual grammar has `x in […]` membership
+and rules `x => …` as equation arguments (`docs/spec/textual-syntax.md`
+§15), and the Phase-11 forms are formal guidance for the next milestone.
+The production recommendations recorded with the phase: `all`, `any`,
+`map`, `filter` and `in` as contextual keywords only in the binder head,
+so existing names keep parsing; the local visible in the body only; the
+natural form kept as authored and never reconstructed from Core; `..`
+binding tighter than `in` and looser than arithmetic, legal only as the
+right operand of `in`\; local inference exactly `binder_local_type`\;
+the Composer representing a binder as a node with a fresh local backed
+by `desugar_rename`\; diagnostics in concept language ("`5` is not a
+collection", "Mode values have no order, so `in lo .. hi` does not
+apply").
+
+= Part V --- Reactive and Temporal Semantics
+<part-v-reactive-and-temporal-semantics>
+== A Minimal Reactive Semantics
 <a-minimal-reactive-semantics>
-== One primitive
+=== One primitive
 <one-primitive>
 The reactive kernel adds one expression form and no types:
 
@@ -1215,7 +1799,8 @@ optional type, and the streams of type $upright("opt") thick tau$ are
 exactly the streams of multiplicity at most one. What separates an
 occurrence from an optional value --- two occurrences falling in one
 observation interval --- can only be seen when a source ticks faster
-than its observer. That is a cross-domain question and is treated there.
+than its observer. That is a cross-domain question and is treated at the
+end of this part.
 
 Two restrictions on $upright("delay")$ were forced by the totality proof
 rather than chosen. The delayed type must be a #strong[data] type, one
@@ -1231,7 +1816,7 @@ functions @halbwachs1991lustre, and its practical consequence is that a
 reusable stateful component is instantiated into fresh declarations
 rather than abstracted over.
 
-== Causality
+=== Causality
 <causality>
 The dependency graph on declarations comes in three variants. Structural
 dependency, $upright("DependsOn")$, records every reference in a body.
@@ -1258,8 +1843,8 @@ unconditionally. It is total on causal designs: if $Delta$ is causal and
 globally well formed and the inputs are well typed, every declaration
 has a value at every tick, related to its type by a logical relation, by
 an induction on tick, rank, and derivation. An executable interpreter is
-proved sound for the relation, and every trace reported in this paper
-was obtained by running it.
+proved sound for the relation, and every trace reported in Parts
+III--VIII was obtained by running it.
 
 One gap should be recorded. A cycle guarded by a lambda, `A := λx. A x`,
 is rejected by $upright("Causal")$, yet `declRef A` does evaluate --- to
@@ -1267,7 +1852,7 @@ a closure; only applying it diverges. $upright("Causal")$ is
 conservative for lambda-guarded cycles, and the negative theorem covers
 strict cycles only.
 
-== Derived operators
+=== Derived operators
 <derived-operators>
 Every temporal operator of the surface language reduces to
 $upright("delay")$ and the primitive operators. There is no independent
@@ -1278,7 +1863,7 @@ the declaration refers to itself. Each is a self-delayed cycle, the
 class that structural acyclicity forbade and causality licenses.
 
 #block(width: 100%)[
-#set text(size: 7.3pt)
+#set text(size: 8pt)
 #table(
   columns: (0.9fr, 1.6fr), align: left, inset: (x: 3pt, y: 2.6pt),
   stroke: (x: none, y: 0.3pt),
@@ -1311,9 +1896,9 @@ carries an explicit initial value. Two toy relations without one show
 why: the first tick is either undefined or nondeterministic. Adding or
 removing a delay, or changing an initial value, is an edit.
 
-= Clock Domains
+== Clock Domains
 <clock-domains>
-== Identity, not rate
+=== Identity, not rate
 <identity-not-rate>
 “Contact and orientation move with the interaction; temperature moves
 with the environment.” A designer can say this before any rate is known,
@@ -1351,7 +1936,7 @@ is authored, because the information needed to infer it does not arrive
 until realization binding, which in this workflow is the point at which
 the designer is least able to make the decision.
 
-== One transport primitive
+=== One transport primitive
 <one-transport-primitive>
 Cross-domain reading is the second and last temporal form:
 
@@ -1390,7 +1975,7 @@ in the type instead was tried and set aside. Every pure mapping would
 need clock polymorphism, and nothing the type rejects is missed by the
 judgment.
 
-== Strictly before
+=== Strictly before
 <strictly-before>
 A transport sees only source activations strictly before the destination
 tick. That is a choice with an observable alternative, and the
@@ -1416,58 +2001,808 @@ untouched, by the typing rule; a crossing from `Tilt@fast` to
 `Tilt@slow` authorizes neither `Tilt -> MotorAngle` nor
 `q Length -> q Time`.
 
-== Occurrences across domains
-<occurrences-across-domains>
-Optional values remain the right per-activation representation of an
-occurrence. What changes across domains is transport. A single-instant
-read loses events: under $upright("sync")$, two fast occurrences and one
-are indistinguishable at the slow tick, and a single occurrence followed
-by a quiet fast tick is dropped. The counterexample is against
-$upright("sync")$ as an #emph[event transport], not against optional
-types.
+== Cross-domain occurrences and lossless buffering (Phase 9a)
+<cross-domain-occurrences-and-lossless-buffering-phase-9a>
+Phase 5 left one problem open, and it is worth recording in full because
+its resolution shaped the data language.
 
-The window model separates the two. What a destination should see is the
-source's occurrences at the source activations since the destination's
-own previous activation. On tick sets, this window equals the source's
-accumulated log read at the current tick minus the log length read at
-the previous destination activation --- two single-instant reads, a
-$upright("sync")$ of a source-side accumulator and a $upright("delay")$
-of a cursor. Policies are functions of the window. `latest`, `count`,
-and `count` with `latest` each lose information and each identifies
-distinct windows; only the list is injective. So multiplicity and order
-are observable, buffering is required to keep them, buffering is a
-structured use of the existing state basis plus list data, and a bound
-on the buffer is a validation obligation.
+#strong[The problem.] Within one domain an occurrence is a stream of
+optional type: an input delivers at most one value per tick, so `opt τ`
+streams are exactly the streams of multiplicity at most one. Across
+domains this fails. `sync` is a zero-order hold: a slow consumer of a
+fast event source sees the last value only. Phase 5's Counterexample C
+(`opt_loses_multiplicity_under_sync`, #strong[executable]) has two fast
+events at ticks 1 and 2 and one event at tick 2 indistinguishable at the
+slow activation at tick 3, and a single event at tick 1 followed by a
+quiet fast tick #emph[dropped] outright. The counterexample is against
+`sync` as an #emph[event transport], not against optional types.
 
-Writing the buffer in the object language needs sequence data, and the
-kernel now has it: an ordinary list type $upright("list") thick tau$,
-data exactly when $tau$ is, with six registered operators (`nil`,
-`cons`, `length`, `take`, `reverse`, `head`) typed like every other
-primitive. No typing, evaluation, or domain rule was added, and every
-earlier theorem held unchanged. With it the buffer is five declarations:
-a source-side log `cons src (delay nil log)`, its transport
-`sync src nil log`, the length `seen` of the transported log, a cursor
-`delay 0 seen`, and the window `reverse (take (seen − cursor) logD)`.
-The correspondence is proved for every schedule, input, destination and
-tick: the window declaration evaluates, in the destination domain, to
-exactly the source's values at the window's activations, in order and
-with multiplicity. The list representation is injective on windows,
-whereas `latest`, `count`, a fold, and any summary bounded to a fixed
-number of newest entries each identify distinct windows --- so a
-lossless summary is necessarily unbounded, and the list is the smallest
-general sequence representation tested. Capacity remains validation: for
-a finite horizon sufficiency is decidable and the least sufficient
-capacity is computed with a proof; for periodic schedules one
-destination period suffices at every horizon. Overflow is never
-implicit. Dropping the oldest or newest entries is the identity under
-sufficient capacity and changes the trace otherwise; the only policy
-that preserves the kernel semantics is to reject the deployment. An
-event type is still not needed: an event is a data-typed declaration in
-a domain, and its lossless cross-domain view is the window.
+#strong[The window model, on tick sets.] What the destination should see
+is the source's occurrences at the source activations since the
+destination's own previous activation --- the #emph[window]
+`windowTicks S src dst t = srcTicks S src (prevAct S dst t) t`. Phase 5
+proved (`buffer_from_log_and_cursor`) that this window equals the
+source's accumulated log read at the current tick minus the log length
+read at the previous destination activation: two single-instant reads, a
+`sync` of a source-side accumulator and a `delay` of a cursor. Policies
+are functions of the window; `latest`, `count`, and `count` with
+`latest` each identify distinct windows (`policies_lose_information`),
+and only the list is injective. So multiplicity and order are
+observable, buffering is required to keep them, and buffering is a
+structured use of the existing state basis #emph[plus list data] ---
+which the kernel then lacked.
 
-= Physical Outputs Without Arbitration
+#strong[The failed abstractions, generalized.] Phase 9a tested the
+models the brief named. Model A, `latest`\; B, `count`\; C, a fold such
+as a sum; D, a fixed tuple of the newest entries; E, the list. A--D are
+lossy, with witnesses (`latest_not_lossless`: `[1,2]` vs `[2]`\;
+`count_not_lossless`\; `sum_not_lossless`: `[1,4]` vs `[2,3]`\;
+`modelD_not_lossless`). The general statement behind A and D is
+`bounded_summary_not_lossless` (#strong[formally proved]): any summary
+depending only on the newest `k` entries, for any fixed `k`, identifies
+a `k`-entry window with a `(k+1)`-entry window. A lossless summary is
+injective and therefore unbounded (`lossless_iff_injective`). The claim
+discipline is precise: not that the list is the only lossless
+representation, but that any lossless one must be injective on windows
+and hence unbounded in size, and that an ordinary list is the smallest
+general sequence representation tested.
+
+#strong[The object-language buffer.] With `list τ` (the `Ty.list`
+constructor, `Value.list`, and six registered operators `nil`, `cons`,
+`length`, `take`, `reverse`, `head`, with `length` yielding `q 0`), the
+Phase-5 construction is five ordinary declarations
+(`Surface/Buffer.lean`):
+
+```
+log     @src :  cons src (delay nil log)             -- source-side accumulator
+logD    @dst :  sync src nil log                     -- the log, transported
+seen    @dst :  length logD                          -- log length now
+cursor  @dst :  delay 0 seen                         -- log length at the previous activation
+window  @dst :  reverse (take (seen − cursor) logD)  -- the new entries, oldest first
+```
+
+Nothing new is evaluated: `delay`, `sync` and registered operators.
+`logD` is the one cross-domain read, an explicit `sync` with the
+explicit initial value `nil`. #strong[Theorem M]
+(`buffer_window_correspondence`, #strong[formally proved]): for every
+schedule, every input, every destination domain and every tick,
+
+$ upright("MEv") thick S thick Delta thick I thick d s t thick t thick\[thin\]thick upright("window") arrow.b.double upright("list") thin\(upright("map") thin\(I thin s r c\)thin\(upright("windowTicks") thick S thick s r c thick d s t thick t\)\)\, $
+
+whenever the six declarations are realized as above and `src` is an
+input. The strictly-before rule is untouched --- the window at `t`
+contains source activations `< t` only. The elaboration is well typed in
+any environment with the declared types
+(`buffer_elaboration_well_typed`) and well clocked with `src`, `log` in
+the source domain and the rest in the destination
+(`buffer_elaboration_well_clocked`). The list summary is lossless by
+injectivity (`buffer_lossless`); its entries are indexed by the window
+ticks in strictly increasing order (`window_to_list_preserves_order`),
+and for every predicate on values the number of entries satisfying it
+equals the number of window activations whose value does
+(`window_to_list_preserves_multiplicity`).
+
+#strong[Executed] (`Experiments/BufferAlternatives.lean`, on Phase 5's
+multi-rate schedule with fast events at ticks 1 and 2): at the slow
+activation 3 the window is `[none, some 1, some 2]`, at 6 it is
+`[none, none, none]`, while `latest` sees `some 2` at 3
+(`buffer_trace`); the two histories Phase 5 could not tell apart under
+`latest` are told apart by the window
+(`buffer_distinguishes_what_latest_identifies`); the elaborated design
+passes the typing, clocking and causality checkers. The buffer is also a
+Phase-8a system with no new binding kind: a sensor component provides
+its event #emph[and] its log, a consumer requires the log through an
+ordinary transported binding with initial value `nil` and computes the
+window (`transport_trace`), whereas binding the event itself through
+`sync` yields `latest` and loses the tick-1 event
+(`latest_transport_loses`). "Buffer or not" is a choice of #emph[which
+provided port to bind], visible in the interface.
+
+#strong[Capacity is a validation obligation.] The kernel model is the
+unbounded log. A deployment has finite memory and must show that no
+window exceeds its capacity. `CapacitySufficient S src dst cap T` states
+that every window up to horizon `T` fits; it is decidable for a finite
+horizon; `requiredCapacity` computes the least sufficient value with a
+proof (`requiredCapacity_sufficient`); and for periodic schedules the
+horizon is unnecessary --- a window never holds more than one
+destination period of source activations (`periodic_window_bound`), so
+one period is a sufficient capacity at every horizon
+(`periodic_capacity_sufficient`). Overflow policies are explicit
+functions of the unbounded window --- `dropOldest cap`, `dropNewest cap`
+--- and under a sufficient capacity both are the identity
+(`sufficient_capacity_preserves`, `bounded_buffer_agrees`); under an
+insufficient capacity they change the trace (`negE`, executed: the
+three-entry window at tick 3 becomes two entries under either policy,
+capacity 2 fails the check at horizon 6, the required capacity at
+horizon 30 is 3). Consequently the only overflow policy that preserves
+the kernel semantics is to #emph[reject the deployment]\; dropping is a
+semantic change and must be written by the designer as ordinary
+computation over the window if wanted.
+
+#strong[What is still not a kernel type.] An event stream is a
+data-typed declaration in a domain; an occurrence is its value at an
+activation; a lossless cross-domain view of it is the five declarations
+above; `latest`, `count`, `coalesce`, `drop`, `sample` are ordinary
+computations over `window`. None of this needs an `Event` type, a buffer
+primitive, a scheduler order, same-tick visibility, an implicit overflow
+rule or an effect system, and none was added. The negative examples of
+the phase also settle a subtler point: a clone of `fast` with the
+identical schedule is a different domain, and listing the value does not
+make the direct read legal (`negF`) --- equal rate is not the same
+domain, as in Phase 5.
+
+#strong[Production.] Production follows this exactly, with two additions
+the formal model deliberately left to engineering (ADR-0024, ADR-0027;
+`docs/spec/deployment-capacity.md`). A collection in the generated core
+is `alloc::vec::Vec<T>` stored last element first, behind a
+`collections` feature of the runtime crate turned on exactly when the
+plan carries a list; a program without lists stays allocation-free and
+`Copy`. No capacity is imposed by the core and no core ever drops a
+value. #emph[The design writes its bounds]: a remembered collection is
+bounded by the operators that bound it --- `take cap …` --- and by
+nothing else, so the deployable window is the Phase-9a construction with
+`take cap` on the log and the count kept apart:
+
+```
+count  @fast := 1 + delay 0 count
+log    @fast := take cap (cons x (delay [] log))
+logD   @slow := sync fast [] log
+seen   @slow := sync fast 0 count
+cursor @slow := delay 0 seen
+window @slow := reverse (take (seen − cursor) logD)
+```
+
+With `cap ≥ required(fast → slow)` its `window` equals the unbounded
+construction's at every tick --- the production reading of
+`bounded_buffer_agrees`, differentially tested across the reference
+evaluator, the executable-IR interpreter and the generated core (corpus
+`bounded_buffer` against `buffer`, 7 and 3 000 ticks); with `cap`
+smaller the oldest values of a window are the ones missing (corpus
+`overflowing_buffer`). #emph[The toolchain computes the bound and the
+requirement]: a sound static bound per declaration and cell
+(`bdl-exec-ir::bounds`), the required window capacity per crossing under
+the deployment schedule (`bdl-reactive::capacity`, the production
+`Capacity.lean`), a `CollectionsReport` with readiness, byte estimates
+and per-crossing requirements, and `deployment.*` diagnostics; an
+unbounded state is reported on a host and #strong[refuses the artefact
+on a bounded-memory target] (`bdld compile --bounded-memory --period`).
+The static bound is an engineering analysis with no theorem behind it
+--- recorded as such in Part XI. A ring buffer specialized for transport
+buffers was considered and deferred: the window is not a construct the
+compiler can recognize without a surface form (ISS-0001), and a bounded
+refinement must be visible in the design to be equivalent --- `take cap`
+is exactly that.
+
+= Part VI --- Behavior Systems, Groups and Reuse
+<part-vi-behavior-systems-groups-and-reuse>
+Phase 8 asked whether behavior can be a first-class #emph[design
+object]: packaged behind an interface, instantiated with fresh identity,
+bound to other behaviors, nested, and flattened into the same kernel ---
+without any kernel change, without `Event`/`Signal` kernel types,
+without a StateHandler kernel, without general effects, and without
+name-based identity. Phase 8a answers for reusable components; Phase 8b
+for the authoring structure designers form before packaging. The two are
+kept apart on purpose, and the distinction is the main result of this
+Part.
+
+== Behavior components (Phase 8a)
+<behavior-components-phase-8a>
+#strong[The requirements report.] The phase began with a requirements
+report (`BEHAVIOR_SYSTEM_REQUIREMENTS.md`) rather than a formalization:
+six capability questions --- can a behavior be reused, instantiated
+twice, bound to other behaviors, nested, opened for later completion,
+substituted --- and, for each, whether the answer is REQUIRED of the
+kernel, OPTIONAL, or DERIVABLE from what exists. The outcome was that
+everything is derivable from Phase-1 realization plus renaming, and the
+formal development proves it.
+
+#strong[Renaming.] `Ren` bundles four renamings --- declaration
+identities, semantic identities, clock identities, output identities ---
+and the kernel's judgments are equivariant under it: `HasType.rename`
+(typing, given agreement of the three environments on the image; no
+injectivity needed), `Satisfies.rename`, `Clocked.rename` (the domain
+judgment, for a clock environment that agrees on the declared
+identities), and an abstract condition on evidence,
+`Evidence.Equivariant`. This is the machinery of Phase 8; nothing else
+is new.
+
+#strong[Interfaces and components.] A `Port` is a template declaration
+by local identity with the public part of its interface and its
+parameter clock. A `BehaviorInterface` has required ports (unresolved
+declarations a composer binds), provided ports (declarations offered to
+others), elaboration-time parameters (unresolved data-typed declarations
+bound to closed constants at instantiation), and clock parameters (the
+domains the template is written against). A `BehaviorComponent` is an
+interface, a template `Design` over local identities below a width, and
+a partition of its concepts and sinks into private (freshened per
+instance) and shared. `Realizes ev C` is a predicate over the
+#emph[existing] judgments: the template is a well-formed design; every
+required port is an unresolved declaration of the stated interface;
+every provided port is declared with it; parameters are unresolved,
+data-typed and clock-free.
+
+#strong[Fresh instantiation.] `fresh W k n = W·(k+1) + n` maps local
+identity `n` of instance `k` into the global space, with `decode` its
+inverse; the identities of two distinct instances never coincide
+(`inst_decl_disjoint`, Theorem A). The encoding is a device, not a
+semantics: any injective allocator would do, and production uses the
+same allocator its own ids come from. An instance is a component with a
+clock-parameter assignment; `Ren.inst` renames the template's private
+identities into the instance's range and its clock parameters to the
+assignment.
+
+#strong[Bindings and flattening.] A `Binding` realizes a destination
+port of one instance from a source --- a port of another instance, or a
+closed constant --- with an optional #emph[transport]: `none` for a
+direct reference in the same or an agnostic domain, `some init` for
+`sync` from the source's domain with an explicit initial value. A
+`BehaviorSystem` is a width, a list of instances, a list of bindings,
+the shared concept environment and the external sinks. `flatten` is the
+union of the renamed instances followed by the bindings applied as
+Phase-1 realization steps: the destination port is realized as
+`declRef src` or `sync c init (declRef src)`. The result is an ordinary
+`Design`. Every existing pass consumes it unchanged.
+
+#strong[Theorems B--I] (`Behavior/Preservation.lean`, #strong[formally
+proved]): under `ComposeWF` --- every instance realizes its interface,
+every binding is well formed (`BindingWF`: types agree, a direct
+binding's source is in the destination's domain or agnostic, a
+transported binding's source has a domain), external sinks are driven by
+at most one instance --- the flattening is globally well formed
+(`flatten_WF`), causal under an acyclic inter-instance graph
+(`flatten_causal`), well clocked (`flatten_wellClocked`), single-driver
+(`flatten_singleDriver`); open ports stay open (`open_port_stays_open`).
+Evidence must be `Monotone`, `Equivariant` and `PortSound` (a discharged
+commitment survives when a port copy is realized by a reference to a
+declaration of the same interface); a concrete compositional evidence
+model would discharge these once and is still open.
+
+#strong[Semantics] (Theorem J, `Behavior/Semantics.lean`): for wiring
+designs with closure-free inputs and #emph[direct] bindings, the value
+of a declaration in an instance evaluated alone with a consistent
+modular input equals its value in the flattened system
+(`eval_flat_to_inst`, `eval_inst_to_flat`, `modular_iff_flat`). The
+restriction is exact and recorded: transported bindings under `MEv` need
+a domain-indexed input for the transported port, and higher-order bodies
+are not covered --- the same obstacle in both directions.
+
+#strong[Substitutability.] `IfaceRefines A B`: `B` may replace `A` when
+every port `A` provides, `B` provides with the same type and clock, and
+every port `B` requires, `A` required. `substitute_composeWF`: replacing
+an instance's component by a refining one preserves composition
+well-formedness. `toComponent` packages a whole system as a component of
+a chosen interface (the decidable side condition that the chosen
+interface is realized is not proved).
+
+#strong[Counterexamples] (`Experiments/BehaviorAlternatives.lean`): a
+name-based identity collides on double instantiation; a shared clock
+captured inside a template cannot be re-bound; a binding across domains
+without transport is rejected by the domain judgment; a binding of a
+required port to a wrong type is rejected; two instances driving one
+external sink violate single-driver. The lamp system --- a source
+instance and two dimmer instances at different domains --- is executed
+through the flattening.
+
+#strong[Production] (ADR-0021, ADR-0022; `bdl-system`\;
+`docs/architecture/behavior-systems.md`): components, stored port
+contracts ("a component interface is a stored promise": the contract is
+persisted and checked against the body, so an edit to the body that
+breaks the promise is reported at the contract), instances with fresh
+identity from the project's allocator, direct and transported bindings,
+flattening with an #emph[origin map] back to instances and ports so
+diagnostics land on the instance, composition validation, packaging,
+versions and substitution. There is one BDL: no system type checker,
+evaluator, clock judgment or code generator exists. Every project is a
+behavior system --- a design with no components is the degenerate one
+--- and the flat design is derived and never persisted. What production
+supports beyond the theorem fragment --- transported bindings under the
+multi-domain evaluator, higher-order bodies --- is
+#emph[production-tested], not proved (Part XI).
+
+#strong[Multi-clock limitations, exactly.] Theorem J is proved for `Ev`
+(one domain) with direct bindings. The clock parameter list must cover
+the clocks of declarations and sinks; a `sync` clock appearing only
+inside a body is renamed to a fresh domain, harmless for `Ev` and
+`Clocked` but something an elaborator should collect. `InstAcyclic`, the
+inter-instance graph condition for causality, is too coarse for
+extraction (below); a port-level graph would subsume both results.
+
+== Behavior groups (Phase 8b)
+<behavior-groups-phase-8b>
+#strong[Three things that must not be confused.] A designer who selects
+several mapping blocks and chooses #emph[Group as Behavior] has made an
+authoring decision, not a semantic one. A designer who later chooses
+#emph[Package as Component] has made a semantic decision: from that
+point the unit has an interface, can be instantiated with fresh
+identity, and can be bound.
+
+#figure(
+  align(center)[#table(
+    columns: (25%, 25%, 25%, 25%),
+    align: (auto,auto,auto,auto,),
+    table.header([], [mapping /
+      declaration], [`BehaviorGroup`], [`BehaviorComponent`],),
+    table.hline(),
+    [identity], [`DeclId`], [`GroupId` and a member list], [template
+    identities, fresh per instance],
+    [public interface], [its own `DeclInterface`], [none --- only
+    projections], [required / provided ports, clock parameters],
+    [instantiation], [---], [none], [fresh identities],
+    [flattening], [---], [none needed], [`flatten`],
+    [semantics], [kernel], [#strong[none]: authoring
+    metadata], [elaborates to declarations],
+  )]
+  , kind: table
+  )
+
+The hierarchy mapping → group → component → system has exactly one
+semantic step, packaging, and that step is an elaboration into the
+Phase-8a system model.
+
+#strong[Transparency.] A `BehaviorGroup` is a `GroupId` and a list of
+member `DeclId`s; a `GroupedDesign` is a `Design` with a list of groups
+beside it; `eraseGroups` forgets the list. Every group operation ---
+`group`, `ungroup`, `addMember`, `removeMember`, `move`, `merge`,
+`split` --- acts on the list and leaves the design untouched, so every
+kernel judgment of the erased design is the #emph[same proposition]
+before and after (Theorems A--G, each proved by `rfl` or `Iff.rfl`).
+That is not a weakness of the theorems; it is the point. Dependency
+edges are untouched; nesting is a relation on the flat group list with
+no recursive structure. In the Phase-1 vocabulary this is a fourth class
+below "validation-only": nothing is rechecked because nothing changed.
+
+#strong[Boundaries as projections.] Over a finite enumeration of the
+design's declarations: `crossIn` lists the non-members some member
+depends on (the required ports), `crossOut` the members some non-member
+depends on (the provided ports), `openMembers` the unresolved members,
+`drivenMembers` the members driving a sink, `privateMembers` the rest
+(Theorems H--L: `mem_crossIn`, `mem_crossOut`, `internal_not_crossIn`,
+`internal_only_not_crossOut`). The aggregate input socket a collapsed
+group shows is `crossIn ++ openMembers`\; the output socket is
+`crossOut`. None is a declaration. Theorem H, `socket_no_fanout`, is
+what makes the socket safe: `a ∈ crossIn` says #emph[some] member
+depends on `a` and nothing about the others. Counterexample 6 shows what
+goes wrong if the socket is realized as a declaration every member reads
+(a member acquires an instantaneous dependency it never had);
+Counterexample 5 shows the tuple-returning-declaration encoding (the
+consumer of one mapping comes to depend on the inputs of all of them).
+The kernel has no tuples for boundaries, and this is a reason not to add
+them for this purpose --- the products of Phase 9b are values, not
+sockets.
+
+#strong[Inference rules and their counterexamples.] Required =
+`crossIn`\; provided = `crossOut`\; private = members neither provided
+nor driving a sink; clock parameters = every clock the design uses (a
+group owns no domain, so nothing is captured --- Counterexample 3 shows
+the reconnecting binding failing its clock condition when a clock is
+captured); physical sinks are not ports --- a member that drives a sink
+keeps its drive edge inside the component and the sink stays external
+(Counterexample 4: converting a sink into a provided port yields a
+behavior with no physical effect). Two naive rules are rejected: every
+reference of a member as required exposes internal producers and changes
+behavior (Counterexample 1); only the members' own open declarations
+hides external dependencies and leaves the template ill-typed
+(Counterexample 2).
+
+#strong[Extraction.] `Extract` builds two #emph[restrictions] of the
+design: the component keeps the members and holds an unresolved copy of
+each crossing-in declaration as a required port; the residual keeps the
+non-members and holds an unresolved copy of each crossing-out member. It
+forms a Phase-8a system --- instance 0 the residual, instance 1 the
+component, clock parameters mapped identically --- with one direct
+binding per crossing declaration. Each binding is a Phase-1 realization
+step: the port copy is realized as a reference to the home copy. No body
+is translated, copied across the boundary, or rewritten.
+#strong[Formally proved]: both templates realize their inferred
+interfaces (`restrict_realizes`, needing `Evidence.InterfaceLocal`: a
+discharged commitment depends only on the interfaces of the referenced
+declarations); the system is a well-formed composition
+(`system_composeWF`) and its flattening a well-formed design (`flat_WF`,
+Theorems M--Q); causality needed its own argument --- a group with both
+inputs and outputs is never `InstAcyclic`, yet the flattened
+instantaneous graph is the original graph with every crossing edge
+subdivided through a port copy, and doubling the original rank witnesses
+it (`flat_causal`: rank `2·r` on home copies, `2·r + 1` on port copies);
+open members stay open; private members are not provided ports, source
+no binding, and are never referenced by the residual
+(`private_unobservable`); each crossing-out member is its own provided
+port (`provided_iff`) --- several independent mappings yield several
+independent ports; and behavior is preserved (Theorem R,
+`orig_iff_flat`): for a wiring design with closure-free inputs, an
+original declaration and its home copy in the flattened extraction
+evaluate to the same value at every tick.
+
+#strong[Identity.] Before packaging nothing is renamed. After packaging
+the templates keep the original identities, and the flattened system
+carries Phase-8a fresh identities: an original `n` lives at `W + n` on
+the residual side and `2W + n` on the component side, with a port copy
+on the other side where the boundary is crossed; a later second instance
+receives `3W + n`. The group's identity never becomes a component
+identity.
+
+#strong[Production] (ADR-0019; `.bdl/authoring.json`\;
+`ui/layout.json`). A group persists as an identity and its member list
+by identity, in the authoring sidecar --- no types, clocks, formulas,
+outputs or sockets; anything derived is recomputed and not authoritative
+if stored. Collapsed/expanded state, position, size, colour, member
+ordering and socket placement are layout and affect no check. Group
+operations never trigger semantic invalidation: the workspace does not
+re-run typing, causality, clock, output or hardware checks and does not
+clear cached verdicts, because these are the same propositions
+(`group_is_identity_on_design`). #emph[Package as Component] computes
+interface candidates from the member set and lets the designer widen
+them --- promote a private member, add an open required port --- but not
+narrow below the inferred required set or turn a sink into a semantic
+port; the flattened result is guaranteed well formed under the stated
+hypotheses, and the causality check passes even though the instance
+graph shows edges both ways, so packaging is not gated on `InstAcyclic`.
+What cannot be inferred and is asked: whether an unresolved member is
+the component's input or an open internal; whether a private member
+should nevertheless be exported; whether a member's physical sink is
+private to the component; display name and documentation. Packaging a
+group #emph[inside] a component body is open (ISS-0007).
+
+== Hardware interaction
+<hardware-interaction>
+Components partition sinks into private and external. Private sinks are
+freshened per instance, so two instances of a component with a private
+status LED are two LEDs and two requirements; external sinks are shared
+and may be driven by at most one instance in a system
+(`ExternalSingleDriver`). Requirements generation (Part VIII) runs over
+the flattened design's sinks, so the number of instances is exactly what
+the board must accommodate --- a fact the hardware validator sees only
+through the flat design, which is the intended separation.
+
+= Part VII --- Quantities, Units, Charts and the Formula Composer's Formal Basis
+<part-vii-quantities-units-charts-and-the-formula-composers-formal-basis>
+Dimensions entered the kernel in Phase 3 (Part III): a quantity `q d`
+carries an exponent vector, the dimension algebra lives in the types of
+the primitive operators (`mul : q d₁ → q d₂ → q (d₁ + d₂)`), and
+dimensional typing rejects `length + time` where the erased numeric
+baseline accepts it. Units were surface from the start (D-32): a literal
+`n u` elaborates to a scaled dimensioned literal; changing the unit
+changes the value, never the type. Phase 10 asked what more the same
+quantity in different units needs --- extracting a coordinate,
+constructing from a coordinate, letting an editor infer dimensions for
+incomplete expressions, keeping units out of type identity --- and Phase
+10b revisited the one conclusion of Phase 10 that turned out to be too
+strong. This Part records both, the production realization, and the
+design decision about who owns a unit in the authoring surface.
+
+== Three notions kept apart
+<three-notions-kept-apart>
+#figure(
+  align(center)[#table(
+    columns: (33.33%, 33.33%, 33.33%),
+    align: (auto,auto,auto,),
+    table.header([notion], [formal object], [layer],),
+    table.hline(),
+    [physical quantity], [a kernel value of type `q d`: a canonical
+    magnitude and a dimension], [kernel],
+    [unit coordinate], [`inUnit q u = q / scale(u)`, a dimensionless
+    number], [surface elaboration],
+    [display / authoring
+    unit], [`Presentation.preferred : SemanticId → Option Unit`], [presentation],
+  )]
+  , kind: table
+  )
+
+Collapsing any two of these is the mistake the phase was designed to
+avoid: a quantity with a unit inside it splits one quantity into many
+types; a coordinate that remembers its unit is a runtime tag nobody
+needs; a display preference that enters elaboration changes semantics
+when a designer changes what they like to see.
+
+== Linear units: no kernel construct
+<linear-units-no-kernel-construct>
+Six models were compared. Literal-only elaboration (A) is insufficient
+alone --- a coordinate is needed for display, for normalization (`tilt`
+in degrees ÷ 90), and for export. `inUnit(q, u) : Scalar` by elaboration
+(B) and `withUnit(x, u) : Q[d]` by elaboration (C) were adopted:
+`inUnit` is `div q (lit d scale(u))`, typed `q (d − d) = q 0`
+(`inUnitE_typed`) and rejecting a quantity of another dimension by
+inversion (`inUnitE_safe`); `withUnit` is `mul x (lit d scale(u))`,
+typed `q (0 + d)` (`withUnitE_typed`) and never a concept
+(`withUnitE_is_quantity`); a literal is `withUnit`. First-class runtime
+units (D) were rejected --- no tested case delays, syncs, stores or
+compares a unit, and a UI dropdown is not a runtime value. Units in
+quantity types (E) were rejected --- `1 m` and `100 cm` would differ in
+type while being one quantity (`exA`: same type, equal values). A kernel
+conversion primitive (F) was rejected ---
+`convert x u v = inUnit (withUnit x u) v = x·scale(u)/scale(v)`
+(`convert_eq`, `ev_convertE`), transitive (`convert_trans`), identity on
+the same unit (`convert_self`), mismatch rejected never coerced
+(`inUnit_mismatch`). Unit operations construct nothing
+(`unitOps_no_construction`), and on a concept they go through `rep` ---
+so `inUnit(TiltValue, deg)` obeys the representation discipline, and
+rebuilding a concept from a coordinate requires `mk` under the concept's
+grant. Tilt and MotorAngle are both readable in degrees and stay
+distinct under every unit round trip (`nominal_distinct`); Brightness
+and Opacity likewise. Unit compatibility is not identity.
+
+== The numeric domain, in the open
+<the-numeric-domain-in-the-open>
+The formal development says exactly where exactness holds. Unit laws are
+proved over an abstract scalar domain `Scalars K` --- a commutative
+monoid with a division that cancels multiplication by a non-zero scale
+--- and instantiated by `Sym`, the free abelian group on the generators
+`2, 3, 5, 127, π`. Every registered scale is an element, exactly:
+`deg = π/180 rad = π·2⁻²·3⁻²·5⁻¹`, `inch = 127/5000 m`. Round trips
+(`inUnit_withUnit`, `withUnit_inUnit`), conversion and mismatch hold
+with π symbolic: `90 deg` in radians is `π/2` (`exD`), not 1.5707…. The
+executable kernel's magnitudes are naturals, so its registry uses
+integer scales relative to canonical sub-units --- `0.1 mm`, `ms`,
+arc-second, `g`, `K/180` --- under which mm, cm, m, km, inch, deg, turn,
+ms, s, min, g, kg and K are exact; round trip 1 is exact for every
+positive scale (`inUnit_withUnit_nat`) and round trip 2 exact when the
+scale divides the magnitude (`withUnit_inUnit_nat`), the strongest law
+integer division admits; radians are #emph[not] in that registry because
+their scale is not an integer in any degree-compatible basis. Production
+uses IEEE doubles with radians canonical (ADR-0011; `bdl-elab::units`):
+neither round trip holds exactly there, and the document says so rather
+than hiding it (Part XI).
+
+A unit itself is `⟨id, dim, scale⟩` in a registry; its symbol is not
+part of it --- two units with equal identity are the same unit whatever
+they are spelled --- and `unitsFor reg d` is sound and complete relative
+to the registry (`unitsFor_sound`, `unitsFor_complete`).
+
+== Presentation, and the realistic formula
+<presentation-and-the-realistic-formula>
+`Presentation` is a separate object; a design with a presentation is a
+pair, and every kernel judgment of the pair --- typing, evaluation,
+dependencies, clocks --- is literally the judgment of the design
+(`presentation_irrelevant_*`, by construction, `rfl`); what changes is
+the displayed number (`presentation_changes_display`). Ordering compares
+canonical magnitudes through `ltAt`, which mentions no unit; comparing
+#emph[displayed] coordinates would not be safe, since integer display
+can identify distinct magnitudes (`display_may_identify_distinct`).
+
+The recurring formula `Tilt → Brightness`: `tilt / (90 deg)` and
+`inUnit(tilt, deg) / 90` are both dimensionless and evaluate equal for
+every tilt (`normalizations_agree`, `exF`). The representation-aware
+form is the second --- it names the unit the designer thinks in and
+keeps the divisor a plain number --- and neither changes the concept:
+both consume `rep tilt`, and the result is wrapped as Brightness by the
+block's own signature (ADR-0013).
+
+Design guidance, not a theorem, for persistence: the #emph[source
+literal unit] (`90 deg`) is semantic source --- its scale enters
+elaboration --- and lives in the formula text; the #emph[concept
+preferred display unit] (`Tilt shown as deg`) is authoring metadata
+beside the display name and never enters elaboration; a
+#emph[simulation-input display unit] is session state.
+
+== Unit ownership in authoring
+<unit-ownership-in-authoring>
+The production Formula Composer made this a rule (ADR-0028): in
+`tilt / 90 deg`, `tilt` is a semantic reference and `90 deg` is a
+designer-authored quantity literal. #strong[A literal owns an editable
+unit; a semantic reference does not; a display boundary may carry a
+presentation unit.] The reason is semantic ownership. A literal's unit
+is part of what the designer #emph[wrote] --- its scale enters
+elaboration, so switching it with the quantity kept (`180 deg` →
+`3.141592653589793 rad`) is a change of spelling that preserves meaning,
+and editing the coordinate is a change of meaning; both are the
+designer's to make on the literal. A reference's kind is its
+declaration's: `tilt` is a `Tilt`, represented as an angle, and no unit
+is part of that; offering a unit pop-up on a reference would invite a
+rewrite of the representation binding of a concept from inside one
+formula, which is exactly the representation escape hatch the grant
+discipline forbids. The display of a reference's #emph[value] --- in
+simulation, in the inspector --- may use the concept's preferred unit,
+which is presentation. This decision is traceable to
+`unitOps_no_construction`, `withUnitE_is_quantity` and
+`presentation_irrelevant_*`, not to taste: the Composer draws a literal
+as two fields (coordinate and unit pop-up) and a reference as a chip
+with its concept's socket glyph, because those are the two semantic
+situations.
+
+== Affine units: the failure of scale-only units, and the revision
+<affine-units-the-failure-of-scale-only-units-and-the-revision>
+Temperature scales are affine: `canonical = scale·x + offset`. Phase 10
+showed, executably, that the linear model cannot represent °C or °F ---
+`0 °C = 273.15 K`, which no scale produces from 0 (`celsius_not_linear`)
+--- and that an affine #emph[literal] and an affine #emph[coordinate]
+nevertheless elaborate exactly with no kernel change:
+`n °C ↦ lit Temp (n·s + off)`, `inUnit°C q ↦ (q − off)/s`, in the
+`K/180` basis where °C and °F have integer scales and offsets
+(`affLitE_typed`, `affInUnitE_typed`, `affine_roundtrip_ev`\;
+`0 °C = 32 °F`, `100 °C = 212 °F` in `scales_agree`). What breaks is
+arithmetic on #emph[absolute] values: `20 °C − 10 °C` is a difference of
+`10 K` (`delta_is_linear`), while `10 °C + 10 °C` is well typed at
+`q Temp` and reads `293 °C` (`sum_of_points_is_not_a_point`,
+`sum_well_typed`). The kernel's dimension cannot separate a point on the
+scale from a difference.
+
+#strong[Phase 10's conclusion], as first recorded: the missing
+information is a #emph[sort] --- point or difference --- on top of the
+dimension (`AffSort`, with `affAdd`/`affSub` as the affine-space rules:
+`point + point` refused, `point − point = delta`), and a Formula
+Composer cannot offer only difference units for a delta slot from the
+dimension alone (`delta_candidates_need_sort`). Affine conversion was
+called "safe now"\; affine #emph[arithmetic safety] was said to need the
+sort and was deferred, with the sort treated as potentially necessary
+for future production.
+
+#strong[Phase 10b tested the smaller hypothesis] that for
+#emph[conversion] chart-specific information is intentionally erased at
+coordinatization and only the affine transformation structure between
+coordinate systems must be preserved. It holds, and the conclusion was
+revised. This revision is recorded as research evidence, not smoothed
+over.
+
+== Charts: coordinate erasure and conversion functoriality (Phase 10b)
+<charts-coordinate-erasure-and-conversion-functoriality-phase-10b>
+Over one physical dimension, a chart is `⟨scale, offset⟩`, valid when
+`scale ≠ 0`, with
+
+$ upright("reconstruct")_u\(x\)= s_u thin x + o_u\,#h(2em) upright("coord")_u\(q\)=\(q - o_u\)\/s_u . $
+
+The scalar domain is an abstract field (`Field K`: commutative, with
+inverses of non-zero elements, negatives and fractions) instantiated by
+`Q`, exact rationals built in the development as a quotient of `Int`
+fractions with every law proved from `Int`'s ring identities --- because
+core Lean's `Rat` proves its algebra with `Classical.choice`, which this
+development has kept out of every proof. Concrete equalities are decided
+by cross-multiplication.
+
+#strong[Formally proved], over any field:
+
+#figure(
+  align(center)[#table(
+    columns: (50%, 50%),
+    align: (auto,auto,),
+    table.header([law], [theorem],),
+    table.hline(),
+    [chart left inverse
+    `coord u (reconstruct u x) = x`], [`chart_left_inverse`],
+    [chart right inverse
+    `reconstruct u (coord u q) = q`], [`chart_right_inverse`],
+    [conversion is affine:
+    `C(u,v)(x) = (s_u/s_v)·x + (o_u − o_v)/s_v`], [`convert_is_affine`,
+    `convertMap`],
+    [identity `C(u,u) = id`], [`convert_identity`],
+    [composition `C(v,w) ∘ C(u,v) = C(u,w)` --- from the chart laws
+    alone, no algebra], [`convert_compose`, `convertMap_compose`],
+    [inverse `C(v,u) ∘ C(u,v) = id`, both ways], [`convert_inverse`],
+    [difference map `f(y) − f(x) = a·(y − x)`], [`difference_map`],
+    [offset cancels
+    `f(x + δ) − f(x) = a·δ`], [`difference_offset_cancels`,
+    `difference_converts_linearly`],
+    [linear-part functoriality `L(u,u) = 1`,
+    `L(v,w)·L(u,v) = L(u,w)`], [`linear_part_identity`,
+    `linear_part_compose`],
+    [not additive when the offset is
+    non-zero], [`not_additive_of_offset`],
+    [erasure keeps conversion structure
+    `coord v q = C(u,v)(coord u q)`], [`unit_erasure_preserves_conversion_structure`],
+    [display switch preserves the quantity
+    `reconstruct v (C(u,v)(coord u q)) = q`], [`display_switch_preserves_quantity`],
+    [coordinate edit changes the
+    quantity], [`coordinate_edit_changes_quantity`],
+  )]
+  , kind: table
+  )
+
+Compatible charts form a groupoid of affine isomorphisms (theorem-level;
+no category-theory framework was built). Unit coordinates erase chart
+identity while preserving affine coordinate change; differences inherit
+the linear part of that transformation. A conversion with a non-zero
+offset is #emph[not] an additive homomorphism, and this document never
+calls Celsius-to-Fahrenheit one.
+
+#strong[Celsius and Fahrenheit, exactly.] Kelvin canonical,
+`celsius = ⟨1, 27315/100⟩`, `fahrenheit = ⟨5/9, 45967/180⟩`:
+`C(°C,°F)(x) = 9/5·x + 32` and `C(°F,°C)(x) = 5/9·(x − 32)` for every
+`x` (`CtoF_closed`, `FtoC_closed`); `0 °C = 32 °F`, `100 °C = 212 °F`,
+`−40 °C = −40 °F`, the °C→°F→°C round trip, °C→K→°F equal to °C→°F,
+`Δ10 °C = Δ18 °F` from two base points, `Δ°C = 5/9·Δ°F`, and the
+non-additivity counterexample `f(0+0) = 32 ≠ 64` (executed,
+`Experiments/AffineExamples.lean`).
+
+#strong[Not a Celsius special case.] A 10-bit ADC over 5 V, millivolts,
+and a calibrated reading with a 0.5 V zero instantiate the same theorems
+--- composition through millivolts, inverse back to raw, a difference
+independent of base (`exH`); so does an encoder with home offset,
+`angle = 45/512·count + 30°` (`exI`). Unit conversion and sensor
+calibration are one affine-map abstraction.
+
+#strong[The scalar coordinate is chartless.] `32` is a Fahrenheit
+coordinate of `0 °C` and a Celsius coordinate of `32 °C`
+(`coordinate_needs_chart`); the destination chart supplied to
+`reconstruct`/`convert` interprets it; no runtime tag is needed, and no
+theorem requires a unit to be data, delayed, synced, stored or compared
+--- Phase 10's rejection of runtime units re-audited and confirmed.
+
+#strong[AffSort, revised.] Conversion never takes a sort and the sort
+checker never takes a chart (`sort_orthogonal_to_conversion`,
+`conversion_orthogonal_to_sort`, by construction). Two claims coexist:
+(A) unit conversion is complete and correct without point/delta; (B) a
+domain-specific checker may still use point/delta to reject
+`point + point`, as #emph[optional physical-arithmetic validation],
+orthogonal to A. The design decision D-106 was rewritten from "affine
+conversion works, but point/delta is missing information" to "affine
+conversion is complete as coordinate-change semantics; point/delta is
+additional validation information for restricting physical arithmetic."
+`Ty.q d` is unchanged; no conversion theorem needed a sort in the type.
+
+== The production chart model
+<the-production-chart-model>
+Production (`crates/bdl-elab/src/units.rs`, ADR-0028 and its amendment)
+realizes the registry as `UnitDef { id, symbol, dim, chart }` with
+
+```rust
+pub enum Chart {
+    Linear { factor: f64 },              // canonical = coordinate × factor
+    Affine { scale: f64, offset: f64 },  // canonical = coordinate × scale + offset, scale ≠ 0
+}
+```
+
+and `coord`, `reconstruct`, `linear_part` on the chart;
+`convert(x, from, to) = coord_to(reconstruct_from(x))` is the one
+conversion operation and hides the chart's shape. The Phase-10b laws are
+property-tested on `f64` --- identity, composition, inverse, display
+switch preserving the quantity, the difference map linear --- within a
+few ulps, including the Celsius/Fahrenheit charts; the formal laws are
+exact. The affine charts exist as tested infrastructure and are
+#strong[not] in the registry offered to formulas or the Composer's
+pickers (ISS-0004): conversion and display of an absolute temperature
+are safe, arithmetic on absolute temperatures is a separate validation
+concern, and the product does not offer `20 °C` in a formula until the
+point/difference validation exists or a decision is taken not to need
+it. The symbol is presentation; identity is the id; `inch` is spelled
+out because `in` is the membership keyword.
+
+The production contract for floating point, as recommended by the formal
+phase: for registered charts `u, v, w` and sampled `x`,
+`|C(u,u)(x) − x| ≤ ε|x|`, `|C(v,w)(C(u,v)(x)) − C(u,w)(x)| ≤ ε|x|`,
+`|C(v,u)(C(u,v)(x)) − x| ≤ ε|x|`,
+`|(C(u,v)(x+δ) − C(u,v)(x)) − L(u,v)δ| ≤ ε|δ|`, and
+`|reconstruct_v(C(u,v)(coord_u(q))) − q| ≤ ε|q|`, with `ε` a few ulps
+scaled by the largest coefficient, plus exact-rational oracles --- never
+a claim of exact `f64` identity or composition.
+
+== The Formula Composer's formal basis
+<the-formula-composers-formal-basis>
+A structured composer needs, from the formal side, exactly three things:
+typed holes, expected-dimension propagation, and candidate-unit
+inference. `Surface/Composer.lean` gives them and no more.
+
+`PExpr` is holes, known operands by dimension (a literal, a reference or
+a known equation result), and `add/sub/mul/div`\; it is never executed.
+`check` is bottom-up on the known parts. `solve` pushes an expected
+dimension down by the local rules of each operator in the `Dim` group
+--- `add/sub`: both sides get the result; `mul`: the other side gets
+`r − d`\; `div`: numerator `r + d`, denominator `d − r` ---
+deterministically and in one pass; a product of two holes is reported
+#emph[unsolved], never searched. #strong[Formally proved] for the whole
+fragment: `solve_sound` (filling the holes as solved makes the
+expression check at the expected dimension) and `solve_complete` (any
+filling that checks agrees with the solution --- a one-hole equation in
+an abelian group has one solution); `candidates_sound`,
+`candidates_complete` and `slot_sound` (the units offered for a hole are
+exactly the registered units of its solved dimension);
+`refCandidates_sound` for declaration references. Executed:
+`? / (1 s) : Speed ⇒ ? : Length` with candidates mm, cm, m, km, inch
+(`exG`); `Force × ? : Torque ⇒ ? : Length` (`exH`); the explanation
+`Speed = [Length] / [Time]` as slots (`speed_slot`). No unification, no
+symbolic algebra beyond the group laws.
+
+The Composer does not need to make a unit part of an expression's type:
+an affine quantity literal needs the physical dimension, the chosen
+chart and the scalar coordinate, and changing the displayed chart is
+`coord_u(q) → coord_v(q)` with `q` preserved. What it #emph[would] need
+beyond the dimension to offer only difference units for a delta slot is
+the point/difference sort --- which is why that sort is recorded as
+optional validation information the editor could carry, not as anything
+in the kernel.
+
+= Part VIII --- Physical Outputs, Hardware Validation and Deployment Capacity
+<part-viii-physical-outputs-hardware-validation-and-deployment-capacity>
+== Physical Outputs Without Arbitration
 <physical-outputs-without-arbitration>
-== The model
+=== The model
 <the-model>
 A declaration computes a value; it does not move hardware. Physical
 effect happens only through an explicit #strong[drive edge] from a
@@ -1509,7 +2844,7 @@ counterexample cannot even be stated. “Desired steering angle” is a
 value; “the steering motor” is a resource; the kernel keeps them in
 different sorts.
 
-== One final driver
+=== One final driver
 <one-final-driver>
 The principle is #emph[many contributors, one explicit final driver].
 Take two declarations driving one sink, each globally well typed, well
@@ -1539,7 +2874,7 @@ is invalid. Retargeting a sink's accepted type, renaming a sink, or
 detaching an edge invalidates an unchanged design. Partial designs may
 leave sinks undriven; executable designs may not.
 
-== What was removed
+=== What was removed
 <what-was-removed>
 The earlier draft of BDL had an effect row on the behavior judgment,
 action requests as values, and per-context policies that allowed,
@@ -1559,14 +2894,14 @@ them --- event-latched activation with exit-wins, state-local output
 choice, nested choice with an output --- are ordinary declarations with
 one driver and were run as such.
 
-= Target-Specific Hardware Validation
+== Target-Specific Hardware Validation
 <target-specific-hardware-validation>
 Everything to this point is board-independent. A design that is typed,
 causal, clock-consistent, and output-complete may still not fit the
 microcontroller it is to run on, and that question is answered by a
 validation layer that never touches the kernel.
 
-== Resources, capabilities, requirements
+=== Resources, capabilities, requirements
 <resources-capabilities-requirements>
 A target is a finite table. A #strong[resource] --- a pin --- has an
 identity, a list of #strong[capabilities] from a shared vocabulary
@@ -1609,7 +2944,7 @@ group must have equal units under #emph[same] and different units under
 partially valid and covering exactly that list; the target is
 #strong[satisfiable] when such an assignment exists.
 
-== A sound and complete solver
+=== A sound and complete solver
 <a-sound-and-complete-solver>
 Every constraint is unary or binary, so validity is prefix-closed, and
 an exhaustive depth-first search that prunes on unary support and
@@ -1627,7 +2962,7 @@ existing resources --- preserves every valid assignment. Removing a
 resource, adding or strengthening a requirement, or fixing a pin may
 not.
 
-== Case study: an Arduino Nano
+=== Case study: an Arduino Nano
 <case-study-an-arduino-nano>
 The Arduino Nano's digital and analog pins are encoded as a table: PWM
 on D3, D5, D6, D9, D10, and D11 backed by timers 2, 0, 0, 1, 1, and 2;
@@ -1665,7 +3000,7 @@ conflict under one placement order, not a minimal unsatisfiable core,
 and it is meaningful only when the solver has already returned no
 assignment.
 
-== Two kinds of evidence
+=== Two kinds of evidence
 <two-kinds-of-evidence>
 Hardware feasibility is evidence about the pair (design, target), and it
 is not monotone in the sense the preservation theorems require. Six
@@ -1685,12 +3020,400 @@ architecture leaves room for a compatibility predicate over sets,
 nothing here establishes it. Units are one integer per capability per
 resource, which models which timer or which UART but not timer modes.
 
-= Elaboration and Tool Architecture
-<elaboration-and-tool-architecture>
+== Deployment capacity
+<deployment-capacity>
+The third kind of validation evidence, added in Phase 9a, is deployment
+capacity: whether every bounded collection in the design has a bound
+sufficient for the target's memory and the schedule. Like feasibility
+and unlike a commitment, it is not monotone --- adding a fast source to
+a slow consumer can exceed a bound that was sufficient --- and it is
+re-established after every change. Part V gives the formal result
+(`sufficient_capacity_preserves`, `periodic_capacity_sufficient`\;
+#strong[formally proved]) and production's realization
+(`bdl-exec-ir::bounds`, refusal at deploy; ADR-0027). The workspace
+state #emph[hardware-feasible] of Part II is, in production, the
+conjunction of allocation and capacity.
+
+== Two remarks across Parts III--VIII
+<two-remarks-across-parts-iiiviii>
+=== Why the signature is a design object
+<why-the-signature-is-a-design-object>
+The most consequential decision in BDL is treating a declared
+relationship as visible product intent. In programming, a signature is
+often documentation and a static contract around code. In BDL it can
+precede any code-like definition and remain useful on its own:
+$? f : upright("Tilt") arrow.r upright("Brightness")$ says that the
+designer has committed to a causal design relationship and to its
+semantic boundary, and does not say how the mapping is computed. Clients
+are typed against the type view and depend on the interface only through
+it and through monotone evidence, so the partial commitment is not a
+weaker form of a complete one. It is the form on which everything
+downstream already rests.
+
+=== Nominal identity in three places
+<nominal-identity-in-three-places>
+BDL makes the same choice three times. On the axis of quantity, `sem`
+makes semantic identity nominal: two concepts of equal representation
+are distinct, and moving between them is a declared relationship. On the
+axis of time, `ClockId` makes temporal identity nominal: two domains of
+equal rate are distinct, and moving between them is a `sync` with an
+initial value. On the axis of effect, `OutputId` makes sink identity
+nominal: two sinks of equal accepted type are distinct, and driving one
+is an explicit edge. In each case the identity is independent of
+representation, of rate, and of type respectively; in each case the
+crossing is a visible artifact rather than a compiler action; and in
+each case the alternative --- identity by representation, by rate, or by
+type --- collided or was ambiguous for a mechanized reason. The three
+are not all placed alike. Semantic identity is in the type, while clock
+and sink identity are projections beside the interface checked by
+separate global judgments, because putting the clock in the type forces
+polymorphism on every pure mapping. Symmetry was not a design goal; it
+is what remained.
+
+= Part IX --- Production Compiler and Runtime Architecture
+<part-ix-production-compiler-and-runtime-architecture>
+`KCN-judu/BDL` is the engineering implementation of the language whose
+kernel was derived in `BDL_FV`. It builds what the formal development
+deliberately did not: the elaborator, the tooling and the execution
+path. It follows the formally developed semantics and is not itself
+formally verified. One property the whole system is built to keep
+obvious: #emph[BDL semantics flows downward; implementation mechanisms
+never flow upward and redefine the language.] This Part describes the
+architecture at revision `f1ce82c` in enough detail that a tool paper
+could be extracted from it.
+
+== Four trust layers
+<four-trust-layers>
+#figure(
+  align(center)[#table(
+    columns: (33.33%, 33.33%, 33.33%),
+    align: (auto,auto,auto,),
+    table.header([layer], [owns], [never does],),
+    table.hline(),
+    [Flutter Studio], [presentation, interaction, layout, ephemeral
+    render state], [compute type validity, semantic identity,
+    dimensions, causality, clocks, output ownership, hardware
+    feasibility, simulation],
+    [Rust compiler (`bdld` and crates)], [the canonical project model,
+    every semantic judgment, diagnostics, simulation, allocation, code
+    generation, the placement of entities that have no position
+    yet], [render, decide where a placed node goes],
+    [generated Rust core], [deterministic executable behavior: domain
+    step functions, state, output values], [touch hardware, know about
+    tasks or executors],
+    [platform adapter], [physical I/O, clock activation sources,
+    telemetry transport], [interpret BDL semantics],
+  )]
+  , kind: table
+  )
+
+Studio may render an edit optimistically, but the truth comes back from
+the compiler as a #emph[projection]\; Studio never holds a second copy
+of the language (ADR-0001). `bdld` is a process boundary (ADR-0002),
+speaking protobuf over framed stdio (ADR-0007), with one canonical
+revision stream per opened project.
+
+== Crates and semantic ownership
+<crates-and-semantic-ownership>
+The dependency direction is strict and acyclic:
+`model → ir → {syntax → elab, check → equations → elab, check → reactive → output} → compiler → ide-db → ide → {lsp, daemon}`\;
+`protocol` sits between `compiler` and `daemon`\; `text` and `layout`
+hang off `system` and are joined by `daemon`, `lsp` and the CLI;
+`hardware` depends on `model` only --- it never sees `Δ` --- and
+`compiler` joins the two; `lower → codegen` hang off `exec-ir`\;
+`runtime-core` depends on nothing and is what generated code links
+against. A crate exists only where a real boundary exists.
+
+#figure(
+  align(center)[#table(
+    columns: (50%, 50%),
+    align: (auto,auto,),
+    table.header([crate], [owns],),
+    table.hline(),
+    [`bdl-model`], [stable ids · surface model · revisioned edits
+    (`apply_edit`, pure) · persistence · quantity vocabulary],
+    [`bdl-ir`], [the Design IR and the Reactive Core IR: the kernel's
+    `Ty`, `Expr`, `Prim`, environments, transcribed],
+    [`bdl-diagnostics`], [`Diagnostic`, `Span`, stable codes,
+    deterministic order],
+    [`bdl-syntax`], [Logos lexer · event parser (recursive descent +
+    Pratt) · Rowan lossless CST · typed AST · lowering],
+    [`bdl-equations`], [the equation library: rank-1 schemes with type
+    and dimension variables and `{Data, Eq, Ord}`, first-order matching,
+    one closed Core builder per equation],
+    [`bdl-elab`], [concepts → Θ · signatures → interfaces · formulas →
+    Core with equations inlined at their instance · the unit registry
+    and charts],
+    [`bdl-check`], [Core typing · `Grant` · realization vs interface ·
+    pretty-printing; the authority for every type judgment],
+    [`bdl-reactive`], [dependency graph · causality · `Clocked` · the
+    reference evaluator · simulation · window capacity],
+    [`bdl-output`], [`DriveWF` · `SingleDriver` · `CompleteOutputs` ·
+    `output_values`],
+    [`bdl-hardware`], [capabilities · resources · hardware · device →
+    requirements · boards · `solve`/`diagnose`],
+    [`bdl-exec-ir`], [the executable IR: slots, first-order expressions,
+    evaluation plan; interpreter; static list bounds],
+    [`bdl-lower`], [reactive lowering: Design IR → Exec IR (clock,
+    state, input and output slots; inlining; order)],
+    [`bdl-codegen-rust`], [Exec IR → owned Rust AST → printed crate +
+    host bridge + `bdl-manifest.json`],
+    [`bdl-compiler`], [`analyze(snapshot)`,
+    `analyze_deployment(snapshot, target)`,
+    `compile(snapshot, options)`, the collections report],
+    [`bdl-system`], [components · instances · bindings · freshening ·
+    flatten → `ProjectSnapshot` + origins · packaging],
+    [`bdl-text`], [persistence: source discovery · identity sidecar and
+    reconciliation · `load_workspace` · item-level write-back · legacy
+    migration],
+    [`bdl-layout`], [deterministic, incremental placement of entities
+    without a position; never semantics],
+    [`bdl-library`], [concept libraries: data-driven templates
+    instantiating ordinary concepts; search],
+    [`bdl-ide-db`], [IDE ground state: `IdeHost` · overlays ·
+    `EntityRef`/`EntityRole` · projections · immutable stamped
+    `AnalysisSnapshot` · cancellation],
+    [`bdl-ide`], [semantic IDE queries over a snapshot: diagnostics,
+    hover/explain, completion, references, rename, actions, invalidation
+    preview, symbols, tokens, the Formula Composer queries],
+    [`bdl-lsp`], [an LSP adapter only (ADR-0017)],
+    [`bdl-protocol`], [protobuf schema · framing · conversions],
+    [`bdl-daemon`], [`bdld`: session, coordinator, transport, analysis
+    push, layout on open and commit; `bdld check|compile|simulate`],
+    [`bdl-runtime-core`], [`no_std` vocabulary of every generated core:
+    `ActiveDomains`, `ClockSlot`, `RuntimeError`, checked numerics;
+    feature `collections`: list operators and the recursor over
+    `alloc::Vec`],
+    [`bdl-runtime-host`], [std harness: `DynValue`, JSON run
+    request/trace over stdio, cargo driver],
+  )]
+  , kind: table
+  )
+
+Planned and designed but not implemented: `bdl-component` (supplied Rust
+component contracts; "supplied Rust cannot drive outputs", ADR-0005) and
+`bdl-runtime-embassy` (the first platform adapter).
+
+== The compiler as a pipeline of explicit passes
+<the-compiler-as-a-pipeline-of-explicit-passes>
+```
+load/parse → identity resolution → signature resolution → surface elaboration
+→ type checking → semantic-construction (grant) checking → dimension checking
+→ dependency analysis → causality → clock domains → physical outputs
+→ hardware requirement generation → hardware allocation → reactive lowering
+→ Rust code generation
+```
+
+Each pass has an explicit input and output type and is pure where
+practical (`docs/architecture/compiler-pipeline.md`). Diagnostics are
+first-class outputs: an incomplete project is the normal case, never a
+fail-fast, which is the engineering face of the signature-first
+position. `apply_edit` classifies every operation as a #emph[refinement]
+(dependents' established facts remain valid) or an #emph[edit]
+(dependents must be re-validated) and reports an explicit `Invalidation`
+set ---
+`Interface | Realization | Semantic | Reactive | Clock | Output | Deployment`
+--- with the originating declarations (ADR-0009); incremental analysis
+subscribes to these categories, so the refinement-versus-edit
+distinction of Part III is an engineering asset, not folklore.
+
+Numerics are IEEE `f64` (ADR-0011), a recorded deviation from the
+kernel's `Nat`: division by an exact zero and any non-finite result fail
+the tick with a structured error, equality is exact, and the production
+numerics are not what the formal theorems are about (Part XI).
+
+#strong[Formula elaboration] (ADR-0013, extended by ADR-0025): a
+designer-facing formula language --- `+ − * / < <= > >= == != && || !`,
+`if`, `match` over Bool/Option/numbers/counts, `let`, calls, list and
+pair literals, rules `x => …` as equation arguments, membership
+`x in […]`, the slot `?` --- parsed by a hand-written Pratt parser into
+a surface AST that is never reused as Core. Input names are the
+concepts' display names, re-resolved on every analysis; inputs appear as
+their representations (`rep (var i)`) and the whole formula is wrapped
+in `mk B` under the declaration's own grant --- the elaborator never
+emits `mk` of any other concept, and the checker refuses one anyway.
+Units elaborate through the registry; equations are matched and inlined
+at the use; `bdl-check` re-derives the Core term's type and is the
+authority.
+
+== Executable IR and lowering
+<executable-ir-and-lowering>
+`bdl-exec-ir` is a first-order IR with dense slots: clock slots, state
+cells addressed by `StateCellId { decl, path }` (the declaration and the
+expression path of the `delay`/`sync` inside its realization, so
+identity survives unrelated edits), input slots for unresolved
+declarations, output plans with their driver. Lambdas and applications
+are inlined as `Let` bindings; the recursor becomes
+`Fold { elem, acc, step, init, list }` with one closure per recursor
+applied by the runtime --- never a closure #emph[value]\; `rep`/`mk`
+become `Unwrap`/`Wrap` on a per-concept newtype. Lowering fixes an
+evaluation order from the plan; the reference evaluator's own tests show
+its result is independent of the host's processing order and the
+generated program's traces equal the reference's.
+
+== The generated core
+<the-generated-core>
+```rust
+pub const DESIGN: &str; pub const HAS_DOMAINS: bool; pub const CLOCK_COUNT: u16;
+pub const CLOCK_k: ClockSlot;
+pub struct SemN(pub Repr);                       // one per concept carried
+pub struct Cells { pub cell_k: Option<T>, … }    // temporal state, None until first written
+pub struct State { pub cells: Cells }
+pub struct Inputs { pub decl_n: Option<T>, … }   // unresolved declarations
+pub struct Values { pub decl_n: Option<T>, … }   // every declaration, None when not due
+pub struct Outputs { pub output_n: Option<T>, … }
+pub struct Tick { pub values: Values, pub outputs: Outputs }
+pub fn init() -> State;
+pub fn step(state: &mut State, active: ActiveDomains, inputs: &Inputs) -> Result<Tick, RuntimeError>;
+```
+
+A program without lists is `Copy`, statically sized, laid out by the
+compiler: no graph, no map, no allocation, no traversal at runtime.
+Types: `q d → f64` (the dimension is static and in the manifest),
+`bool`, `nat → u64`, `sem s → SemN`, `opt τ → Option<T>`,
+`list τ → Vec<T>` (last element first), `τ × σ → (T, S)`\; a function
+type has no runtime representation. Symbols derive from stable ids
+(`decl_17`, `Sem3`, `cell_0`), never from display names. The core is
+`#![no_std] #![forbid(unsafe_code)]` and mentions no HAL, pin,
+peripheral or board; `cargo check --lib` of every corpus crate is a
+test.
+
+== Embedded execution model
+<embedded-execution-model>
+The formal semantics is a tick-indexed relation; production gives it a
+deterministic step function per domain and states what the generated
+core must preserve (`docs/spec/runtime-semantics.md`):
+
+- #strong[Declarations are not tasks] (ADR-0004). Never one async task
+  per declaration. Per clock domain, one deterministic
+  `step(prev_state, inputs) → (next_state, outputs)`: hardware timer or
+  interrupt → activate domain `c` → step → publish `c`'s snapshot →
+  commit the physical outputs owned by `c`. Meaning never depends on
+  executor task order.
+- #strong[Two phases.] #emph[Read]: every declaration due this tick is
+  evaluated (lazily, memoized) with temporal forms yielding their cell's
+  committed value, or the initial value if the cell was never written.
+  #emph[Write]: every temporal site whose writing domain is active ---
+  the owner's domain for `delay`, `src` for `sync` --- evaluates its
+  operand in the same read mode into the #emph[next] state. Nothing is
+  updated in place; reads never see writes of the same tick.
+- #strong[Previous/next state.] `step` reads only `prev`, writes only
+  `next`, and assigns at the end --- not at all on error. Every delay
+  carries its explicit initial value; a cell is `Option<T>`, `None`
+  until first written; there is no implicit zero.
+- #strong[The sync snapshot rule.] `sync src init e` reads the last
+  committed snapshot of `src` from an activation strictly before the
+  current tick, `init` if there was none, and never invokes `step_src`
+  recursively. When two domains are ready at the same instant, each
+  observes only the other's previously committed activation --- the
+  scheduler's order is unobservable, exactly as in the formal model
+  (`scheduling_order_observable` is the counterexample for the
+  alternative). In generated code a `sync` cell's writer is the
+  #emph[source] domain's slot.
+- #strong[Output commit timing.] Outputs are built after the write phase
+  from the driving declarations' values (`output_values`), and committed
+  by the domain that owns the sink.
+- #strong[Allocator requirements.] A core that carries a list needs a
+  global allocator (ADR-0024); the manifest records
+  `requires_allocator`, per-cell bounds, `state_bytes_max` and
+  `tick_bytes_max`\; the first platform adapter is to declare an arena
+  sized from the manifest and state the most it supplies for each list
+  input.
+- #strong[Collection bounds.] Static, sound per declaration and cell
+  (`bdl-exec-ir::bounds`); the window capacity model per crossing;
+  refusal of an unbounded state on a bounded-memory target (ADR-0027,
+  Part V).
+- #strong[Cost discipline.] Moves, not clones: a use analysis per
+  expression tree moves a local referenced once in its scope, clones any
+  other reference, and always clones a local captured by a fold's
+  closure, so a fold step that `cons`es onto its accumulator moves it
+  --- `map`, `filter`, `append`, `sum`, `any`, `all`, `contains` clone
+  nothing per element (clone-counting tests; measured ×15 for 2 000 → 32
+  000 elements). A total conditional --- neither branch can fail --- is
+  emitted as a Rust `if`, observationally the strict `ite`\; a branch
+  that can fail keeps `prim::ite` and its strictness. Borrowed reads for
+  `length`, `head`, `take`, `==`, `<`. Commit-only writes: a tick clones
+  no cell it does not read. What remains: `zip` clones its accumulator
+  pair per element (ISS-0013); no fusion of `map → filter` chains,
+  because each is linear and measured and a fused emission was not
+  justified by the numbers.
+- #strong[Targets.] The core is target-independent. macOS and Windows
+  are first-class hosts for the toolchain; no platform adapter exists at
+  `f1ce82c` --- Embassy is roadmap priority 1; an RP2040 board file is
+  not yet present.
+
+Current cost figures are recorded, not optimized: a lamp core is \~95
+lines and \~7 KB of source with a zero-byte `State`\; the collections
+and buffer corpus cases allocate and their debug-build timings are two
+orders of magnitude above the allocation-free cases --- a baseline for
+later evaluation, nothing more.
+
+== Differential testing
+<differential-testing>
+For the same design, schedule and input trace, the reference evaluator
+and the generated program must agree value by value, tick by tick
+(`crates/bdl-compiler/tests/backend_*.rs`). The corpus: lamp and
+lamp-with-output, pure arithmetic with dimensions and a count,
+collections (`any`, `sum`, `map`, `filter`, `zip`, `contains`, `clamp`,
+`getOrElse`/`head`, structural equality, a list in a state cell),
+`buffer` (the Phase-9a window as five declarations), `bounded_buffer`
+and `overflowing_buffer`, semantic `rep`/`mk` with a Boolean concept,
+booleans/comparisons/strict `if`/options, `delay`, a cycle broken by
+`delay`, `sync` across two domains in both directions with the slow
+domain on period 2, a domain-agnostic declaration shared by two domains,
+division by zero, non-finite result, missing input, a design with no
+domain --- 22 cases, each generated, `cargo check`ed as a `no_std`
+library, built with its bridge, run and compared, with golden files
+pinning the generated bytes and a determinism check that generating
+twice gives identical output; a 3 000-tick run; property-based
+generation of designs (250 per run in process, a seeded batch of 8
+through the full toolchain); and the storage-order audit of the reversed
+`Vec`. Comparison is exact (`f64` bit-for-bit in effect; the generated
+code performs the same IEEE operations in the same order --- no
+reassociation, fusion or CSE --- and the JSON transport is exact);
+errors must fail at the same tick with a failure the reference could
+report, computed by starting the reference's traversal at every due
+declaration.
+
+== Project persistence and the daemon
+<project-persistence-and-the-daemon>
+A project is one directory (ADR-0023, superseding ADR-0020's third
+project #emph[kind]): `bdl.toml` (name, schema, compiler version --- no
+kind), `src/**/*.bdl` (the authored design and system --- the semantic
+source), `.bdl/identities.json` (source key → stable id, allocators, the
+flat-id freshening table --- tool-owned), `.bdl/authoring.json`
+(behavior groups by identity), `ui/layout.json` (positions, viewports,
+group boxes --- presentation). "Source of truth" is a per-fact
+statement: the semantic model never depends on geometry, the graph never
+stores a semantic fact, the text never stores a position; erasing both
+sidecars and the layout changes no semantic fact; erasing the sources
+loses the design. A legacy JSON project is migrated in place the first
+time it is opened, identities and layout kept.
+
+`bdld`'s coordinator is the single imperative loop: it owns the
+`Session`, applies edits serially through the pure `apply_edit`, and
+hands immutable snapshots to analyses. Every semantic edit is sent
+against the revision Studio holds and refused if the project has moved
+on; every response and event carries its revision; revisions are
+strictly monotone (undo produces a new revision), so staleness is a `<`
+comparison. Overlays --- a definition draft per mapping, a text document
+per file --- never create a revision; `AnalysisSnapshot` composes
+committed + overlays, runs `analyze`, and is stamped
+`(revision, generation)`\; a query holding an old snapshot keeps seeing
+the world it started in.
+
+== The elaboration passes the kernel implies
+<the-elaboration-passes-the-kernel-implies>
 The surface editor and kernel are connected by an elaboration function
-from surface designs to kernel environments with diagnostics. No
-elaborator has been implemented; this section states the passes that the
-kernel's structure implies, and what each is responsible for.
+from surface designs to kernel environments with diagnostics. These
+passes were stated in the conference manuscript before any elaborator
+existed; the production pipeline above realizes them --- resolution and
+formula elaboration in `bdl-elab`, temporal lowering and domain
+assignment in `bdl-lower` and `bdl-reactive`, output binding in
+`bdl-output`, hardware validation in `bdl-hardware`, normalization and
+erasure in `bdl-exec-ir` and `bdl-codegen-rust`. The list is kept
+because it is the specification those crates were written to, and
+because it says what each pass may and may not consult.
 
 #strong[Name and signature resolution.] Resolve semantic properties to
 identities, Mapping signatures to declaration interfaces, contexts,
@@ -1754,96 +3477,827 @@ associative, so any symbolic normalization over the reals must record
 the resulting numerical deviation as an obligation rather than silently
 altering the property being checked.
 
-= Mechanized Design-Space Evaluation
-<mechanized-design-space-evaluation>
-The kernel of this paper was obtained by a method, and the method is
-part of the contribution. Each phase of the development took a family of
-candidate constructs from the earlier draft, formalized the smallest
-plausible version and its alternatives in Lean 4 without external
-libraries, and attacked each with the same questions. What does it
-reject that the others accept? What does it accept that it should not?
-Is it a special case of another? Which operations on a design are
-refinements under it, and which are edits? Constructs were promoted from
-the experiment modules to the kernel only after surviving, and the
-theorems about them were re-proved in the promoted form.
+= Part X --- Studio: The User Interface as a Semantic Projection
+<part-x-studio-the-user-interface-as-a-semantic-projection>
+Studio is not a drawing tool with a compiler attached; it is a set of
+projections of the compiler's verdicts, arranged so that semantic
+distinctions become interaction distinctions and nothing else does. This
+Part describes the intended interaction model as designed and, at
+`f1ce82c`, largely built (`docs/architecture/studio-ui.md`\; the
+implementation status is in Part XI). Whether the model is #emph[usable]
+is an empirical question no study has yet answered (Part XIII).
 
-== Claim strength
-<claim-strength>
-Formal counterexamples reject the specific tested design, not every
-conceivable design in the same informal family. Every conclusion in the
-development is therefore labelled with one of a fixed set of strengths,
-and this paper has used the same vocabulary throughout: #strong[formally
-proved] (a theorem in the development); #strong[formally rejected by
-counterexample] (a mechanized example breaks the specific formulation);
-#strong[reduction by proof] (a theorem shows one design is a special
-case or erasure of another); #strong[tested formulation redundant] (the
-one formulation examined duplicates an existing mechanism; the family is
-not excluded); #strong[engineering preference] (argued, not proved); and
-#strong[not ruled out]. Nothing in the development is a proven
-impossibility, and “minimal” in this paper always means minimal among
-the tested designs.
+== Three information levels
+<three-information-levels>
+Every semantic fact is designed for exactly one primary level and may
+echo at the next only as detail behind the first (ADR-0018):
 
-== What the kernel contains and why
-<what-the-kernel-contains-and-why>
-#block(width: 100%)[
-#set text(size: 7.1pt)
-#table(
-  columns: (1.15fr, 0.5fr, 1.45fr), align: left, inset: (x: 3pt, y: 2.4pt),
-  stroke: (x: none, y: 0.3pt),
-  table.header([*Construct*], [*Status*], [*Basis*]),
-  [declaration with frozen type, monotone commitments, write-once realization], [kernel], [preservation theorems; each edit witnessed],
-  [typing through the type view only], [kernel], [sufficient by theorem; necessary by counterexample],
-  [`Evidence.Monotone` as a condition on validation], [imposed by kernel], [preservation fails without it],
-  [nominal `sem SemanticId`], [kernel], [baseline accepts the invalid wire; metadata checker $eta$-evaded; concept-as-declaration has category errors],
-  [representation binding $Theta$; `rep` free; `mk` under `Grant.of` signature], [kernel], [unrestricted `mk`/`rep` bypasses identity; observation-only cannot realize a mapping],
-  [dimensions `q Dim`, algebra in `Prim.ty`], [kernel], [numeric baseline is the erasure; no dimension rule needed],
-  [units], [surface], [scaled literal; value changes, type does not],
-  [`delay init e`, data-typed, top-level; tick semantics], [kernel], [deterministic; total on causal designs; restrictions forced by totality],
-  [`Signal τ` in `Ty`], [removed], [inhabited by exactly the terms of `τ`],
-  [`Event τ`], [removed (single domain)], [`opt τ` streams are the multiplicity-≤1 streams],
-  [temporal operators], [surface], [each executed as a self-delayed declaration],
-  [`Causal` on instantaneous dependency], [kernel], [replaces structural acyclicity; conservative for lambda-guarded cycles],
-  [`ClockId`, clock environment, `Clocked`], [kernel], [direct wire ambiguous without it; equal rate is not same domain],
-  [clock in the type], [removed], [forces polymorphism on every pure mapping],
-  [`sync src init e`], [kernel], [one transport; `delay` is its diagonal; same-tick visibility makes scheduler order observable],
-  [`list τ` with six operators], [kernel], [a lossless window is unbounded sequence data; no new typing, evaluation, or domain rule],
-  [buffer primitive, `Event τ` across domains], [removed], [buffer = five declarations over `delay`/`sync`/lists; proved equal to the window],
-  [event policies, capacity], [surface; validation], [policies are computations over the window; only reject-deployment preserves semantics],
-  [products `A × B`, list recursor `fold`, `eq` on every data type], [kernel], [function encodings are not data and cannot be state; one eliminator derives every collection operation; the kernel's only capability evidence is `Data`],
-  [structural order on data (`mode < mode`, `None < Some`, lexicographic pairs)], [removed], [no behaviour-design meaning; `lt` compares quantities, an ordered concept compares by declaration through its representation],
-  [rank-1 generic definitions], [surface], [families of monomorphic terms instantiated by matching; no type variable, `∀` or `Λ` in the kernel],
-  [sets, intervals, records, finite quantifiers, `min`/`clamp`/`any`/`all`/`map`], [surface], [definitions over pairs, lists and `fold`; `x ∈ {…}` is list membership; `forall x in xs` is `all`],
-  [higher-rank types, typeclasses, existentials, row polymorphism], [removed], [every candidate use is rank ≥ 2 with a rank-1 replacement; hiding is component instantiation; the constraint vocabulary is the closed {`Data`, `Eq`, `Ord`}],
-  [`OutputId`, drive edge, `DriveWF`, `SingleDriver`], [kernel], [two drivers make the output non-functional; hidden policy observable],
-  [effect rows, action values, arbitration], [removed], [rows duplicate edges or false-positive; values relocate the conflict],
-  [hardware resources, requirements, solver], [validation], [feasibility is target-relative and not monotone],
-)
-]
-The tested StateHandler behaviors, the event buffer, and the
-lambda-guarded cycle are the recorded boundaries of these results.
+#figure(
+  align(center)[#table(
+    columns: (25%, 25%, 25%, 25%),
+    align: (auto,auto,auto,auto,),
+    table.header([level], [answers], [may use], [may not use],),
+    table.hline(),
+    [1 Canvas], [what does the product do; what depends on what; what is
+    still open; where does behavior become physical], [object
+    silhouette, socket shape, socket hue, links, grouping, containment,
+    line style, the object's own state; one state word where
+    unavoidable], [type labels, ids, compiler words, badges, counts],
+    [2 Inspector], [what does the selected object mean; what can I
+    change; what will the change affect], [designer vocabulary:
+    #emph[Meaning, Value, Unit, Reads, Produces, Relationship, Used by,
+    affects, checked again]\; diagnostics in product language attached
+    to the field they concern], [`SemanticId`, `DeclId`, `Ty`, `Grant`,
+    `realization`, `Clocked`, `SingleDriver`, solver, protocol,
+    revision, enum names],
+    [3 Explain], [why was this accepted or refused; what did the surface
+    form elaborate into; which rule applies], [all of the above, kernel
+    notation, Core IR, diagnostic codes, revision], [---],
+  )]
+  , kind: table
+  )
 
-== Scale and trust base
-<scale-and-trust-base>
-The development builds with Lean 4.33.1 with no `sorry`. The axioms used
-are propositional extensionality and quotient soundness, the latter only
-through function extensionality, and no classical choice. The kernel and
-validation layer occupy eleven modules, with eight experiment modules
-holding the alternatives and counterexamples; every trace, assignment,
-and unsatisfiability result reported here was obtained by running a
-proved-sound interpreter or solver inside the proof checker. Several
-theorems are recorded as trivial by definition --- the typing half of
-client stability is a one-liner, and the well-formedness of a refinement
-target is unused because the invariant was moved into the definition ---
-and they are reported as such rather than presented as content.
+Explain is one collapsed disclosure at the end of the inspector, never
+open by default; nothing in levels 1--2 depends on it. This is the
+progressive-disclosure claim of Part I made operational: the kernel is
+reachable, and it is never in the way.
 
-= Evaluation Plan
-<evaluation-plan>
-No user study has been run, and no elaborator, editor, or firmware
-generator exists. This section states what should be measured and how,
-without reporting results.
+== The canvas
+<the-canvas>
+#strong[Socket hue = semantic identity.] In a node editor a socket's
+colour is its data type; in BDL the type that matters is the nominal
+concept, so each concept gets a stable hue derived from its `SemanticId`
+--- deterministic, never from the name, with lightness chosen per hue so
+every identity clears 3:1 contrast in both appearances. A link is
+accepted only between sockets of the same concept: while a link is
+dragged every compatible socket gains a faint halo, the one under the
+pointer a strong halo, and an incompatible socket shows the forbidden
+cursor. The canvas shows the nominal typing rule without a diagnostic.
+Tilt and MotorAngle, both angles, have two hues and never connect.
 
-== Expected cognitive advantages
-<expected-cognitive-advantages>
+#strong[Socket shape = value form.] Quantity ○, on--off ◇, count □,
+collection ⧉ (a stack), grouped value ▯ (a split square), optional value
+◎ (a ring with a hole); a concept whose value form is not yet chosen is
+a hollow ring. The same glyph, drawn by the same code, appears in the
+library, in chips, toggles and pop-ups. No type words are written beside
+a socket anywhere.
+
+#strong[Unresolved state.] A declared mapping --- realization `none` ---
+is drawn with a dashed outline, an empty definition region and the one
+word #emph[declared]\; dashed survives selection; never red. A
+definition the compiler cannot accept gets a red mark at the definition
+line, where the problem lives, and no word in the header. A mapping
+waiting on a concept whose value form is not chosen is a solid node
+whose read socket is hollow, with the inspector saying #emph[checked
+once Temperature's value is decided]. These are the three states of Part
+III's signature-first model, drawn.
+
+#strong[What the canvas never means.] Edges are dependency, not
+execution order; drawing order does not set output priority; node
+position is layout only (ADR-0003) --- an entity without a position is
+placed by the daemon's layout service on open and on commit,
+deterministically, without moving anything placed, and Studio arranges
+nothing at render time. No node type exists per arithmetic operator:
+formulas live in the inspector. Dragging a node over a link does not
+auto-insert it, because links are typed by concept and silent insertion
+would be a semantic edit.
+
+#strong[Header colour = category]: concept, mapping, context, output,
+transport --- muted; identity hues are the only saturated marks on the
+canvas. Interaction follows Blender's node editor conventions; a concept
+in use cannot be deleted without the banner naming its dependents.
+
+== Groups and components on one canvas
+<groups-and-components-on-one-canvas>
+A behavior system has three zoom levels on one canvas: the system of
+instances, an instance's body, and the flat design. A group is a box
+that can be collapsed to its aggregate sockets (`crossIn ++ openMembers`
+in, `crossOut` out --- Part VI), moved, merged and split with no
+revision and no re-check; #emph[Package as Component] opens a sheet that
+shows the inferred required, provided and private members and lets the
+designer widen but not narrow them. An instance node shows its required
+and provided ports with the same socket glyphs; a component's body is
+edited in its own scope with its own drafts and completion. The
+packaging sheet teaches by showing: the boundary the designer sees on
+the collapsed group is exactly the interface the component receives.
+
+== Design, Code and Split: views of one project
+<design-code-and-split-views-of-one-project>
+The same open project is shown as a graphical behavior model, as its
+source files, or both side by side (ADR-0023). Switching is a view
+change --- no conversion, import, export or project type. Graph → text:
+a canvas operation is a semantic edit on the model, and the textual
+projection is the minimal item-level splice of the sources, keeping
+comments and formatting outside the touched item; computed for the Code
+view on request and written on save. Text → graph: a Code-view edit is
+the whole text of one file against a revision; if it builds,
+declarations are bound to their identities by reconciliation (retained,
+allocated, dropped, renamed, ambiguous, duplicate) and the project moves
+to a new revision; if not, the committed project stays and the draft is
+held with the loader's faults --- malformed text never erases the graph.
+An entity authored first in Code and one authored first in Design are
+indistinguishable once synchronised. The Code pane shows an out-of-step
+banner with the daemon's reasons and syncs selection in Split.
+
+Ownership boundaries, stated once and relied on everywhere: source
+semantics in `src/**/*.bdl`\; identity in `.bdl/identities.json`\;
+authoring metadata (groups) in `.bdl/authoring.json`\; layout in
+`ui/layout.json`\; viewport and session state in the running Studio
+only. Studio state is three things kept apart --- semantic projection
+(owned by the compiler, only rendered), editor state (selection, open
+inspector, pending requests), rendering state (drag position, hover,
+zoom, never persisted or sent).
+
+== The definition editor and the Formula Composer
+<the-definition-editor-and-the-formula-composer>
+The definition editor has two projections of one draft, chosen with a
+#strong[Formula | Text] control (ADR-0028). The Text view is a field
+over the compiler's verdict, with completion, hover and fixes from the
+IDE service. The Formula view draws the compiler's `FormulaProjection`
+as the expression it is --- `clamp( [Tilt] ÷ [90][deg ▾], [0], [1] )`
+--- never as a graph inside the node.
+
+#strong[Architecture.] The draft text of a mapping's definition is an
+overlay in the IDE host (`MappingDefinitionDraft`), never a revision;
+`bdl-ide::formula` builds the projection from the #emph[effective]
+definition text on every request and never stores it:
+
+```
+FormulaProjection   formula_projection(&snapshot, mapping)
+                    = trace_formula_in (bdl-elab: the surface tree and the type of every
+                      sub-expression, on success and on failure)
+                    → FormulaNode tree: tree-path ids, byte ranges, kinds, actual types,
+                      expected types by local dimension inference (solve),
+                      diagnostics placed on the innermost node, the slots in source order
+SlotInfo            formula_slot(&snapshot, mapping, node)
+                    = the projection's expectation at `node` + units_for(dim)
+                      + reference candidates by type + equations by scheme match and capability
+ComposeResult       compose(&snapshot, mapping, source, ComposeOp)
+                    = the text a structured action makes: byte-range edits of the draft,
+                      parenthesised by precedence, a unit switched with the value kept
+```
+
+`FormulaTrace` is the elaborator's typing trace, kept on success and on
+failure, so a formula that does not check still has a projection for the
+parts that do. A `FormulaNode` carries its #emph[actual] type (what the
+sub-expression is) and its #emph[expected] type (what its position
+demands, by `solve`), and node identity is the tree path --- ephemeral,
+stable within one draft generation, not an entity, never in
+`.bdl/identities.json`. `bdld` carries the projection with every
+`DefinitionDraftAnalysis` (one round trip per keystroke, the same
+generation) and answers `GetFormulaProjection` (the committed
+definition, no overlay), `GetFormulaSlot` and `ComposeFormula` (protocol
+0.12).
+
+#strong[Every structured action is a text edit.] `compose` answers a
+`ComposeOp` --- fill a slot, wrap in an operator, call an equation with
+the component as first argument, set a literal's unit, set a literal's
+coordinate, remove --- with byte-range edits of the draft and the whole
+new source; Studio puts it into the draft through the ordinary
+`DefinitionDraftChanged`, and the ordinary analysis follows. One commit
+path, one conflict model, one set of diagnostics. Studio stores the
+mode, the selection and the open pop-up --- never a parsed tree, an
+inferred dimension or a unit rule; building the tree in Dart was
+rejected because precedence, parenthesization and unit conversion would
+move into Studio (ADR-0001).
+
+#strong[Encodings.] A #emph[slot] is a dashed hollow chip (dashed = not
+decided, as the canvas's #emph[declared] node); a #emph[reference] is a
+chip with its concept's socket glyph; a #emph[literal] is two fields,
+the coordinate and a unit pop-up listing the compiler's units for the
+literal's own dimension, where the pop-up switches the unit and keeps
+the quantity and the coordinate field makes a new quantity in the same
+unit --- only a literal has a unit pop-up (Part VII); #emph[operators]
+are their glyphs, a #emph[call] its name and parentheses, an
+#emph[unsupported form] (`if`, `match`, a block, a rule, a collection or
+grouped literal, `delay`/`sync`) its text in monospace, selectable and
+edited as text. A finding is a red underline on the component #emph[and]
+its row under the field --- one diagnostic, two projections. Beneath the
+field, for the selected component: the compiler's sentence ---
+#emph[Expected: an angle, because an angle ÷ an angle = a dimensionless
+quantity] --- with the kernel's notation behind Explain; for a slot, a
+number entry whose unit pop-up holds the units of the expected dimension
+(none for a dimensionless slot; none, with a sentence, when the position
+is not determined), then references by type and equations folded; for a
+component, `+ − × ÷`, Compare, Function (the equations whose result
+fits, wrapping the component as first argument) and Remove.
+
+#strong[Stale projection policy.] A projection is current only when it
+is of exactly the text on screen and that text parsed; otherwise the
+field is dimmed with a notice --- #emph[Waiting for the compiler to read
+the formula…] while the verdict for this text is on its way, #emph[The
+text cannot be read as a formula.] when it never will be, and then no
+tree is shown because none is invented --- no component answers a click,
+no slot panel opens, no key acts, the reducer refuses a structured
+action (or a second one in flight) and discards an answer for text that
+has moved on; #strong[Edit as text] is the way out. Generation safety:
+every answer carries the draft generation it was computed for and is
+discarded if the draft has moved. A formula with a slot may be saved and
+is #emph[invalid] until filled; commit, revert, conflict and detach are
+the Text view's, unchanged.
+
+#strong[A walkthrough.] The designer selects
+`dimByTilt : Tilt → Brightness` and chooses Function → `clamp`\; the
+draft becomes `clamp(?, ?, ?)`, three dashed slots. Selecting the first,
+the slot panel says #emph[Expected: a dimensionless quantity] ---
+because `clamp`'s scheme unifies all three arguments with the result and
+the result is Brightness's representation --- and lists references of
+that kind; the designer chooses `tilt`, and the compiler answers
+#emph[This is an angle; a dimensionless quantity is expected], red on
+the chip. Wrapping it in `÷` yields `clamp(tilt ÷ ?, ?, ?)`\; the new
+slot's panel now says #emph[Expected: an angle, because an angle ÷ an
+angle = a dimensionless quantity] and offers `rad`, `deg`, `turn`\; the
+designer types 90 and picks `deg`. Filling `0` and `1` completes
+`clamp(tilt / 90 deg, 0, 1)`, which checks, and the node's red mark
+goes. Switching the `deg` pop-up to `rad` rewrites the literal to
+`1.5707963267948966 rad` and nothing else. Every step was a byte-range
+edit of one text; the Text view shows the same characters throughout.
+
+== Partial expressions: `?`
+<partial-expressions>
+The slot deserves its own record because it is the clearest example in
+BDL of authoring semantics distinct from runtime semantics. `?` is a
+`SlotExpr` of the textual grammar: it parses wherever a value may stand
+and formats as itself; it is never a value, an operator or a unit
+(`1 ? 2` is a syntax error). It exists in the #emph[surface] because an
+incomplete structured formula must be ordinary draft text --- the same
+state as any unfinished draft, savable, visible in the Text view,
+subject to the same conflict model --- rather than a second
+representation held in an overlay of partial expressions (the rejected
+alternative, which would have needed its own persistence and its own
+protocol of operations). Elaboration refuses it with
+`formula.slot.empty` --- #emph[This slot is empty; it expects an angle]
+when the context says what it expects --- and it never reaches Core, the
+checker, the evaluator or generated code; a kernel hole term was
+rejected because the kernel has no notion of an unfinished expression
+and needs none. Expected information flows #emph[into] the slot from the
+formal Composer's `solve`: the operator above it and the known sibling
+determine its dimension; a product of two slots is #emph[insufficient
+information] --- the formal model reports it unsolved rather than
+searching, and Studio shows the position as not determined with a
+sentence. That two-hole case is not a limitation to be engineered away:
+local, deterministic inference is what makes the expectation explainable
+in one sentence, and a global solver would trade that for guesses.
+
+== Simulate, Deploy, Library, Monitor
+<simulate-deploy-library-monitor>
+#emph[Simulate] runs the reference evaluator over structured inputs per
+tick (including list and pair values, and concept values in the design's
+terms --- `Brightness(0.5)`), showing every declaration's value and
+every output; the simulator does not get a separate interpretation.
+#emph[Deploy] is the target-relative read model (ADR-0015): board
+selection reruns deployment analysis only, and the workspace reports
+validity and deployability in different places; the readiness matrix
+(bounded-memory refusal, unbounded state, window capacity) is shown
+here. #emph[Library] instantiates concept templates as ordinary concepts
+with fresh ids (create-then-rename). #emph[Monitor] --- telemetry from a
+deployed core --- is designed and not built, as is the platform adapter
+it needs.
+
+== What Studio does not decide
+<what-studio-does-not-decide>
+Studio computes no type validity, semantic identity, dimension,
+causality, clock, output ownership, hardware feasibility or simulation;
+it holds no parsed formula tree and no unit rule; it arranges nothing at
+render time. Every one of those is a projection from the daemon, keyed
+by `EntityRef` and role, never by text position or node id. That is the
+discipline that lets the same facts appear as socket hues, inspector
+sentences and Explain notation without three implementations of the
+language.
+
+= Part XI --- Formal-to-Production Correspondence and Deviations
+<part-xi-formal-to-production-correspondence-and-deviations>
+The formal development is a specification (ADR-0010): production
+transcribes it and discharges it by tests; a theorem never proves the
+Rust or Dart code. This Part states, per area, what production follows
+and how strongly, and then lists every known deviation with its reason,
+its risk, the evidence that bounds it, and whether closing it is
+planned.
+
+== Correspondence by area
+<correspondence-by-area>
+#figure(
+  align(center)[#table(
+    columns: (25%, 25%, 25%, 25%),
+    align: (auto,auto,auto,auto,),
+    table.header([area], [formal object], [production
+      realization], [strength],),
+    table.hline(),
+    [declarations, interfaces, refinement], [`DeclEnv`, `DeclInterface`,
+    `EnvRefines`, `local_refinement_preserves_global_wf`], [`bdl-model`
+    snapshot and `apply_edit` with refinement/edit classification and
+    `Invalidation` sets], [informed by FV; production-tested (edit
+    classification tests)],
+    [typing through the type view], [`HasType`,
+    `infer_sound/complete`], [`bdl-check` over `bdl-ir` (transcribed
+    `Ty`/`Expr`/`Prim`)], [transcribed; production-tested],
+    [nominal concepts, representation, grant], [`sem`, `Θ`, `rep`/`mk`,
+    `Grant.of`, `constructs_granted`], [elaborator inserts `rep` on
+    inputs and one `mk` under the declaration's grant; checker refuses
+    others], [transcribed; production-tested],
+    [dimensions], [`Prim.ty` dimension algebra], [`bdl-model::Dim`
+    (eight bases) and primitive typing], [transcribed; product-language
+    diagnostics tested],
+    [reactive semantics], [`Ev`, `Ev.det`, `reactive_total`,
+    `Causal`], [`bdl-reactive` reference evaluator, two-phase tick,
+    `StateCellId`], [transcribed; the evaluator is the executable
+    definition],
+    [clock domains], [`MEv`, `Clocked`, strictly-before,
+    `single_domain_embedding`], [`Clocked` pass; `sync` snapshot rule;
+    `step_in_order` test], [transcribed; production-tested],
+    [outputs], [`DriveWF`, `SingleDriver`,
+    `CompleteOutputs`], [`bdl-output`], [transcribed;
+    production-tested],
+    [hardware validation], [`solve_sound`, `solve_complete`,
+    `diagnose`], [`bdl-hardware`, board files, target-relative
+    deployment analysis], [transcribed; production-tested],
+    [behavior systems], [Theorems A--I, J (restricted)], [`bdl-system`:
+    freshening from the project allocator, bindings, flatten with
+    origins], [informed by FV; production supports transported bindings
+    and higher-order bodies beyond the theorem fragment,
+    production-tested],
+    [groups], [Theorems A--R], [`.bdl/authoring.json`, no invalidation
+    on group edits, packaging sheet], [informed by FV;
+    production-tested],
+    [list data, buffer, capacity], [`Ty.list`, Theorem M,
+    `Capacity.lean`], [`Vec` last-element-first, `take cap` bounds,
+    `bdl-reactive::capacity`, `bdl-exec-ir::bounds`, refusal], [informed
+    by FV; production-tested (corpus `buffer`, `bounded_buffer`,
+    `overflowing_buffer`); the static bound is an engineering analysis],
+    [products, `fold`, `eq`, `lt`], [Phase 9b/9c kernel], [`bdl-ir`
+    gains exactly these; `Fold` in exec IR with one runtime
+    closure], [transcribed; production-tested],
+    [equation library, schemes], [`Stdlib`, `Poly`,
+    `Generic`], [`bdl-equations`: schemes with `{Data, Eq, Ord}`,
+    matching, one Core builder per instance, inlined at the
+    use], [informed by FV (ADR-0025); production-tested],
+    [order by declaration], [`OrdDecl`, `Ty.ordB`,
+    `Ordered`], [`Concept::ordered`, `ordered concept`\; ADR-0026
+    mixed-case rule], [informed by FV; the mixed case is a production
+    decision beyond the formal model],
+    [units and charts], [`Units.lean`,
+    `Charts.lean`], [`UnitDef { id, symbol, dim, chart }`,
+    `Chart::{Linear, Affine}`, `convert`], [informed by FV;
+    property-tested on `f64` within ulps],
+    [Composer inference], [`Composer.lean` `solve`,
+    `candidates`], [`bdl-ide::formula` projection, slot,
+    compose], [informed by FV; production-tested
+    (`formula_composer.rs`)],
+    [natural binder syntax], [`Natural.lean`], [not
+    implemented], [formal guidance only],
+  )]
+  , kind: table
+  )
+
+== Deviations
+<deviations>
+#figure(
+  align(center)[#table(
+    columns: (20%, 20%, 20%, 20%, 20%),
+    align: (auto,auto,auto,auto,auto,),
+    table.header([deviation], [why], [risk], [evidence that bounds
+      it], [closing the gap],),
+    table.hline(),
+    [kernel `Nat` magnitudes vs production `f64`], [proofs need
+    decidable, saturating naturals; products measure reals], [truncation
+    in the kernel's executed examples is not production's rounding;
+    NaN/∞ and division by zero have no kernel counterpart], [production
+    fails the tick on exact-zero division and non-finite results; exact
+    comparison; the formal theorems are about structure, not
+    rounding], [not planned to close; `f32` on device is a further
+    recorded deviation (ISS-0006)],
+    [exact symbolic unit scales (`Sym`, π as a generator; exact `Q`
+    charts) vs approximate floats], [π/180 is not rational; exactness is
+    what the formal laws are about], [round trips and compositions hold
+    only within ulps in production], [toleranced property tests of
+    identity, composition, inverse, display switch and difference law;
+    exact-rational oracles for registered charts], [not planned; the
+    contract is stated and tested],
+    [kernel `Nat` registry has no radian; production is
+    radian-canonical], [no integer scale for radians against
+    degrees], [none semantic; the registries differ in which units are
+    exact], [documented per registry], [none needed],
+    [theorem-level semantics for direct bindings on wiring designs vs
+    production's transported bindings and higher-order bodies in
+    systems], [Theorem J's obstacle: a domain-indexed input for a
+    transported port], [production behavior beyond the fragment is
+    tested, not proved], [flattening plus the reference evaluator;
+    corpus systems], [future: Theorem J under `MEv` with a
+    domain-indexed modular input],
+    [formal buffer model (unbounded, capacity as a validation predicate)
+    vs production static list bounds and bounded-memory refusal], [the
+    kernel has no capacity; production must decide deployability], [the
+    static bound analysis has no theorem behind it], [differential tests
+    of `bounded_buffer` vs `buffer` at 7 and 3 000 ticks;
+    `overflowing_buffer`], [future: a proved bound analysis, or a
+    surface window form (ISS-0001)],
+    [formal `Ev`/`MEv` vs generated Rust], [the core lowers
+    representation (slots, structs, `f64`, inlined lambdas)], [a
+    lowering bug would be a semantic bug], [22-case differential corpus,
+    golden files, determinism, property-based designs, error-tick
+    agreement], [future: a generated-code refinement proof (Part XIII)],
+    [abstract evidence conditions (`Monotone`, `Equivariant`,
+    `PortSound`, `InterfaceLocal`) vs production's concrete
+    evidence], [the formal model is parametric in evidence], [a
+    production evidence model could violate a condition
+    unnoticed], [commitments are not yet a production feature beyond
+    typing; nothing to violate today], [future: a concrete compositional
+    evidence model],
+    [mixed comparison rule (ADR-0026)], [the formal order policy is
+    between concept values only; production had to decide the
+    concept-beside-plain-value case], [`min(o1, 0.5)` accepted while
+    `min(o1, o2)` refused], [a tested matrix; Explain shows the
+    observation], [recorded as intended],
+    [affine charts hidden from formulas], [conversion is safe;
+    point/difference validation does not exist], [a designer cannot
+    write `20 °C`], [ISS-0004 open], [future: the point/difference
+    validation, or a decision not to need it],
+    [natural binder syntax], [formal guidance landed after the
+    production snapshot], [none], [---], [next milestone],
+  )]
+  , kind: table
+  )
+
+== Implementation status snapshot (production `f1ce82c`, 2026-09-18)
+<implementation-status-snapshot-production-f1ce82c-2026-09-18>
+Implemented and exercised by named tests: the language core through
+outputs and completeness; formula language v0 with the slot; the unit
+registry with linear charts offered and affine charts as infrastructure;
+the data core; the equation library; the compiler and simulator with
+product-language diagnostics and Explain; the Rust backend with
+differential, golden and property tests; collections at deployment;
+hardware and deployment analysis with Nano and a larger board file;
+behavior systems, groups, packaging, versions and substitution; the
+unified project format with migration; the layout service; text ↔ graph
+synchronisation; the IDE service and LSP with a VS Code extension; the
+protocol and daemon at 0.12; the standard concept library. Partial:
+Studio (the Formula view's remaining pieces are listed in production's
+status page). Planned, designed and not implemented: any platform
+adapter, build orchestration, flash, telemetry, supplied Rust
+components. Not implemented by decision: user enums (open, ISS-0005),
+temporal modifiers and contexts in the surface (ISS-0010), a surface
+form for occurrence windows (ISS-0001), record syntax, `forall`/`exists`
+sugar, `Set`/interval/sum types.
+
+= Part XII --- Rejected Alternatives and the Minimality Ledger
+<part-xii-rejected-alternatives-and-the-minimality-ledger>
+The kernel was obtained by a method, and the method is part of the
+record. Each phase of the formal development took a family of candidate
+constructs --- from the earlier draft of the language, from the
+production roadmap, or from the standard repertoire of typed functional
+languages --- formalized the smallest plausible version and its
+alternatives in Lean 4 without external libraries, and asked the same
+questions of each: What does it reject that the others accept? What does
+it accept that it should not? Is it a special case of another? Which
+operations on a design are refinements under it? A construct entered the
+kernel only when every tested alternative failed for a stated reason,
+recorded as a theorem or an executable counterexample. Verdicts use one
+vocabulary: KEEP IN KERNEL, KEEP IN SURFACE-DESUGAR, KEEP IN STANDARD
+LIBRARY, MOVE TO VALIDATION, MOVE TO AUTHORING/UI, DEFER, REMOVE. The
+full construct-by-construct table is `MINIMALITY.md` in the formal
+repository; the decisions are `DESIGN_DECISIONS.md` (D-1 … D-114). This
+Part records the major rejections with candidate, reason considered,
+counterexample or theorem, and verdict.
+
+== Kernel constructs retained
+<kernel-constructs-retained>
+#figure(
+  align(center)[#table(
+    columns: (33.33%, 33.33%, 33.33%),
+    align: (auto,auto,auto,),
+    table.header([construct], [why it could not be derived], [evidence],),
+    table.hline(),
+    [`DeclId` and frozen expected types], [references resolve by
+    identity; retyping invalidates clients], [probes 1--6,
+    `local_refinement_preserves_global_wf`],
+    [nominal `sem s` with `Θ`, `rep`, `mk` under a grant], [the numeric
+    baseline accepts the invalid wire; a metadata checker is η-evaded;
+    concept-as-declaration has category errors], [Phase 2/3 Models A--C,
+    `constructs_granted`, `temporal_state_preserves_semantic_identity`],
+    [`q d` with the algebra in `Prim.ty`], [erasure accepts
+    `length + time`], [`dimension_mismatch_rejected`,
+    `counterexampleB_baseline_accepts_length_plus_time`],
+    [`delay`, `sync` (one temporal read)], [totality forces data-typed,
+    top-level state; `delay` is `sync` at the own
+    domain], [`reactive_total`, `delay_is_sync_own`,
+    `scheduling_order_observable`],
+    [`ClockId`, `Clocked`], [a direct wire is ambiguous without it;
+    equal rate is not the same domain], [`equal_rate_not_same_domain`],
+    [`OutputId`, drive edge, `SingleDriver`, `CompleteOutputs`], [two
+    drivers make an output non-functional; hidden policy is
+    observable], [`multiple_direct_drivers_rejected`,
+    `hidden_arbitration_observable`],
+    [`list τ` and its operators], [a lossless window is unbounded
+    sequence data], [`bounded_summary_not_lossless`, Theorem M],
+    [`prod`, `pair`, `fst`, `snd`], [function encodings are not data and
+    cannot be state], [`arrow_not_delayable`, `church_fst_rank`],
+    [`fold`], [one eliminator derives every collection operation;
+    operators never apply closures], [`fold_total`, the `*_spec`
+    family],
+    [`eq` at every data type (proof field)], [boolean/concept/pair/list
+    equality was unwritable], [`Value.beq_iff`],
+    [`lt` on quantities], [ordering is a property of
+    magnitudes], [`lt_rejected`, `lt_only_on_quantities`],
+  )]
+  , kind: table
+  )
+
+== Rejected constructs
+<rejected-constructs>
+#figure(
+  align(center)[#table(
+    columns: (25%, 25%, 25%, 25%),
+    align: (auto,auto,auto,auto,),
+    table.header([candidate], [reason it was
+      considered], [counterexample or theorem], [verdict],),
+    table.hline(),
+    [`Signal τ` in `Ty`], [the earlier draft's reactive
+    types], [inhabited by exactly the terms of `τ`\; rejects
+    nothing], [REMOVE],
+    [`Event τ` (single domain)], [occurrences as a type], [`opt τ`
+    streams are the multiplicity-≤1 streams], [REMOVE],
+    [`Event τ` (across domains), a buffer primitive], [multiplicity
+    across rates], [the window is five declarations over
+    `delay`/`sync`/lists; Theorem M], [REMOVE (surface desugar)],
+    [effect rows], [output effects in types], [duplicate the drive edge
+    or false-positive], [REMOVE],
+    [action requests / action values], [outputs as values], [relocate
+    the conflict without resolving it], [REMOVE],
+    [runtime output arbitration], [several
+    drivers], [`hidden_arbitration_observable`: the hidden policy is
+    observable], [REMOVE (single driver)],
+    [clock-indexed types `Signal[c, τ]`], [domain in the
+    type], [`clocked_type_forces_polymorphism` on every pure
+    mapping], [REMOVE],
+    [same-tick cross-domain visibility], ["synchronous
+    sub-domains"], [`scheduling_order_observable`: the scheduler order
+    becomes observable], [REMOVE (strictly-before)],
+    [scheduler / staging rule], [ordering simultaneous
+    domains], [unnecessary under strictly-before], [REMOVE],
+    [explicit machine state / `Step`], [a state machine object], [Phase
+    4/8: state is gated self-delayed declarations; components hold state
+    by instantiation], [REMOVE],
+    [StateHandler kernel], [contexts as a construct], [elaborates to
+    activation, entry, gated and reset state, conditional drivers
+    (tested behavior only)], [KEEP IN SURFACE-DESUGAR;
+    nesting/handler-scoped clocks untested],
+    [state identity as a kernel notion], [naming state], [`StateCellId`
+    by declaration and expression path is an engineering device; the
+    kernel has none], [REMOVE],
+    [user-defined typeclasses / dictionaries], [constrained
+    generics], [closed `{Data, Eq, Ord}` covers the library; comparators
+    recover the rest (`minBy_recovers_min`)], [REMOVE],
+    [structural ordering on all data], [Phase 9b's first
+    form], [`mode < mode`, `None < Some`, lexicographic pairs have no
+    design meaning], [REMOVE (9c)],
+    [`Set` type], [finite sets], [`oneOf_mem`, `oneOf_dup_irrelevant`:
+    membership is a fold], [REMOVE],
+    [`Interval` type], [ranges], [a pair with a convention;
+    `inRange_spec`\; no case stores or compares a range], [REMOVE],
+    [record type / row polymorphism], [records], [nested pairs with
+    positional projection; no case needs shape-generic
+    functions], [REMOVE],
+    [kernel polymorphism (type variables, `∀`, `Λ`,
+    `[τ]`)], [generics], [prenex fragment = family instantiation;
+    `matchTy_sound/_complete`], [REMOVE (surface families)],
+    [higher-rank types], [polymorphic function arguments], [every
+    candidate rank ≥ 2 with a rank-1 replacement], [REMOVE],
+    [existential types], [hiding], [Phase-8a instantiation hides;
+    encoding is rank 2], [REMOVE],
+    [general recursion], [loops], [total language; `fold` is the one
+    eliminator], [REMOVE],
+    [general quantification in expressions], [`∀ x : Real`], [finite
+    `∀`/`∃` are folds (`forall_in_list`); unbounded forms belong to a
+    commitment layer], [REMOVE (surface finite forms)],
+    [general comprehension (generators, `yield`, `where`)], [list
+    syntax], [nested binders cover every required case], [REMOVE],
+    [runtime unit values], [units as data], [no case delays, syncs,
+    stores or compares a unit], [REMOVE],
+    [units in quantity types], [unit-indexed `q`], [`1 m` and `100 cm`
+    would differ in type], [REMOVE],
+    [a kernel conversion primitive], [`convert`], [it is the composition
+    of `inUnit` and `withUnit`], [KEEP IN STANDARD LIBRARY],
+    [affine quantity sort in `Ty.q` (`Ty.q d sort`)], [°C
+    arithmetic], [no conversion theorem needs it;
+    `sort_orthogonal_to_conversion`], [REMOVE from types; optional
+    validation],
+    [kernel hole term], [the Composer's slot], [the surface `?` is
+    refused by elaboration; holes belong to the editor], [REMOVE],
+    [semantic `BehaviorGroup`], [groups as objects], [every group
+    operation is the identity on the design], [MOVE TO AUTHORING/UI],
+    [component runtime object], [components at runtime], [flattening
+    produces an ordinary design; no system evaluator exists], [REMOVE],
+    [aggregate socket as a declaration / tuple boundary], [collapsed
+    groups], [Counterexamples 5 and 6: spurious dependencies], [REMOVE],
+    [kernel `sum` type], [enums], [encoded as tag × optional payload
+    (`exM`)], [DEFER],
+    [numeric rates in the kernel], [periods], [a rate induces a
+    schedule; validation data], [MOVE TO VALIDATION],
+    [buffer capacity, overflow policy], [bounded
+    memory], [`sufficient_capacity_preserves`, `negE`: only refusal
+    preserves semantics], [MOVE TO VALIDATION; explicit `take` in the
+    design],
+    [preferred display unit], [UI
+    preference], [`presentation_irrelevant_*`], [MOVE TO AUTHORING/UI],
+  )]
+  , kind: table
+  )
+
+== Decisions that changed
+<decisions-that-changed>
+Not rewritten to look inevitable:
+
+#figure(
+  align(center)[#table(
+    columns: (33.33%, 33.33%, 33.33%),
+    align: (auto,auto,auto,),
+    table.header([original position], [evidence that broke
+      it], [replacement],),
+    table.hline(),
+    [Signal and Event as kernel primitives (draft)], [a signal type
+    rejects nothing; occurrences are optional streams; cross-domain
+    multiplicity is a window over lists], [ordinary typed declarations;
+    the window as five declarations],
+    [runtime output arbitration (draft)], [the hidden policy is
+    observable], [one explicit driver per sink; combination is ordinary
+    computation],
+    [`eq`/`lt` at every data type through a structural order (Phase
+    9b)], [`mode < mode`, `None < Some`, lexicographic pairs have no
+    design meaning (Phase 9c audit)], [`eq` on data; `lt` on quantities;
+    order by declaration at the surface],
+    [affine units need a point/difference sort --- "missing information"
+    (Phase 10)], [chart laws, groupoid laws and the difference law hold
+    without a sort; conversion never takes one (Phase 10b)], [conversion
+    complete as coordinate change; point/delta is optional validation],
+    [a third project kind, text, beside JSON kinds with conversion
+    (ADR-0020)], [two persistence forms for one meaning are two
+    authorities that drift], [one project; Design, Code and Split are
+    views (ADR-0023)],
+    [an authoring overlay of partial expressions (considered for the
+    Composer)], [a second representation of the formula to keep in step
+    with the text], [the slot `?` in the text; every action a byte-range
+    edit (ADR-0028)],
+    [a fixed-capacity list type with an overflow error (considered)], [a
+    runtime failure the formal model does not have; a type depending on
+    a deployment fact], [`Vec` under a validated bound; refusal on
+    bounded targets (ADR-0024/0027)],
+  )]
+  , kind: table
+  )
+
+= Part XIII --- Known Limitations and the Open Research Agenda
+<part-xiii-known-limitations-and-the-open-research-agenda>
+== Formal limits, stated once
+<formal-limits-stated-once>
+Causality is conservative for lambda-guarded cycles: `Causal` rejects
+them and the negative theorem does not cover them. The agreement between
+unfolding and tick-by-tick evaluation is proved for first-order wiring
+designs; higher-order closure equivalence is not. Theorem J (modular
+semantics) is proved for direct bindings on wiring designs with
+closure-free inputs; transported bindings under `MEv` and higher-order
+bodies are not covered, in either direction, for the same reason --- a
+domain-indexed input for a transported port. The StateHandler reduction
+covers the tested behavior and not contexts with their own clocks or
+independently clocked nesting. `InstAcyclic` is too coarse for
+extraction; a port-level graph would subsume `flatten_causal` and
+`flat_causal`. Four conditions rest on the abstract evidence relation
+(`Monotone`, `Equivariant`, `PortSound`, `InterfaceLocal`). Hardware
+validation covers discrete pin and peripheral allocation with unary and
+binary constraints, and no numeric electrical, thermal or timing
+property; the explanation facility reports a first dead end, not a
+minimal core. Interface-level references --- commitments that mention
+other declarations --- are not modelled, so the dependency graph is over
+realizations only. Whether a realization may delegate its grant to a
+higher-order argument is untested. The buffer correspondence assumes an
+input source. The equation library's evaluation lemmas assume the
+predicate value implements a Boolean function; the executed cases
+discharge it. The exact unit model is related to production floating
+point by a stated contract, not a theorem. Sums are encoded, not added.
+Two-hole operands are outside `solve` by design. No parser is modelled
+for the natural surface; its type annotations are the output of local
+inference, described, not proved. No theorem covers the Rust or Dart
+code.
+
+== Open research problems
+<open-research-problems>
+Each is stated as a problem with what exists and what would resolve it;
+none is hidden in a "future work" sentence.
+
++ #strong[A general edit/invalidation relation.] Refinement is a
+  preorder with proved client stability; an arbitrary edit is outside it
+  and forces a recheck of dependents. Production classifies edits into
+  seven invalidation categories (ADR-0009). What is missing is a formal
+  relation that says, for each edit kind, exactly which established
+  facts survive --- the theory behind incremental re-analysis. Existing:
+  `DeclRefines`, `EnvRefines_update`, the invalidation set in
+  `apply_edit`. Would resolve: a proved per-category preservation
+  theorem.
++ #strong[Commitments that depend on interface references.] A commitment
+  today is a property id discharged by evidence over the realization; a
+  commitment mentioning #emph[another declaration] has no model, so the
+  dependency graph is over realizations only and interface-level cycles
+  are invisible (ISS-0003). Would resolve: an interface-level dependency
+  relation and its interaction with refinement.
++ #strong[Lambda-guarded causality precision.] `Causal` counts a
+  reference under a lambda as instantaneous. A finer analysis ---
+  references that are only evaluated when the closure is applied, and
+  where it is applied --- would accept more designs. Would resolve: a
+  causality judgment with application sites and its totality theorem.
++ #strong[Higher-order closure equivalence.] `unfolds_preserves_eval`
+  holds for wiring designs. Would resolve: an equivalence of closures
+  across unfolding, or a proof that higher-order realizations can be
+  first-order-normalized before unfolding.
++ #strong[Full multi-clock component semantics.] Theorem J under `MEv`
+  with transported bindings needs a domain-indexed consistent modular
+  input and a proof of its existence. Production supports the case; the
+  theorem does not.
++ #strong[Full StateHandler elaboration.] Contexts with handler-scoped
+  clocks and independently clocked nesting; the production surface has
+  neither temporal modifiers nor contexts yet (ISS-0010). Would resolve:
+  an elaboration with a preservation theorem, or a counterexample
+  forcing a kernel construct.
++ #strong[Affine physical arithmetic validation.] The point/difference
+  sort as an operation-level validation, its rules (`affAdd`, `affSub`)
+  integrated with typing at the surface, and the Composer offering only
+  difference units for a delta slot. Would resolve: the validation and a
+  decision to offer °C in formulas (ISS-0004).
++ #strong[Hardware: minimal unsatisfiable cores.] `diagnose` reports a
+  first dead end. Would resolve: a minimal core with a proof of
+  minimality, or a decision that the first dead end is the better
+  explanation.
++ #strong[Numeric electrical, thermal and timing constraints.] Out of
+  scope for the solver (DI-22); a design can be allocated and still
+  exceed a current budget. Would resolve: a numeric constraint layer
+  beside the finite solver, with its own soundness.
++ #strong[A generated-code refinement proof.] The core is held to the
+  reference evaluator by differential tests. Would resolve: a proof that
+  lowering plus code generation refines `Ev`/`MEv` --- or a verified
+  evaluator --- closing the largest deviation in Part XI.
++ #strong[Enums and sums.] Encoded as tag × optional payload; production
+  keeps user enums open (ISS-0005). Would resolve: a case that needs
+  `match` exhaustiveness beyond the encoding, and then one eliminator
+  term former like `fold`\; or a decision that the encoding is the
+  language.
++ #strong[Natural surface evaluation.] Phase 11's forms are proved
+  conservative and not yet implemented; whether designers read
+  `all reading in readings:` better than `all(readings, reading => …)`
+  is an empirical question.
++ #strong[A designer user study.] No usability, learnability,
+  productivity or cognitive-load claim has been tested (below).
++ #strong[A mathematical specification backend.] The kernel is a
+  specification; a backend rendering a design as a mathematical document
+  (equations, dimensions, timing) for engineering hand-off does not
+  exist.
++ #strong[A formal verification backend.] Commitments beyond typing ---
+  monotonicity, ranges, invariants over ticks --- have an evidence slot
+  and no discharge mechanism; the exact chart model and the choice-free
+  rational field are the first pieces of a verification story about
+  quantities.
++ #strong[A surface form for occurrence windows] (ISS-0001), so a
+  bounded refinement can be recognized and a ring representation offered
+  without a hidden transformation.
++ #strong[Several candidate definitions with one active] (ISS-0002):
+  whether this is a surface convenience over a write-once kernel
+  realization.
++ #strong[Projection deltas and a persisted edit history] (ISS-0009);
+  #strong[a structural diagnostic entity for outputs] (ISS-0008);
+  #strong[packaging inside a component body] (ISS-0007); #strong[a
+  linear `zip` in the core] (ISS-0013).
+
+== Empirical questions, explicitly
+<empirical-questions-explicitly>
+The interaction model of Part II and Part X is fully described and no
+part of it has been evaluated with users. The following are hypotheses,
+to be tested, and nothing in this document should be read as evidence
+for them:
+
+- that an unresolved typed relationship is a natural stopping point for
+  designers, and that its cost is close to zero;
+- that socket hue for identity and socket shape for value form are read
+  correctly without type labels;
+- that the three information levels place each fact where a designer
+  looks for it, and that Explain is opened rarely and usefully;
+- that the Formula Composer's slot expectations and candidate lists
+  reduce the semantic-translation cost the workshop exposed;
+- that product-language diagnostics ("This adds an angle and a time"\;
+  "Mode values have no default order") are understood and acted on;
+- that Design, Code and Split are experienced as views of one thing;
+- that groups, packaging and instances match how designers organize
+  behavior;
+- learnability across the vocabulary; productivity against a Node-RED-
+  or Arduino-style baseline; cognitive load in the sense of the
+  cognitive-dimensions framework.
+
+The planned studies from the conference manuscript stand, and are
+restated below with their measures: a comparative study of designers
+realizing a given brief in BDL and in a dataflow tool, measuring correct
+first realizations, time to a checked design, and errors caught before
+hardware; and a field study in an industrial-design course, observing
+where designers stop, what they declare before defining, and what they
+ask Explain. Neither has been run.
+
+=== Expected cognitive advantages, as hypotheses
+<expected-cognitive-advantages-as-hypotheses>
 #strong[Lower viscosity.] Changing a transfer function edits one Mapping
 definition rather than a procedural chain of read/compute/store/write
 nodes.
@@ -1858,17 +4312,17 @@ implementation, sensor, or exact parameters.
 
 This last item requires a qualification that the rest do not.
 Signature-first authoring is not claimed to be the spontaneous habit of
-every designer. One of the authors, working on a hardware project,
-adopted it when the complexity of a subsystem exceeded what could be
-held in view at once, and did not adopt it on simpler tasks, where a
-signature and its definition were written in a single motion. The
-hypothesis is therefore narrower than a claim about how designers think.
-It is that conventional tools provide no legal position for an undefined
+every designer. The author, working on a hardware project, adopted it
+when the complexity of a subsystem exceeded what could be held in view
+at once, and did not adopt it on simpler tasks, where a signature and
+its definition were written in a single motion. The hypothesis is
+therefore narrower than a claim about how designers think. It is that
+conventional tools provide no legal position for an undefined
 relationship, so the strategy cannot be adopted even when it would help,
 and that BDL supplies that position at no cost. Whether inexperienced
 designers take up the strategy once it is available, and whether doing
 so improves their designs, is an empirical question and is included in
-the study below.
+the comparative study.
 
 #strong[Better role expressiveness.] Contexts, Mappings, and temporal
 modifiers correspond to product-design concepts rather than generic
@@ -1879,7 +4333,7 @@ relationship or binding rather than surfacing later as an embedded
 runtime fault, and a hardware infeasibility is attached to the binding
 that causes it.
 
-== Comparative study
+=== Comparative study
 <comparative-study>
 A first controlled study should compare BDL against at least two
 baselines: a statechart-based prototyping environment and a node-based
@@ -1915,14 +4369,14 @@ one that opens onto a signature with an explicitly legal undefined body
 invite different first actions. A small comparison of these two defaults
 is considerably cheaper than the full study.
 
-The interaction model of this paper adds hypotheses of its own. Whether
-the single-driver diagnostic leads participants to an explicit
-combination block they can later read, whether the cross-domain question
-is answered correctly for a safety condition, and whether participants
-distinguish a valid design from a deployable one when the workspace
-reports them separately, are each measurable in the tasks above.
+The interaction model of Part II adds hypotheses of its own. Whether the
+single-driver diagnostic leads participants to an explicit combination
+block they can later read, whether the cross-domain question is answered
+correctly for a safety condition, and whether participants distinguish a
+valid design from a deployable one when the workspace reports them
+separately, are each measurable in the tasks above.
 
-== Field study
+=== Field study
 <field-study>
 A controlled study cannot establish whether the representation fits real
 design practice. A second phase should embed the tool in a semester-long
@@ -1934,176 +4388,6 @@ how often engineers reinterpret or replace BDL artifacts during
 implementation. This field evidence is necessary before claiming that
 the language is native to industrial design rather than merely pleasant
 to its authors.
-
-= Related Work
-<related-work>
-== Physical prototyping and design tools
-<physical-prototyping-and-design-tools>
-Phidgets reduced the implementation cost of physical interaction by
-presenting hardware components through a uniform software abstraction
-@greenberg2001phidgets. d.tools integrated physical prototyping,
-statechart-based behavior, testing, and analysis for designers
-@hartmann2006dtools. Exemplar addressed the same authoring cost from the
-opposite direction, letting designers demonstrate sensor behavior and
-having the system infer the recognizer @hartmann2007exemplar\; in BDL
-that technique is one of several ways to supply a definition, attached
-to a signature that already fixes the relationship's semantic boundary.
-The difference from these systems is not that they could not represent
-behavior. It is that their dominant representation still asks designers
-to formulate substantial portions of behavior in an operational
-structure; BDL investigates whether the typed semantic relationship can
-be the primary artifact, with operational machinery elaborated
-underneath.
-
-== Dataflow and model-based engineering tools
-<dataflow-and-model-based-engineering-tools>
-LabVIEW established the graphical dataflow instrument-control paradigm;
-Simulink with Stateflow combines dataflow blocks with hierarchical state
-machines; Modelica models physical systems through acausal equations
-with units and dimensions
-@national2024labview@mathworks2024simulink@modelica2023spec. These
-systems are considerably more capable than what is proposed here. The
-distinction is in the primary artifact and the intended author. In each
-of them the artifact is an executable model whose blocks denote
-computation and the author holds an engineering model; BDL's artifact is
-a set of typed relationships that need not yet compute anything, and the
-author holds a product model. SysML and model-based systems engineering
-address precise system structure, requirements, and verification at a
-broader level @omg2025sysml\; BDL is intended as a front end for early
-design that could later export into such representations, not as a
-replacement.
-
-== Synchronous languages and functional reactive programming
-<synchronous-languages-and-functional-reactive-programming>
-The kernel's temporal basis is that of the synchronous dataflow
-tradition. Lustre's `pre` with an initial value, in a
-declaration-per-stream setting, is the delay primitive here
-@halbwachs1991lustre\; the rule that a value computed at an instant is
-visible at the next instant, applied across domains, is the
-strictly-before rule; and causality as a static property follows the
-same line @colaco2005state. Esterel established the synchronous
-hypothesis under which these semantics are deterministic
-@berry1992esterel. Where these languages recover clocks by a clock
-calculus @colaco2003clocks, BDL requires domain identity to be declared,
-for the reason given in the clock-domain section. Zélus extends the
-lineage to hybrid systems @bourke2013zelus, which is the direction in
-which the continuous-dynamics limitation noted below would have to be
-addressed.
-
-Functional reactive programming established behaviors and events as
-compositional abstractions for time-varying computation
-@elliott1997fran, and FrTime gave a dynamic dataflow embedding with
-formal semantics @cooper2006frtime. BDL's reactive core is much more
-restricted, and the restriction is a result rather than a starting
-point: under a tick semantics with one domain, a signal type rejects
-nothing and an event type is an optional-valued stream, so neither
-appears in the kernel.
-
-== Typed holes and structure editing
-<typed-holes-and-structure-editing>
-Hazelnut demonstrated that incomplete structured terms can remain
-statically meaningful under bidirectional typing @omar2017hazelnut, and
-Hazel extended this to live evaluation around holes @omar2019live. BDL
-takes the idea that incompleteness is a first-class static state and
-relocates it. The kernel object is a named declaration whose realization
-is optional; holes are positional in the Hazelnut tradition and named
-here; and the stability result concerns clients of a declaration under
-refinement rather than the typing of the incomplete term itself. This
-relocation reduces to ordinary interface/implementation separation and
-is not a new hole calculus.
-
-== Dimensional typing
-<dimensional-typing>
-Dimensional typing follows the units-of-measure line begun by Kennedy
-@kennedy1997units. The contribution here is only the placement --- the
-algebra in primitive operator types with no dimension-specific rule, and
-the separation of dimension from nominal identity --- together with the
-observation, mechanized, that the numeric baseline is the erasure.
-
-== Effects
-<effects>
-An earlier draft of BDL borrowed the separation between operation and
-interpretation from algebraic effects @plotkin2013handlers and
-anticipated scoped effects for context-sensitive interpretation
-@yang2022scoped. The kernel presented here has no effect system. The
-negative result is stated narrowly in the section on physical outputs
-and does not bear on effect systems in general; it bears on the
-formulations tried for this design problem, where a single explicit
-driver per output expressed everything the request-and-policy model
-expressed and made visible what it hid.
-
-== Resource allocation
-<resource-allocation>
-The hardware validation layer is a finite constraint satisfaction
-problem with unary and binary constraints @dechter2003constraint, and
-its solver is a plain backtracking search whose soundness and
-completeness are proved. No claim is made relative to the embedded
-co-design literature; the layer's contribution is architectural --- the
-design is never an input to the solver, and feasibility is kept as a
-separate, non-monotone kind of evidence --- rather than algorithmic.
-
-= Discussion and Limitations
-<discussion-and-limitations>
-== Why the signature is a design object
-<why-the-signature-is-a-design-object>
-The most consequential decision in BDL is treating a declared
-relationship as visible product intent. In programming, a signature is
-often documentation and a static contract around code. In BDL it can
-precede any code-like definition and remain useful on its own:
-$? f : upright("Tilt") arrow.r upright("Brightness")$ says that the
-designer has committed to a causal design relationship and to its
-semantic boundary, and does not say how the mapping is computed. Clients
-are typed against the type view and depend on the interface only through
-it and through monotone evidence, so the partial commitment is not a
-weaker form of a complete one. It is the form on which everything
-downstream already rests.
-
-== Nominal identity in three places
-<nominal-identity-in-three-places>
-BDL makes the same choice three times. On the axis of quantity, `sem`
-makes semantic identity nominal: two concepts of equal representation
-are distinct, and moving between them is a declared relationship. On the
-axis of time, `ClockId` makes temporal identity nominal: two domains of
-equal rate are distinct, and moving between them is a `sync` with an
-initial value. On the axis of effect, `OutputId` makes sink identity
-nominal: two sinks of equal accepted type are distinct, and driving one
-is an explicit edge. In each case the identity is independent of
-representation, of rate, and of type respectively; in each case the
-crossing is a visible artifact rather than a compiler action; and in
-each case the alternative --- identity by representation, by rate, or by
-type --- collided or was ambiguous for a mechanized reason. The three
-are not all placed alike. Semantic identity is in the type, while clock
-and sink identity are projections beside the interface checked by
-separate global judgments, because putting the clock in the type forces
-polymorphism on every pure mapping. Symmetry was not a design goal; it
-is what remained.
-
-== Formal limits
-<formal-limits>
-The calculus assumes discrete logical clocks, deterministic primitives,
-and finite temporal state. It does not define continuous dynamics,
-probabilistic sensor estimates, distributed clock uncertainty, or hybrid
-semantics. These are substantial extensions, not footnotes.
-
-Several boundaries are internal to what was formalized. Causality is
-conservative for lambda-guarded cycles. The buffer correspondence
-assumes an input source. The equation language is total first-order-data
-computation with higher-order functions and one list recursor; sum types
-are encoded as a tag with an optional payload rather than added, and the
-library's evaluation lemmas assume the predicate argument implements a
-Boolean function. The agreement between unfolding and tick-by-tick
-evaluation is proved for first-order designs only. The StateHandler
-reduction covers the tested cases and not contexts with their own
-clocks. Hardware validation covers discrete pin and peripheral
-allocation with unary and binary constraints, and no numeric electrical
-or timing property. The explanation facility reports a first dead end,
-not a minimal core. Interface-level references --- commitments that
-mention other declarations --- are not modelled, so the dependency graph
-is over realizations only. Whether a realization may delegate its grant
-to a higher-order argument is untested. Affine units are modelled as
-coordinate changes; a point/difference sort for restricting
-absolute-temperature arithmetic is optional validation and is not
-implemented.
 
 == Risks of the design
 <risks-of-the-design>
@@ -2133,18 +4417,406 @@ declaration rather than by analysis.
 #strong[Complexity migration into tooling.] Much of what was removed
 from the kernel --- event policies, output selection, context semantics
 --- reappears as elaboration. The kernel is smaller and better
-understood; the elaborator is larger and does not yet exist. The claim
-that the surface is “only syntax” over the kernel is a claim about
-tested cases, and the untested cases are the ones most likely to demand
-a kernel extension.
+understood; the elaborator is larger, and as of `f1ce82c` it exists
+(Part IX) and is held to the kernel by differential testing rather than
+by proof (Part XI). The claim that the surface is “only syntax” over the
+kernel is a claim about tested cases, and the untested cases are the
+ones most likely to demand a kernel extension.
 
 #strong[Usability hypotheses unestablished.] Every statement in this
-paper about what designers find natural is a hypothesis, including every
-sentence of the interaction model. The one anecdote reported is a single
-author's practice on a single project.
+document about what designers find natural is a hypothesis, including
+every sentence of the interaction model. The one anecdote reported is a
+single author's practice on a single project.
 
-= Conclusion
-<conclusion>
+= Related Work
+<related-work>
+This chapter places BDL against the literatures it draws from and the
+tools it is compared to. Each subsection ends with what distinguishes
+BDL, stated as a difference in #emph[artifact] or #emph[author], not as
+a claim of superiority.
+
+== Industrial design tools and physical prototyping
+<industrial-design-tools-and-physical-prototyping>
+Phidgets reduced the implementation cost of physical interaction by
+presenting hardware components through a uniform software abstraction
+@greenberg2001phidgets. d.tools integrated physical prototyping,
+statechart-based behavior, testing, and analysis for designers
+@hartmann2006dtools. Exemplar addressed the same authoring cost from the
+opposite direction, letting designers demonstrate sensor behavior and
+having the system infer the recognizer @hartmann2007exemplar\; in BDL
+that technique is one of several ways to supply a definition, attached
+to a signature that already fixes the relationship's semantic boundary.
+The Arduino ecosystem @arduino2024 is the de facto medium of the
+workshop reported in Part I, and its
+`loop()`/`digitalRead`/`analogWrite` vocabulary is the operational
+structure whose missing "place for a fact" motivated the language. The
+difference from these systems is not that they could not represent
+behavior. It is that their dominant representation still asks designers
+to formulate substantial portions of behavior in an operational
+structure; BDL investigates whether the typed semantic relationship can
+be the primary artifact, with operational machinery elaborated
+underneath.
+
+== Visual programming and end-user programming
+<visual-programming-and-end-user-programming>
+Node-RED @openjs2024nodered is the closest deployed representative of
+the flow-graph medium that Part II analyses: nodes are computations
+wired by message passing, and the graph is a dependency view onto an
+event loop. Scratch and its block-language descendants
+@resnick2009scratch showed that syntax can be removed as an obstacle
+without removing the program-counter model, and Part II's argument is
+precisely that the program counter, not the syntax, is the cost for
+designers. End-user software engineering @ko2011enduser documents the
+tension between low-threshold authoring and the errors that follow from
+the absence of static structure; BDL's answer is to make the static
+structure --- semantic identity, dimension, domain, single driver ---
+the medium, and to make it legible through the three information levels
+rather than through diagnostics after the fact. Cognitive dimensions
+@green1996cognitive supplies the vocabulary --- viscosity, hidden
+dependencies, premature commitment --- in which Part XIII's empirical
+questions are posed.
+
+== Synchronous languages and functional reactive programming
+<synchronous-languages-and-functional-reactive-programming>
+The kernel's temporal basis is that of the synchronous dataflow
+tradition. Lustre's `pre` with an initial value, in a
+declaration-per-stream setting, is the delay primitive here
+@halbwachs1991lustre\; the rule that a value computed at an instant is
+visible at the next instant, applied across domains, is the
+strictly-before rule; and causality as a static property follows the
+same line @colaco2005state. Esterel established the synchronous
+hypothesis under which these semantics are deterministic
+@berry1992esterel, and SCADE industrialized the tradition with a
+qualified code generator @berry2007scade --- the destination that Part
+XIII's "generated-code refinement proof" would move BDL toward. Where
+these languages recover clocks by a clock calculus @colaco2003clocks,
+BDL requires domain identity to be declared, for the reason given in
+Part V. Zélus extends the lineage to hybrid systems @bourke2013zelus,
+which is the direction in which the continuous-dynamics limitation would
+have to be addressed.
+
+Functional reactive programming established behaviors and events as
+compositional abstractions for time-varying computation
+@elliott1997fran, and FrTime gave a dynamic dataflow embedding with
+formal semantics @cooper2006frtime. BDL's reactive core is much more
+restricted, and the restriction is a result rather than a starting
+point: under a tick semantics with one domain, a signal type rejects
+nothing and an event type is an optional-valued stream, so neither
+appears in the kernel; across domains, the event buffer is five
+declarations over `sync` and lists (Part V).
+
+== Model-based design, statecharts and systems engineering
+<model-based-design-statecharts-and-systems-engineering>
+LabVIEW established the graphical dataflow instrument-control paradigm;
+Simulink with Stateflow combines dataflow blocks with hierarchical state
+machines; Modelica models physical systems through acausal equations
+with units and dimensions
+@national2024labview@mathworks2024simulink@modelica2023spec. These
+systems are considerably more capable than BDL. The distinction is in
+the primary artifact and the intended author: in each of them the
+artifact is an executable model whose blocks denote computation and the
+author holds an engineering model; BDL's artifact is a set of typed
+relationships that need not yet compute anything, and the author holds a
+product model. Statecharts @harel1987statecharts are the representation
+that BDL's #emph[contexts] replace for the designer: a context is a
+named situation with an activation condition, elaborated to gated and
+reset state and a conditional driver, rather than a transition table the
+designer maintains. SysML and model-based systems engineering address
+precise system structure, requirements, and verification at a broader
+level @omg2025sysml\; BDL is intended as a front end for early design
+that could later export into such representations, not as a replacement.
+
+== Typed holes, live and structured editing, projectional editing
+<typed-holes-live-and-structured-editing-projectional-editing>
+Hazelnut demonstrated that incomplete structured terms can remain
+statically meaningful under bidirectional typing @omar2017hazelnut, and
+Hazel extended this to live evaluation around holes @omar2019live. BDL
+takes the idea that incompleteness is a first-class static state and
+relocates it: the kernel object is a named declaration whose realization
+is optional; holes are positional in the Hazelnut tradition and named
+here at the declaration level, while the Formula Composer's slot `?`
+(Part VII, Part X) is a positional hole #emph[inside] a definition,
+elaborated as an expression with an unresolved type and never shipped.
+The stability result concerns clients of a declaration under refinement
+rather than the typing of the incomplete term itself. Projectional
+editors @voelter2014projectional edit an AST directly and render it; the
+Composer is deliberately not one --- the text remains the source of
+truth and the Composer is a projection over it (ADR-0028), which is why
+byte-range edits, ephemeral node identity and a stale-projection policy
+exist at all. Cognitive dimensions @green1996cognitive frames the
+trade-off these editors make and the one BDL makes.
+
+== Dimensional typing and units
+<dimensional-typing-and-units>
+Dimensional typing follows the units-of-measure line begun by Kennedy
+@kennedy1997units. The contribution here is the placement --- the
+algebra in primitive operator types with no dimension-specific rule, and
+the separation of dimension from nominal identity --- together with the
+mechanized observation that the numeric baseline is the erasure. Part
+VII goes further than the units-of-measure literature usually does in
+two respects: units are #emph[coordinates on a dimension] with a
+symbolic exact scale group, and affine units are charts whose
+conversions form a groupoid of affine maps with a proved
+point/difference decomposition; Modelica's `displayUnit`
+@modelica2023spec is the closest deployed analogue of Part VII's
+presentation layer.
+
+== Effects
+<effects>
+An earlier draft of BDL borrowed the separation between operation and
+interpretation from algebraic effects @plotkin2013handlers and
+anticipated scoped effects for context-sensitive interpretation
+@yang2022scoped. The kernel has no effect system. The negative result is
+stated narrowly in Part VIII and does not bear on effect systems in
+general; it bears on the formulations tried for this design problem,
+where a single explicit driver per output expressed everything the
+request-and-policy model expressed and made visible what it hid.
+
+== Resource allocation
+<resource-allocation>
+The hardware validation layer is a finite constraint satisfaction
+problem with unary and binary constraints @dechter2003constraint, and
+its solver is a plain backtracking search whose soundness and
+completeness are proved. No claim is made relative to the embedded
+co-design literature; the layer's contribution is architectural --- the
+design is never an input to the solver, and feasibility is kept as a
+separate, non-monotone kind of evidence --- rather than algorithmic.
+
+== Formal verification, verified compilation and differential testing
+<formal-verification-verified-compilation-and-differential-testing>
+The kernel is mechanized in Lean 4 @moura2021lean without external
+libraries, and every result in this document rests on propositional
+extensionality and quotient soundness alone. The relationship between
+the kernel and the production compiler is #emph[specification], not
+#emph[extraction]: production reimplements the reference evaluator in
+Rust and holds itself to it by differential testing
+@mckeeman1998differential over a corpus (Part IX). This is the weakest
+link in the trust chain (Part XI) and the point where a
+verified-compiler approach in the CompCert tradition @leroy2009compcert
+would apply; Part XIII lists a refinement proof from lowering to
+`Ev`/`MEv` as an open problem. The choice-free rational field of Part
+VII was built because importing a general-purpose library would have
+brought classical choice into the axiom base; that discipline is a
+methodological choice of this project and not a claim about the
+libraries.
+
+== Embedded DSLs and toolchains
+<embedded-dsls-and-toolchains>
+Production BDL's shape --- a daemon with a project model, a compiler
+producing a `no_std` core, and a thin platform adapter --- is a
+conventional embedded-DSL toolchain, and no novelty is claimed for it.
+What is specific is the placement of the semantics: the generated core
+is held to a reference evaluator that is itself held to a mechanized
+kernel, and the capacity, bounds and allocation questions are answered
+at validation rather than by a runtime allocator (Part V, Part IX).
+
+= Part XIV --- Evidence Ledger, Decision Index and Extraction Notes
+<part-xiv-evidence-ledger-decision-index-and-extraction-notes>
+== Evidence ledger
+<evidence-ledger>
+The index from which future papers can extract evidence. Theorem names
+are in `KCN-judu/BDL_FV`\; production locations in `KCN-judu/BDL` at
+`f1ce82c`.
+
+#figure(
+  align(center)[#table(
+    columns: (16.67%, 16.67%, 16.67%, 16.67%, 16.67%, 16.67%),
+    align: (auto,auto,auto,auto,auto,auto,),
+    table.header([claim], [formal theorem / counterexample], [production
+      implementation], [production tests], [decision], [known
+      limitation],),
+    table.hline(),
+    [refining one declaration preserves every
+    client], [`local_refinement_preserves_global_typing`,
+    `_wf`], [`bdl-model::apply_edit` refinement classification], [edit
+    classification tests], [D-11--D-16; ADR-0009], [arbitrary edits are
+    outside the order],
+    [typing consults only the type view], [`HasType.mono_env`,
+    `refFree_env_irrelevant`], [`bdl-check`], [pipeline
+    tests], [D-4], [---],
+    [semantic identity is nominal; construction needs a
+    grant], [`constructs_granted`,
+    `no_semantic_value_without_declaration`,
+    `temporal_state_preserves_semantic_identity`], [elaborator
+    `rep`/`mk` insertion; checker], [`semantic` corpus
+    case], [D-19--D-28], [---],
+    [dimensions reject
+    `length + time`], [`dimension_mismatch_rejected`\; erasure
+    counterexample], [`Prim.ty` typing], [diagnostics
+    tests], [D-31], [---],
+    [evaluation is deterministic and total on causal
+    designs], [`Ev.det`, `reactive_total`,
+    `Ev.not_of_strictCyclic`], [reference evaluator], [`delayed_cycle`,
+    property tests], [D-36--D-42], [lambda-guarded cycles conservative],
+    [one temporal primitive; `delay` is
+    `sync own`], [`delay_is_sync_own`,
+    `single_domain_embedding`], [`StateCellId` cells; sync snapshot
+    rule], [`sync`, `agnostic` corpus], [D-44--D-48], [---],
+    [scheduler order is unobservable], [`MEv.det`,
+    `scheduling_order_observable`
+    (alternative)], [`step_in_order`], [order-independence
+    tests], [D-45], [---],
+    [outputs have one explicit
+    driver], [`multiple_direct_drivers_rejected`,
+    `single_driver_output_deterministic`], [`bdl-output`], [`lamp_output`], [D-50--D-54], [---],
+    [hardware feasibility is decidable, sound and complete for the
+    finite fragment], [`solve_sound`, `solve_complete`,
+    `satisfiable_iff_solve`], [`bdl-hardware::solve`], [Nano cases
+    A--H], [D-55--D-63], [numeric constraints out of scope],
+    [behavior systems flatten into a well-formed design], [`flatten_WF`,
+    `flatten_causal`, `flatten_wellClocked`,
+    `flatten_singleDriver`], [`bdl-system::flatten`], [system tests,
+    `behavior-systems-correspondence.md`], [D-64--D-73;
+    ADR-0021/0022], [Theorem J restricted],
+    [groups are transparent; extraction preserves behavior], [Theorems
+    A--G (`rfl`), `orig_iff_flat`], [`.bdl/authoring.json`,
+    packaging], [group tests], [D-74--D-82; ADR-0019], [single-domain
+    wiring fragment],
+    [the cross-domain window is expressible with lists], [Theorem M
+    `buffer_window_correspondence`\;
+    `bounded_summary_not_lossless`], [five-declaration idiom; `Vec`
+    core], [`buffer`, `bounded_buffer`,
+    `overflowing_buffer`], [D-83--D-87; ADR-0024/0027], [input source
+    assumed],
+    [capacity is validation; only refusal preserves
+    semantics], [`sufficient_capacity_preserves`,
+    `periodic_capacity_sufficient`, `negE`], [`bdl-reactive::capacity`,
+    `bdl-exec-ir::bounds`, refusal], [3 000-tick differential], [D-86;
+    ADR-0027], [static bound unproved],
+    [products and one recursor suffice for the tested
+    equations], [`fold_total`, `arrow_not_delayable`,
+    `church_fst_rank`], [`bdl-ir` `prod`, `Fold`], [`collections`
+    corpus], [D-88--D-91; ADR-0025], [no minimality theorem],
+    [rank-1 polymorphism by matching, no kernel
+    change], [`matchTy_sound`, `matchTy_complete`,
+    `instances_are_monomorphic`], [`bdl-equations`], [equation
+    tests], [D-92; ADR-0025], [---],
+    [the library adds no privilege], [`lib_expansion`,
+    `Comb.noConstruct`, `lib_clocked`,
+    `lib_eval_context_free`], [inlining at
+    elaboration], [---], [D-94], [---],
+    [nominality survives generics], [`generic_preserves_identity`,
+    `generic_preserves_dimension`, `map_keeps_concepts`], [checker on
+    inlined terms], [`exI`, `exJ` executed; mixed-comparison
+    matrix], [D-92; ADR-0026], [---],
+    [finite `∀`/`∃` are folds], [`forall_in_list`,
+    `exists_in_list`], [`all`/`any` equations], [corpus], [D-95], [---],
+    [equality is data; order is by declaration], [`Cap.eq_iff_data`,
+    `Cap.ord_data`, `lt_rejected`, `min_mode_rejected`,
+    `minBy_recovers_min`], [`Concept::ordered`\;
+    `semantic.no_order`], [mixed-comparison matrix], [D-98--D-100;
+    ADR-0025/0026], [mixed case is a production rule],
+    [unit operations need no kernel construct], [`inUnitE_typed/_safe`,
+    `withUnitE_typed`, `convert_eq`,
+    `unitOps_no_construction`], [`bdl-elab::units`
+    `coord`/`reconstruct`/`convert`], [unit
+    tests], [D-101--D-103], [float approximation],
+    [presentation is semantically
+    irrelevant], [`presentation_irrelevant_*`], [preferred units in
+    authoring metadata], [---], [D-105], [---],
+    [Composer inference is sound and complete], [`solve_sound`,
+    `solve_complete`,
+    `candidates_sound/_complete`], [`bdl-ide::formula`], [`formula_composer.rs`], [D-104;
+    ADR-0028], [two holes unsolved by design],
+    [affine conversion is a groupoid of affine maps; point/delta
+    orthogonal], [`convert_compose`, `convert_inverse`,
+    `difference_map`, `linear_part_compose`,
+    `sort_orthogonal_to_conversion`, `CtoF_closed`], [`Chart::Affine`,
+    `convert`], [`charts::tests` (ulps)], [D-106 rev.,
+    D-107--D-110], [affine charts hidden (ISS-0004)],
+    [binder syntax is conservative desugaring], [`desugar_rename`,
+    `binder_local_type`, `binder_*_eval`, `range_eval`,
+    `binder_clock`], [not implemented], [---], [D-111--D-114], [next
+    milestone],
+    [axiom discipline], [every theorem on `propext`/`Quot.sound`\; no
+    `sorry`\; no `Classical.choice` (audited per
+    phase)], [---], [---], [---], [---],
+  )]
+  , kind: table
+  )
+
+== Design decision index
+<design-decision-index>
+#figure(
+  align(center)[#table(
+    columns: (20%, 20%, 20%, 20%, 20%),
+    align: (auto,auto,auto,auto,auto,),
+    table.header([decision], [section of this document], [Lean file /
+      theorem], [production ADR], [implementation location],),
+    table.hline(),
+    [declarations by identity; refinement vs edit], [Part
+    III], [`Core/Decl.lean`, `Env.lean`], [ADR-0008,
+    ADR-0009], [`bdl-model`],
+    [typing through the type view], [Part
+    III], [`Core/Typing.lean`], [---], [`bdl-check`],
+    [nominal concepts, representation, grant], [Part
+    III], [`Core/Decl.lean`, `Typing.lean`, Phase 3
+    experiments], [ADR-0013], [`bdl-elab`, `bdl-check`],
+    [dimensions in primitive types], [Part
+    III/VII], [`Core/Base.lean`], [ADR-0011], [`bdl-model::Dim`],
+    [`delay`/`sync`, strictly-before], [Part V], [`Core/Reactive.lean`,
+    `Clock.lean`], [ADR-0004], [`bdl-reactive`, `bdl-lower`],
+    [single driver], [Part
+    VIII], [`Core/Output.lean`], [ADR-0005], [`bdl-output`],
+    [hardware outside typing], [Part
+    VIII], [`Validation/Hardware.lean`], [ADR-0006,
+    ADR-0015], [`bdl-hardware`, `bdl-compiler`],
+    [Lean is a specification], [Part
+    XI], [---], [ADR-0010], [`docs/project/formal-correspondence.md`],
+    [components flatten; contracts stored], [Part
+    VI], [`Behavior/*.lean`], [ADR-0021, ADR-0022], [`bdl-system`],
+    [groups are authoring metadata], [Part VI], [`Behavior/Group.lean`,
+    `Extract*.lean`], [ADR-0019], [`.bdl/authoring.json`, Studio],
+    [one project, three views], [Part IX/X], [---], [ADR-0023
+    (supersedes ADR-0020)], [`bdl-text`, `bdl-layout`, Studio],
+    [lists, buffer, capacity], [Part V], [`Core/ListData.lean`,
+    `Surface/Buffer.lean`, `Validation/Capacity.lean`], [ADR-0024,
+    ADR-0027], [runtime `collections`, `bdl-exec-ir::bounds`],
+    [equations as definitional families; order by declaration], [Part
+    IV], [`Surface/Poly.lean`, `Stdlib.lean`,
+    `Generic.lean`], [ADR-0025, ADR-0026], [`bdl-equations`],
+    [the Composer as a projection; slots in the text], [Part
+    VII/X], [`Surface/Composer.lean`], [ADR-0028], [`bdl-ide::formula`,
+    Studio],
+    [units and charts], [Part VII], [`Surface/Units.lean`,
+    `Charts.lean`, `Rational.lean`], [ADR-0028
+    amendment], [`bdl-elab::units`],
+    [natural binders], [Part
+    IV], [`Surface/Natural.lean`], [---], [---],
+    [LSP is an adapter], [Part IX], [---], [ADR-0017], [`bdl-lsp`],
+    [three information levels], [Part X], [---], [ADR-0018], [Studio],
+    [generated Rust implements the reference evaluator], [Part
+    IX], [---], [ADR-0016], [`bdl-codegen-rust`, differential tests],
+  )]
+  , kind: table
+  )
+
+== Possible paper slices (internal)
+<possible-paper-slices-internal>
+- #strong[PL]: the minimal kernel and its derivation by counterexample;
+  typing through the type view; nominal concepts with grants; rank-1 by
+  families with matching; one recursor; the capability audit. Evidence:
+  Parts III, IV, XII.
+- #strong[Reactive / synchronous]: one temporal primitive,
+  strictly-before, totality on causality; the object-language window and
+  capacity as validation. Evidence: Part V.
+- #strong[HCI / UIST]: the Formula Composer as a projection with slots
+  in the text; socket hue and shape; three information levels;
+  Design/Code/Split; groups as cognitive structure with proved
+  transparency. Evidence: Parts X, VI, XIII (needs the user study).
+- #strong[Embedded systems]: deterministic step per domain, the
+  two-phase tick and sync snapshot, allocation-free cores, bounded
+  collections with refusal, differential testing. Evidence: Parts IX, V.
+- #strong[Formal methods]: chart semantics over an abstract field with a
+  choice-free rational instance; exact symbolic scales; the AffSort
+  revision as a case study in testing a smaller hypothesis. Evidence:
+  Part VII.
+- #strong[Design research]: behavior as design material; the
+  representation problem; signature-first as a legal stopping state; the
+  semantic-translation cost. Evidence: Parts I, II, XIII.
+
+= Closing
+<closing>
 Modern industrial products increasingly combine physical form with
 sensing, computation, and control, yet designers still lack a behavior
 medium with the immediacy that CAD provides for geometry. BDL proposes
@@ -2183,13 +4855,14 @@ drive edge. A separate validation layer decides whether the design fits
 a board, and its evidence is kept apart from the evidence that survives
 refinement.
 
-Each of these is minimal among the designs that were tested, and the
-paper has tried to say, for each, what was proved, what was rejected by
-counterexample, and what was preferred. What has not been built --- the
-elaborator, the editor, the firmware path, and the studies --- is where
-the claims about designers would be tested. The research question is not
-whether designers can be taught a simpler programming language. It is
-whether product behavior can become a #emph[design material] whose
-structure is intuitive at the surface and rigorous underneath, and the
-kernel presented here is the part of that question that can now be
-stated precisely.
+Each of these is minimal among the designs that were tested, and this
+document has tried to say, for each, what was proved, what was rejected
+by counterexample, and what was preferred. The elaborator, the editor
+and the firmware path have since been built and are described in Parts
+IX--X; the studies have not, and they are where the claims about
+designers would be tested. The research question is not whether
+designers can be taught a simpler programming language. It is whether
+product behavior can become a #emph[design material] whose structure is
+intuitive at the surface and rigorous underneath, and the kernel
+presented here is the part of that question that can now be stated
+precisely.
