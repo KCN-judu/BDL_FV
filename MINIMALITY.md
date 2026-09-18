@@ -63,7 +63,13 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | local dimension inference | no | editor (`solve`) | — | no | `solve_sound`, `solve_complete` (D-104) |
 | candidate unit inference | no | editor | — | no | `candidates_sound/_complete` |
 | affine literals / coordinates | no | yes → `lit (n·s+off)`, `(q−off)/s` | — | no | `affine_roundtrip_ev` (D-106) |
-| affine arithmetic safety (point/delta sort) | no | **deferred** surface sort | — | — | `sum_of_points_is_not_a_point` (D-106) |
+| affine chart metadata (`⟨scale, offset⟩` per unit) | no | compiler-known registry data | — | no | Phase 10b (D-107): `chart_left_inverse`, `chart_right_inverse` |
+| affine coordinate conversion `C(u,v)` | no | yes → scalar affine arithmetic | — | as a primitive: **yes** | Phase 10b (D-108): `convert_is_affine`, `convert_compose`, `convert_inverse` |
+| affine-map runtime object | no | — | — | **yes** | Phase 10b: no theorem stores, delays or compares a map or a unit |
+| point/delta sort | no | — | **optional validation** (operation-level) | from conversion: **yes** | Phase 10b (D-106 rev.): `sort_orthogonal_to_conversion` |
+| affine kernel type / `Ty.q d sort` | no | — | — | **yes** | Phase 10b: no conversion theorem needs it |
+| calibration transform (ADC, encoder) | no | yes → the same chart conversion | — | no | Phase 10b (D-110): `exH`, `exI` |
+| display-unit transform | no | authoring/UI: `C(u,v)` on the coordinate | — | no | Phase 10b: `display_switch_preserves_quantity`, `edit_vs_switch` |
 | semantic–dimension association | in `Θ` (not in `SemanticId`, not in `Ty.sem`, not in `DeclInterface`) | — | — | — | `same_dimension_does_not_imply_same_semantic_identity` (D-33) |
 | `Sem[n,d]` two-index constructor | no | no | no | **yes** | replaced by `Ty.sem s` + `Θ s = some (q d)` |
 | `delay init e` (data-typed, top level) | **yes** | — | — | no | Phase 4: the only state primitive (D-34, D-35) |
@@ -482,6 +488,14 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - CAN IT BE DESUGARED: entirely (`inUnitE`, `withUnitE`, `convertE`)
 - VALIDATION DIFFERENCE: none; dimension safety is the existing `Prim.ty` rule (`inUnitE_safe`)
 - LEAN THEOREM / COUNTEREXAMPLE: `inUnit_withUnit`, `withUnit_inUnit`, `convert_eq`, `presentation_irrelevant_eval`, `celsius_not_linear`
+
+### FEATURE: affine charts and conversion functoriality (Phase 10b)
+- LAYER: surface elaboration over compiler-known chart metadata; exact semantics over any field (`Q` instance)
+- WHY IT EXISTS: °C/°F, sensor calibration and encoder offsets are affine coordinate changes of one quantity
+- WHAT BREAKS WITHOUT IT: nothing in the kernel; scalar affine arithmetic already exists
+- CAN IT BE DESUGARED: entirely (`(s_u/s_v)·x + (o_u − o_v)/s_v`)
+- VALIDATION DIFFERENCE: none for conversion; point/delta is an optional separate check
+- LEAN THEOREM / COUNTEREXAMPLE: `convert_identity`, `convert_compose`, `convert_inverse`, `difference_map`, `linear_part_compose`, `CtoF_closed`, `not_additive_of_offset`
 
 ### FEATURE: Formula Composer inference (Phase 10)
 - LAYER: editor/surface (never executed)

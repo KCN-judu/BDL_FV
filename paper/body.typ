@@ -1168,10 +1168,19 @@ approximates in floating point. A preferred display unit is
 presentation: it changes the number shown and no judgment of the design.
 Affine scales such as degrees Celsius are not linear (`0 °C` is
 `273.15 K`), yet their literals and coordinates elaborate exactly by
-adding an offset; what the dimension cannot express is that the sum of
-two absolute temperatures is not an absolute temperature --- a
-point/difference sort the surface language does not yet have, so Celsius
-arithmetic remains deferred while Celsius conversion does not.
+adding an offset. Unit coordinates erase chart identity while preserving
+affine coordinate change: the conversion between two charts is an affine
+map, conversions compose and invert --- compatible charts are isomorphic
+coordinate systems --- and differences inherit the linear part of that
+transformation, so a difference of ten degrees Celsius is eighteen
+degrees Fahrenheit from any base point, while a conversion with a
+non-zero offset is not an additive homomorphism. The same abstraction
+covers sensor calibration and encoder offsets. These laws are proved
+over an abstract field and instantiated exactly at rationals; production
+floating point is held to a toleranced version of them. Whether a sum of
+two absolute temperatures should be permitted is a separate, optional
+validation question that the dimension does not decide and conversion
+does not need.
 
 = A Minimal Reactive Semantics
 <a-minimal-reactive-semantics>
@@ -2091,9 +2100,10 @@ or timing property. The explanation facility reports a first dead end,
 not a minimal core. Interface-level references --- commitments that
 mention other declarations --- are not modelled, so the dependency graph
 is over realizations only. Whether a realization may delegate its grant
-to a higher-order argument is untested. Affine units are modelled for
-conversion and display only; the point/difference sort their arithmetic
-needs is not.
+to a higher-order argument is untested. Affine units are modelled as
+coordinate changes; a point/difference sort for restricting
+absolute-temperature arithmetic is optional validation and is not
+implemented.
 
 == Risks of the design
 <risks-of-the-design>

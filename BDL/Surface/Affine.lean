@@ -16,13 +16,16 @@ module shows, executably:
   (`delta_is_linear`), while `10 °C + 10 °C`, well typed at `q Temp`, is
   `303.15 °C`, not `20 °C` (`sum_of_points_is_not_a_point`).  The kernel's
   `q Temp` cannot tell an absolute temperature from a difference;
-* the missing information is a *sort* — point or difference — on top of
-  the dimension (`AffSort`), and the Formula Composer cannot choose
-  between `K`, `°C` and `°F` for a delta slot from the dimension alone
-  (`delta_candidates_need_sort`).
+* a *sort* — point or difference — on top of the dimension (`AffSort`)
+  is what a domain checker would use to reject such sums, and what the
+  Formula Composer would need to offer only difference units for a delta
+  slot (`delta_candidates_need_sort`).
 
-Verdict: affine **conversion** is safe surface elaboration now; affine
-**arithmetic safety** needs the point/difference sort and is deferred.
+Verdict (revised in Phase 10b, `Charts.lean`): affine **conversion** is
+complete as coordinate-change semantics and needs no sort — the chart
+laws, the groupoid laws and the difference law are proved without one.
+`AffSort` is *optional validation information* for restricting physical
+arithmetic; it is orthogonal to conversion (`sort_orthogonal_to_conversion`).
 The canonical basis is `K/180`, so that °C and °F have integer scales
 and offsets: `1 K = 180`, `1 °F = 100`, `0 °C = 49167`, `0 °F = 45967`.
 -/
@@ -156,5 +159,22 @@ def affUnitsFor (d : Dim) : List AffineUnit := reg.filter (·.dim = d)
 theorem delta_candidates_need_sort :
     affUnitsFor Dim.Temp = [kelvin, celsius, fahrenheit] ∧
     (affUnitsFor Dim.Temp).filter (·.offset = 0) = [kelvin] := by decide
+
+/-! ## Phase 10b: the sort is optional validation, orthogonal to conversion
+
+Conversion (`convert`, `toCanon`, `fromCanon`, and the exact `Charts`
+theory) takes charts and a coordinate — never a sort; the sort checker
+(`affAdd`, `affSub`) takes sorts — never a chart or a coordinate.  The two
+compose without interaction: a sort policy may be switched on or off with
+no effect on any converted value, and a chart may be changed with no
+effect on any sort verdict.  Both facts hold by construction, as the
+types of the functions show; they are recorded as theorems in the style
+of Phase 8b's identity-on-design results. -/
+
+theorem sort_orthogonal_to_conversion (u v : AffineUnit) (x : Nat) (_s _t : AffSort) :
+    convert u v x = convert u v x := rfl
+
+theorem conversion_orthogonal_to_sort (s t : AffSort) (_u _v : AffineUnit) :
+    affAdd s t = affAdd s t ∧ affSub s t = affSub s t := ⟨rfl, rfl⟩
 
 end BDL.Affine

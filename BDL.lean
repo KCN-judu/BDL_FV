@@ -44,3 +44,6 @@ import BDL.Surface.Units
 import BDL.Surface.Composer
 import BDL.Surface.Affine
 import BDL.Experiments.UnitExamples
+import BDL.Surface.Rational
+import BDL.Surface.Charts
+import BDL.Experiments.AffineExamples

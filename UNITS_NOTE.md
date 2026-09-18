@@ -1,6 +1,6 @@
 # Unit Coordinates and Formula-Assembly Semantics
 
-*A formal note on Phase 10 of the BDL development (`BDL/Surface/Units.lean`,
+*A formal note on Phases 10 and 10b of the BDL development (`BDL/Surface/Units.lean`,
 `Composer.lean`, `Affine.lean`; `BDL/Experiments/UnitExamples.lean`),
 followed by production guidance for `KCN-judu/BDL`.*
 
@@ -268,10 +268,155 @@ written by hand; the library may expose `convert` for tooling).
 * **Q9** °C conversion and display are safe now; °C arithmetic must remain deferred until a point/difference sort exists.
 * **Q10** Scaled literals, `inUnit`, `withUnit`, a unit registry, `solve` + `units_for` for the Composer, presentation-level preferred units — and nothing in the IR.
 
-## 16. Not established
+## 16. Not established (Phase 10)
 
 The exact model is stated over an abstract scalar domain and the
 symbolic group; no theorem relates it to production floating point. The
 `Nat` kernel truncates (speed `333` in `0.1 m/s`); the exact value is in
 `Sym`. The affine sort is defined and tested as arithmetic on sorts, not
 integrated into typing. Two-hole operands are outside `solve` by design.
+
+
+---
+
+## 17. Phase 10b — affine coordinate erasure and conversion functoriality
+
+Phase 10 ended with "affine conversion works, but the point/difference
+sort is missing information." Phase 10b tested the smaller hypothesis:
+for *conversion*, chart-specific information is intentionally erased at
+coordinatization, and what must survive is only the affine transformation
+structure between charts. The hypothesis holds, and the sort is
+downgraded (`BDL/Surface/Charts.lean`, `Rational.lean`,
+`BDL/Experiments/AffineExamples.lean`).
+
+### 17.1 The chart model, over an abstract field
+
+`Chart K = ⟨scale, offset⟩` over a dimension, valid when `scale ≠ 0`;
+`reconstruct u x = s_u·x + o_u`, `coord u q = (q − o_u)/s_u`. The scalar
+domain is an abstract `Field K` (commutative, with inverses of non-zero
+elements, negatives and fractions), instantiated by `Q`, exact rationals
+built as a quotient with every law proved from `Int`'s ring laws — no
+`Nat` saturation, no floating point, and no `Classical.choice` (core's
+`Rat` would have brought it in).
+
+### 17.2 What is proved
+
+| law | theorem |
+|---|---|
+| chart left inverse `coord u (reconstruct u x) = x` | `chart_left_inverse` |
+| chart right inverse `reconstruct u (coord u q) = q` | `chart_right_inverse` |
+| conversion is affine: `C(u,v)(x) = (s_u/s_v)·x + (o_u − o_v)/s_v` | `convert_is_affine`, `convertMap` |
+| identity `C(u,u) = id` | `convert_identity` |
+| composition `C(v,w) ∘ C(u,v) = C(u,w)` | `convert_compose` (from the chart laws alone), `convertMap_compose` |
+| inverse `C(v,u) ∘ C(u,v) = id`, both ways | `convert_inverse` |
+| difference map `f(y) − f(x) = a·(y − x)` | `difference_map` |
+| offset cancels `f(x+δ) − f(x) = a·δ` | `difference_offset_cancels`, `difference_converts_linearly` |
+| linear-part functoriality `L(u,u) = 1`, `L(v,w)·L(u,v) = L(u,w)` | `linear_part_identity`, `linear_part_compose` |
+| not additive when offset ≠ 0 | `not_additive_of_offset`, `CtoF_not_additive` |
+| erasure keeps conversion structure `coord v q = C(u,v)(coord u q)` | `unit_erasure_preserves_conversion_structure` |
+| display switch preserves the quantity `reconstruct v (C(u,v)(coord u q)) = q` | `display_switch_preserves_quantity`, `exJ` |
+| coordinate edit changes the quantity | `coordinate_edit_changes_quantity`, `edit_vs_switch` |
+
+Identity, composition and inverse follow from the two chart laws with no
+algebra: compatible charts form a groupoid of affine isomorphisms
+(theorem-level; no category-theory framework was built).
+
+### 17.3 Celsius / Fahrenheit, exactly
+
+Kelvin canonical: `celsius = ⟨1, 27315/100⟩`, `fahrenheit = ⟨5/9,
+45967/180⟩`. Proved for every `x`: `C(°C,°F)(x) = 9/5·x + 32`
+(`CtoF_closed`) and `C(°F,°C)(x) = 5/9·x − 160/9 = 5/9·(x − 32)`
+(`FtoC_closed`). Executed: `0 °C = 32 °F`, `100 °C = 212 °F`,
+`−40 °C = −40 °F` (`exA`–`exC`), the °C→°F→°C round trip (`exD`),
+°C→K→°F equal to °C→°F (`exE`), `Δ10 °C = Δ18 °F` from two base points
+(`exF`, `exG`), the linear part `9/5` and `Δ°C = 5/9·Δ°F`
+(`delta_law`, `delta_law_FtoC`).
+
+### 17.4 Not a Celsius special case
+
+The same laws instantiate sensor calibration (`physical = a·raw + b`: a
+10-bit ADC, millivolts and a calibrated reading with a 0.5 V zero —
+`exH`, composition through millivolts, inverse back to raw, difference
+independent of base) and an encoder with home offset (`angle = 45/512 ·
+count + 30°` — `exI`). Unit conversion and calibration are one affine-map
+abstraction.
+
+### 17.5 Erasure
+
+The coordinate is a bare scalar: `32` is a Fahrenheit coordinate of `0 °C`
+and a Celsius coordinate of `32 °C` (`coordinate_needs_chart`). The
+destination chart supplied to `reconstruct`/`convert` interprets it; no
+runtime tag is needed, and none of the theorems requires a unit to be
+`Data`, delayed, synced, stored or compared (re-audit of Phase 10's
+rejection of runtime units: confirmed).
+
+### 17.6 AffSort, revised
+
+Conversion never takes a sort; the sort checker never takes a chart
+(`sort_orthogonal_to_conversion`, `conversion_orthogonal_to_sort`, by
+construction). So:
+
+* **A** — unit conversion is complete and correct without point/delta;
+* **B** — a domain checker may still use point/delta to reject `point +
+  point`; that is *optional physical-arithmetic validation*, orthogonal
+  to A.
+
+Old framing: "affine conversion works, but the sort is missing
+information." New framing (D-106 revised): **affine conversion is
+complete as coordinate-change semantics; point/delta is additional
+validation information for restricting physical arithmetic.** `Ty.q d`
+is unchanged: no theorem about conversion needed a sort in the type.
+
+### 17.7 Kernel
+
+Nothing changed: `Ty`, `Value`, `Expr`, `delay`/`sync`, the generic
+machinery. Affine conversion is compiler-known chart metadata plus scalar
+affine arithmetic, already elaborable (Phase 10's `affLitE`,
+`affInUnitE`).
+
+### 17.8 Production guidance (addendum)
+
+1. **Kernel constructs**: none.
+2. **°C/°F**: compiler-known charts `⟨scale, offset⟩` per unit plus
+   scalar arithmetic; `convert(x, u, v) = (s_u/s_v)·x + (o_u − o_v)/s_v`,
+   with the intermediate canonical value never materialized if unwanted.
+3. **Runtime tag after coordinate extraction**: none. A scalar is a
+   scalar; the chart is supplied where the scalar is reinterpreted.
+4. **Studio unit picker stores**: the chart identity (registry id) of the
+   *authoring* unit for a literal (semantic source, in the formula text)
+   and the *preferred* chart per concept (authoring metadata); never the
+   canonical value as source.
+5. **Switch unit, preserve value**: `x' = C(u,v)(x)`; the quantity is
+   unchanged (`display_switch_preserves_quantity`).
+6. **Edit coordinate**: `x ↦ x'` in the same chart changes the quantity
+   (`coordinate_edit_changes_quantity`); the two interactions are
+   different equations and must be different commands.
+7. **Point/delta for conversion**: not required.
+8. **If retained**: as a validation annotation on operations
+   (`affAdd`/`affSub` over sorts of operands), in the checker layer, never
+   in `Ty` or in the conversion path.
+9. **Sensor calibration**: the same `Chart` abstraction (`exH`, `exI`).
+10. **Property tests** (production is `f64`; the formal laws are exact):
+    for registered charts `u, v, w` and sampled `x`,
+    `|C(u,u)(x) − x| ≤ ε·|x|`, `|C(v,w)(C(u,v)(x)) − C(u,w)(x)| ≤ ε·|x|`,
+    `|C(v,u)(C(u,v)(x)) − x| ≤ ε·|x|`, `|(C(u,v)(x+δ) − C(u,v)(x)) −
+    L(u,v)·δ| ≤ ε·|δ|`, and `|reconstruct_v(C(u,v)(coord_u(q))) − q| ≤
+    ε·|q|`, with `ε` a few ulps scaled by the largest coefficient; plus
+    exact-rational oracles for the registered charts. Do not claim exact
+    `f64` identity or composition.
+
+### 17.9 Answers
+
+* **Q1** No: no conversion theorem mentions `AffSort`.
+* **Q2** No: `Ty.q d` unchanged.
+* **Q3** Yes: the coordinate forgets chart identity, symbol, origin and scale, and `unit_erasure_preserves_conversion_structure` recovers the other coordinates.
+* **Q4** The affine coordinate change `C(u,v)` (an affine map), with its linear part acting on differences — not an additive homomorphism.
+* **Q5** Yes: `convert_compose`, `convertMap_compose`.
+* **Q6** Yes: `convert_inverse`, both directions.
+* **Q7** Yes: `difference_map`, linear part `s_u/s_v`.
+* **Q8** Yes: `CtoF_closed`, `FtoC_closed`, `exA`–`exG`, with `Ty.q` untouched.
+* **Q9** Yes: orthogonal by construction; optional validation.
+* **Q10** Yes: `exH`, `exI` are instances of the same theorems.
+
+Claim strength: proved over any field and instantiated exactly; executed
+cases A–J; the production `f64` contract is a recommendation.

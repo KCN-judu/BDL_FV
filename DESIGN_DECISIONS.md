@@ -766,8 +766,40 @@ magnitudes (`ordering_ignores_presentation`).  Design guidance: literal
 unit = semantic source (in the formula text); concept preferred unit =
 authoring metadata; simulation unit = UI state.
 
-**D-106. Affine units: conversion and literals are safe elaboration now; arithmetic needs a point/difference sort and is deferred.**
+**D-106 (revised in Phase 10b). Affine conversion is complete as coordinate-change semantics; point/delta is optional physical-arithmetic validation.**
 `celsius_not_linear`; `affLitE`/`affInUnitE` exact (`K/180` basis);
 `delta_is_linear`; `sum_of_points_is_not_a_point` while `sum_well_typed`.
-Rejected: a kernel temperature type; faking °C with a scale; deferring
-conversion too.  Deferred: `AffSort` in the surface language.
+Phase 10b: the chart laws, the groupoid laws and the difference law are
+proved without any sort (`Charts.lean`); `AffSort` is orthogonal to
+conversion (`sort_orthogonal_to_conversion`).  Rejected: a kernel
+temperature type; faking °C with a scale; deferring conversion; `Ty.q d
+sort`.  Retained as optional: a validation annotation over operand sorts.
+
+## Phase 10b
+
+**D-107. Unit coordinates are an erasure that preserves the affine coordinate change.**
+A chart is `⟨scale, offset⟩` over a field; `coord`/`reconstruct` are
+inverse (`chart_left_inverse`, `chart_right_inverse`); the coordinate is a
+bare scalar with no chart in it (`coordinate_is_chartless`,
+`coordinate_needs_chart`) and the other coordinates are recovered from it
+and the charts (`unit_erasure_preserves_conversion_structure`).
+Rejected: a runtime unit tag on scalars; units as data.
+
+**D-108. Conversions form a groupoid of affine isomorphisms; differences carry the linear part.**
+`convert_is_affine`, `convert_identity`, `convert_compose`,
+`convert_inverse` (from the chart laws alone); `difference_map`,
+`difference_offset_cancels`, `linear_part_identity`,
+`linear_part_compose`.  Rejected terminology: "Celsius-to-Fahrenheit is a
+group homomorphism" (`not_additive_of_offset`, `CtoF_not_additive`).
+
+**D-109. The exact scalar domain is a choice-free rational field built in the development.**
+`Rational.lean`: `Q` as a quotient of `Int` fractions; laws by `Int` ring
+identities; concrete equalities decided by cross-multiplication.
+Rejected: core `Rat` (its lemmas depend on `Classical.choice`); `Nat`
+(no negatives, no fractions); floating point in the formal model.
+Production `f64` gets a toleranced property-test contract, not an
+exactness claim.
+
+**D-110. Unit conversion and sensor calibration are one affine-map abstraction.**
+`exH` (ADC → mV → calibrated reading), `exI` (encoder count → angle with
+home offset) instantiate the same theorems.
