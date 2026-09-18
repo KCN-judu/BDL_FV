@@ -703,6 +703,33 @@ theorem map_spec (τ σ : Ty) {f xs : Expr} {vf : Value} {vs : List Value} {F : 
     refine .appClo (.appClo (Ev.var (i := 2) rfl) (Ev.var (i := 1) rfl) .lam) (Ev.var (i := 0) rfl) ?_
     exact ev_cons σ (Ev.app_of_apply (Ev.var (i := 3) rfl) (Ev.var (i := 1) rfl) (hF x hx)) (Ev.var (i := 0) rfl)
 
+/-- **`filter_spec`**: `filter p xs` is `List.filter`. -/
+theorem filter_spec (τ : Ty) {p xs : Expr} {vp : Value} {vs : List Value} {P : Value → Bool}
+    (hp : Ev Δ I t ρ p vp) (hxs : Ev Δ I t ρ xs (.list vs)) (hP : Implements Δ I t vp P vs) :
+    Ev Δ I t ρ (app2 (filterF τ) p xs) (.list (vs.filter P)) := by
+  refine .appClo (.appClo .lam hp .lam) hxs ?_
+  have := fold_spec (Δ := Δ) (I := I) (t := t) (ρ := .list vs :: vp :: ρ)
+    (g := fun x acc => match acc with | Value.list ws => if P x then Value.list (x :: ws) else Value.list ws | _ => acc)
+    (f := .lam τ (.lam (.list τ) (iteE (.list τ) (.app (.var 3) (.var 1)) (consE τ (.var 1) (.var 0)) (.var 0))))
+    (Inv := fun r => ∃ ws, r = Value.list ws) .lam (ev_nil τ) (Ev.var (i := 0) rfl) ⟨[], rfl⟩
+    (fun x r ⟨ws, hw⟩ => by subst hw; cases P x <;> simp) ?_
+  · have e : ∀ vs' : List Value, vs'.foldr (fun x acc => match acc with
+        | Value.list ws => if P x then Value.list (x :: ws) else Value.list ws | _ => acc) (Value.list [])
+        = Value.list (vs'.filter P) := by
+      intro vs'; induction vs' with
+      | nil => rfl
+      | cons y ys ih =>
+        simp only [List.foldr_cons, ih]
+        cases hy : P y <;> simp [hy]
+    rw [e] at this
+    exact this
+  · rintro x hx r ⟨ws, rfl⟩
+    refine .appClo (.appClo (Ev.var (i := 2) rfl) (Ev.var (i := 1) rfl) .lam) (Ev.var (i := 0) rfl) ?_
+    have := ev_ite (Δ := Δ) (I := I) (t := t) (ρ := .list ws :: x :: .list vs :: vp :: ρ) (.list τ)
+      (Ev.app_of_apply (Ev.var (i := 3) rfl) (Ev.var (i := 1) rfl) (hP x hx))
+      (ev_cons τ (Ev.var (i := 1) rfl) (Ev.var (i := 0) rfl)) (Ev.var (i := 0) rfl)
+    cases hx' : P x <;> simp only [hx'] at this ⊢ <;> simpa using this
+
 end Eval
 
 /-! ## Finite quantification is a fold -/

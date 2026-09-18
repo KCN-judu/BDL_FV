@@ -1,11 +1,9 @@
 # REPORT — formal results so far
 
-Project state: **Phase 10b complete** (affine charts: coordinate
-extraction erases chart identity and preserves the affine coordinate
-change — identity, composition, inverse, linear part on differences —
-proved over any field and exactly at choice-free rationals; point/delta
-downgraded to optional validation; on top of Phase 10's unit
-coordinates and Composer inference, and 9a–9c).  Remaining: Phase 8c surface elaboration of the remaining
+Project state: **Phase 11 complete** (natural binder, range and coalesce
+syntax as conservative desugaring to the Phase-9 library: scoping,
+alpha-equivalence, typing, evaluation and clocks proved; on top of 10/10b
+units and charts, and 9a–9c).  Remaining: Phase 8c surface elaboration of the remaining
 designer-facing forms + executable semantics; final minimality audit.
 Everything builds with `lake build`; no `sorry`; axioms used are `propext`
 and `Quot.sound` (the latter only through `funext` and standard `simp`
@@ -2220,6 +2218,33 @@ conversion (`sort_orthogonal_to_conversion`, `conversion_orthogonal_to_sort`).
 No kernel change; `Ty.q d` unchanged; runtime unit values re-rejected (no
 theorem needs one).  111 theorems of the 10b modules on
 `propext`/`Quot.sound`.
+
+## Phase 11 — Natural expression surface as conservative desugaring
+
+Question: can `all/any/map/filter x in xs: body`, `x in lo .. hi` and
+`x ?? d` be added purely as surface elaboration over the Phase-9 library
+with no kernel change and no semantic loss?  Yes.  Files:
+`BDL/Surface/Natural.lean`, `BDL/Experiments/NaturalExamples.lean`;
+`filter_spec` added to `Stdlib.lean`; note `NATURAL_SYNTAX_NOTE.md`.
+
+`NatExpr` (closed core embedding, named local, app, binder, range,
+coalesce) with `desugar` under a binder stack: a local is the lambda
+parameter's de Bruijn index (nearest binder).  Proved: scoping
+(`desugar_local_nearest`, `desugar_shadow`, `desugar_unbound`,
+`desugar_core`), alpha-equivalence under fresh renaming
+(`desugar_rename`, `alpha`), no construction (`desugar_constructs`),
+typing (`binder_*_typed`, `binder_local_type` inversion, `range_typed`,
+`range_bounds_forced`, `coalesce_typed`), evaluation as the library
+(`binder_*_eval` from `all_spec`/`any_spec`/`map_spec`/`filter_spec`;
+`natural_forall`, `natural_exists`; `range_eval` = `lo ≤ x ∧ x ≤ hi`),
+clocks (`binder_clock`, `range_clock`).  Executed A–J: call-form vs
+natural-form equality by `rfl`, units before ranges, nested binders,
+shadowing, alpha, nominal `Tilt` ranges (concept bounds accepted, `q Angle`
+bounds rejected, `rep` accepted), `MotorAngle` predicate rejected on a
+`Tilt` local, negatives (`all x in 5`, `filter … : 5`, `angle in 2 s .. 3 s`,
+unordered concept, unbound locals).  Verdicts: all forms
+SURFACE-DESUGAR; interval type, general comprehension and general
+quantifier REMOVE; `??` SURFACE-DESUGAR.  49 theorems on `propext`/`Quot.sound`.
 
 ## Open items carried to later phases
 

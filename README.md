@@ -13,7 +13,7 @@ lake build
 * `DESIGN_DECISIONS.md` — every model choice and rejected alternative
 * `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table
 
-Status: Phases 0–7, 8a/8b, 9a–9c, 10 and 10b complete (lifecycle/refinement; cross-declaration
+Status: Phases 0–7, 8a/8b, 9a–9c, 10, 10b and 11 complete (lifecycle/refinement; cross-declaration
 preservation; semantic identity; representation binding + dimensions;
 reactive core; clock domains + synchronization; physical outputs +
 single-driver discipline; hardware constraint validation + resource
@@ -25,7 +25,8 @@ capability audit — equality on data, ordering on quantities and
 declared-ordered concepts only; unit coordinates and Formula-Composer
 dimension inference as surface elaboration; affine charts — conversion
 as a groupoid of affine isomorphisms over exact choice-free rationals,
-point/delta downgraded to optional validation).
+point/delta downgraded to optional validation; natural binder and range
+syntax as conservative desugaring).
 Remaining: Phase 8c surface elaboration + executable semantics; final
 minimality audit.
 
@@ -51,6 +52,10 @@ minimality audit.
   exact rational field; affine charts with the chart, groupoid and
   difference laws over any field; Celsius/Fahrenheit, ADC calibration and
   encoder offsets executed exactly (`UNITS_NOTE.md` §17)
+* `BDL/Surface/Natural.lean` — Phase 11: `all/any/map/filter x in xs:`,
+  `x in lo .. hi`, `x ?? d` desugared to the Phase-9 library; scoping,
+  alpha-equivalence, typing, evaluation and clocks proved
+  (`NATURAL_SYNTAX_NOTE.md` is the design note, with production guidance)
 
 Kernel in one line: `DeclEnv : DeclId → Option DesignDecl`, where a
 `DesignDecl` is a stable id, a `DeclInterface` (expected type + monotone

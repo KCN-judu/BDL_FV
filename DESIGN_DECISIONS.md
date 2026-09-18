@@ -803,3 +803,27 @@ exactness claim.
 **D-110. Unit conversion and sensor calibration are one affine-map abstraction.**
 `exH` (ADC → mV → calibrated reading), `exI` (encoder count → angle with
 home offset) instantiate the same theorems.
+
+## Phase 11
+
+**D-111. Binder syntax desugars to the Phase-9 library applied to a lambda; a binder local is the lambda parameter.**
+`all x in xs: p ↦ allF τ (λx. p) xs` (any, map, filter alike);
+`desugar` resolves names to de Bruijn indices, nearest binder first.
+Rejected: a binder construct in the kernel; a second variable calculus;
+binder clocks.  Reason: `binder_*_typed`, `binder_*_eval`, `binder_clock`
+are instances of Phase-9 theorems; `desugar_rename` makes names invisible.
+
+**D-112. Ranges are surface nodes desugared to `inRange`; no interval type or value.**
+`x in lo .. hi ↦ inRangeF o x lo hi` under the 9c order policy; bounds
+must have the value's (nominal) type (`range_bounds_forced`); a concept
+value against representation bounds goes through `rep`.  Rejected: an
+`Interval` type; ranges as data.  Reason: no case stores, passes, lists
+or compares a range.
+
+**D-113. No general comprehension, no general quantifier.**
+Nested binders cover the required cases (`exD`, `exE`); the forms are
+finite list equations (`natural_forall`, `natural_exists`).  Rejected:
+generators/`yield`/`where`; `∀`/`∃` syntax.
+
+**D-114. `x ?? d` desugars to `getD`.**
+Trivially conservative (`coalesce_typed`, `exI`).

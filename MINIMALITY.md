@@ -70,6 +70,13 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 | affine kernel type / `Ty.q d sort` | no | — | — | **yes** | Phase 10b: no conversion theorem needs it |
 | calibration transform (ADC, encoder) | no | yes → the same chart conversion | — | no | Phase 10b (D-110): `exH`, `exI` |
 | display-unit transform | no | authoring/UI: `C(u,v)` on the coordinate | — | no | Phase 10b: `display_switch_preserves_quantity`, `edit_vs_switch` |
+| natural binder syntax `all/any/map/filter x in xs:` | no | yes → library combinator + `lam` | — | no | Phase 11 (D-111): `binder_*_typed/_eval`, `binder_clock` |
+| `BinderKind` | no | elaboration tag | — | no | Phase 11: `binderTerm` |
+| `Range` surface node `x in lo .. hi` | no | yes → `inRangeF` | — | no | Phase 11 (D-112): `range_typed`, `range_eval` |
+| interval kernel type / range value | no | — | — | **yes** | Phase 11 (D-112): no case stores or compares a range |
+| general comprehension | no | — | — | **yes** | Phase 11 (D-113): nested binders suffice (`exD`, `exE`) |
+| general quantifier (`∀`/`∃` syntax) | no | — | — | **yes** | Phase 11 (D-113): `natural_forall`, `natural_exists` are finite folds |
+| coalesce `??` | no | yes → `getD` | — | no | Phase 11 (D-114): `coalesce_typed` |
 | semantic–dimension association | in `Θ` (not in `SemanticId`, not in `Ty.sem`, not in `DeclInterface`) | — | — | — | `same_dimension_does_not_imply_same_semantic_identity` (D-33) |
 | `Sem[n,d]` two-index constructor | no | no | no | **yes** | replaced by `Ty.sem s` + `Θ s = some (q d)` |
 | `delay init e` (data-typed, top level) | **yes** | — | — | no | Phase 4: the only state primitive (D-34, D-35) |
@@ -496,6 +503,14 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - CAN IT BE DESUGARED: entirely (`(s_u/s_v)·x + (o_u − o_v)/s_v`)
 - VALIDATION DIFFERENCE: none for conversion; point/delta is an optional separate check
 - LEAN THEOREM / COUNTEREXAMPLE: `convert_identity`, `convert_compose`, `convert_inverse`, `difference_map`, `linear_part_compose`, `CtoF_closed`, `not_additive_of_offset`
+
+### FEATURE: natural binder and range syntax (Phase 11)
+- LAYER: surface desugaring (`Natural.desugar`), one-way
+- WHY IT EXISTS: designers read `all reading in readings: reading in 10 deg .. 45 deg`
+- WHAT BREAKS WITHOUT IT: nothing semantic; the call forms remain
+- CAN IT BE DESUGARED: entirely, to the Phase-9 library + `lam`, with binder locals as lambda parameters
+- VALIDATION DIFFERENCE: none; the 9c order policy applies unchanged to ranges
+- LEAN THEOREM / COUNTEREXAMPLE: `desugar_rename`, `binder_local_type`, `binder_all_eval`, `range_eval`, `binder_clock`, `negatives`
 
 ### FEATURE: Formula Composer inference (Phase 10)
 - LAYER: editor/surface (never executed)

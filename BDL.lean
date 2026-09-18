@@ -47,3 +47,5 @@ import BDL.Experiments.UnitExamples
 import BDL.Surface.Rational
 import BDL.Surface.Charts
 import BDL.Experiments.AffineExamples
+import BDL.Surface.Natural
+import BDL.Experiments.NaturalExamples
