@@ -512,6 +512,30 @@ kernel object is a `DesignDecl` (id × interface × optional realization);
 - VALIDATION DIFFERENCE: none; the 9c order policy applies unchanged to ranges
 - LEAN THEOREM / COUNTEREXAMPLE: `desugar_rename`, `binder_local_type`, `binder_all_eval`, `range_eval`, `binder_clock`, `negatives`
 
+### FEATURE: Source provision by a device transducer (Phase 13, PRP-0001)
+- LAYER: surface/deployment construction over designs (`Provision.provision`), never executed by the kernel as a construct
+- WHY IT EXISTS: a Source `() -> C` is realized on a product by a raw reading and a device transfer function; the design must not name the device
+- WHAT BREAKS WITHOUT IT: nothing in the kernel; the conversion stays in the platform adapter, unchecked and outside every theorem
+- CAN IT BE DESUGARED: it *is* the desugaring — a fresh unresolved `r : raw` and `s := mk c (tr r)`; `provision_envRefines`
+- VALIDATION DIFFERENCE: `Fits` (decidable), `WF`, `ClockWF`, `RawInput`; commitments of a Source become profile obligations (`provision_wf`)
+- LEAN THEOREM / COUNTEREXAMPLE: `provision_transparent`, `provision_abstracts`, `provision_exact`, `provision_causal`, `provision_wellClocked`, `exB`, `exF`
+
+### FEATURE: a Source kind / effect / provision expression form (Phase 13)
+- LAYER: REMOVE
+- WHY IT WAS CONSIDERED: the PRP's alternatives
+- WHAT BREAKS WITH IT: nothing is gained — the construction uses `DesignDecl`, `declRef`, `app`, `mk` only
+- CAN IT BE DESUGARED: n/a
+- VALIDATION DIFFERENCE: none
+- LEAN THEOREM / COUNTEREXAMPLE: `provision` (definition), D-121
+
+### FEATURE: stateful transducer (memory in a profile term) (Phase 13)
+- LAYER: REMOVE from the first version; recorded extension
+- WHY IT WAS CONSIDERED: debouncing, filtering
+- WHAT BREAKS WITH IT: the transfer is not a function of the raw reading (`exD`); the induced input and the exactness theorem are stated over functions
+- CAN IT BE DESUGARED: not into `Channel`; a stream-level theorem is open
+- VALIDATION DIFFERENCE: none
+- LEAN THEOREM / COUNTEREXAMPLE: `exD`, `pure_iff_delayFree_of_wf`
+
 ### FEATURE: unit-domain canonical type `() -> B` (Phase 12)
 - LAYER: interface normalization above the kernel (`UnitDomain.CTy`, `canonical`, `elim`)
 - WHY IT EXISTS: one canonical type per relationship (production ADR-0029); Explain and hover show `() -> B`

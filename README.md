@@ -13,7 +13,7 @@ lake build
 * `DESIGN_DECISIONS.md` — every model choice and rejected alternative
 * `MINIMALITY.md` — construct-by-construct kernel / surface / validation / remove table
 
-Status: Phases 0–7, 8a/8b, 9a–9c, 10, 10b, 11 and 12 complete (lifecycle/refinement; cross-declaration
+Status: Phases 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12 and 13 complete (lifecycle/refinement; cross-declaration
 preservation; semantic identity; representation binding + dimensions;
 reactive core; clock domains + synchronization; physical outputs +
 single-driver discipline; hardware constraint validation + resource
@@ -29,7 +29,9 @@ point/delta downgraded to optional validation; natural binder and range
 syntax as conservative desugaring; unit-domain normalization — the
 canonical type `() -> B` as an interface normalization whose value is the
 kernel type `B`, the source role as a realization state, `A -> ()` not a
-sink).
+sink; Source provision by device transducers — PRP-0001 audited as a
+construction over designs with transparency, trace abstraction and the
+corrected exactness/re-application claims).
 Remaining: Phase 8c surface elaboration + executable semantics; final
 minimality audit.
 
@@ -64,6 +66,11 @@ minimality audit.
   inverse to uncurrying, `f`/`f()`/`f(())` as one reference, the source
   role as environment provision, `A -> ()` shown unable to name a consumer
   (`UNIT_DOMAIN_NOTE.md` is the design note, with production guidance)
+* `BDL/Surface/Provision.lean` — Phase 13: device channels (pure
+  transducer + transfer function), shared-raw provision of Sources as an
+  `EnvRefines` step, the simulation lemma, transparency in both directions,
+  trace abstraction, joint-section exactness, non-reapplicability, exact
+  commutation (`PROVISION_NOTE.md` is the audit of production PRP-0001)
 
 Kernel in one line: `DeclEnv : DeclId → Option DesignDecl`, where a
 `DesignDecl` is a stable id, a `DeclInterface` (expected type + monotone

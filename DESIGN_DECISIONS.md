@@ -874,3 +874,65 @@ semantics, which the drive edge already is.
 `transport_needs_unit_domain`, `delay_needs_unit_domain` from the `Data`
 premise of `sync`/`delay`.  Production's `reference.transport_of_relationship`
 is this theorem's diagnostic.
+
+## Phase 13
+
+**D-121. Provision is a construction over designs, not a kernel construct.**
+`provision Δ P` writes a fresh unresolved `r : raw` and realizes each
+target by `mk c (app tr (declRef r))` (or `app tr (declRef r)`); nothing
+enters `Core`.  Rejected: a Source kind, an effect, a `Ty` constructor, a
+provision expression form.  Reason: every theorem (`provision_envRefines`,
+`provision_wf`, `provision_causal`, `provision_wellClocked`,
+`provision_transparent`) is about the function on `DeclEnv`.
+
+**D-122. The profile condition is purity: `tr.Pure`, i.e. typed in the empty design and delay-free.**
+`exD`: a term typed at `q0 -> q0` in the empty design with `delay` inside
+maps the same raw value to different results at different ticks; typing is
+not enough.  `Channel.WF_refFree`, `pure_iff_delayFree_of_wf`.  Rejected:
+"closed and well-typed" as the condition; stateful transducers in the first
+version.  Reason: the transfer must be a function of the raw reading for
+the induced input to be defined and for `Transduces.mev` to hold.
+
+**D-123. A channel carries the transfer function and the term that computes it.**
+`Channel.transfer : Value → Value` with `computes : ∀ v, TyVal raw v →
+Transduces tr v (transfer v)`.  Rejected: the term alone.  Reason: the
+induced input must be a function; extracting it from per-tick existence is
+a choice principle, outside the development's axiom base.
+
+**D-124. The profile is generic in the concept; the Source's signature grants construction.**
+No `SemanticId` in `Channel`/`DeviceProfile`; `Fits Θ (sem c) ch := Θ c =
+some ch.rep`; `grant_of_sem`, `channel_constructs_nothing`.  Rejected:
+`raw`/transducer on the concept.  Reason: the raw type belongs to the
+device.
+
+**D-125. Shared raw reading is primitive; the singleton is its special case.**
+`Provision = ⟨r, clock, chan⟩`; `Provision.one`.  Rejected: the singleton
+as primitive with a later generalization.  Reason: the IMU case (`exF`) and
+the joint-section finding (`no_joint_witness`) are invisible in the
+singleton; every theorem is stated once for the general form.
+
+**D-126. Trace equality needs a joint section; deployment is in general a strict refinement.**
+`provision_abstracts` (⊆ always), `provision_exact` (= under
+`JointSection`), `JointSection.one`, `exE`, `no_joint_witness`.
+Rejected: "surjective ⇒ equal traces".  Reason: pointwise surjectivity
+gives neither a raw input (choice) nor, for shared readings, a joint
+witness.
+
+**D-127. Provision is not re-applicable; "idempotent" is the wrong word.**
+`provision_not_reapplicable`, `provision_source_role`;
+`provision_idem_total` records that the totalized function satisfies
+`P (P Δ) = P Δ` only because it overwrites with the same body;
+`provision_reprovision_not_refinement`.  Rejected: "idempotent per Source".
+
+**D-128. A Source's commitments are obligations on the profile.**
+`provision_wf` takes evidence for each target's commitments on its new
+realization.  Rejected: `GlobalWF Δ'` from `GlobalWF Δ ∧ Fits ∧ fresh`
+alone.
+
+**D-129. Independent provisions commute exactly; the assignment is a set.**
+`provision_comm` (environment equality), `provision_perm`.
+
+**D-130. Terminology: abstract Source, provisioned Source, raw declaration; not "monomorphised".**
+Phase 9b owns polymorphism.  No dependency on designer-facing °C/°F
+(ISS-0004); a profile may calibrate into canonical `Temperature` while the
+language presents kelvin.

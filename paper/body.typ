@@ -16,16 +16,17 @@ could become a standalone paper.
 
 Two repositories are described. The formal development is
 `KCN-judu/BDL_FV`, a Lean 4 project (Lean 4.33.1, no external
-libraries); its state as of this revision is the Phase 12 commit that
-follows `69caa3a` (the monograph rewrite), with `3b4f11b` (Phase 11) and
-`bd87b66` (Phase 10b) also referenced by their commit ids. The
-production implementation is `KCN-judu/BDL`, a Rust toolchain with a
-Flutter authoring environment; its state as of this revision is commit
-`3c6c8be` (the Unit-domain normalization, ADR-0029, protocol 0.14),
-which supersedes the `f1ce82c` snapshot the previous revision described;
-where a statement is only known to hold at `f1ce82c` the text says so.
-Statements about "production" are statements about `3c6c8be`, dated
-2026-09-18, and the document says so where the state is likely to move.
+libraries); its state as of this revision is the Phase 13 commit that
+follows `dd44a84` (Phase 12), with `3b4f11b` (Phase 11) and `bd87b66`
+(Phase 10b) also referenced by their commit ids. The production
+implementation is `KCN-judu/BDL`, a Rust toolchain with a Flutter
+authoring environment; its state as of this revision is commit `876005c`
+(PRP-0001, the Source-provision proposal, 2026-09-20), which follows
+`3c6c8be` (the Unit-domain normalization, ADR-0029, protocol 0.14) and
+`f1ce82c`\; where a statement is only known to hold at an earlier
+snapshot the text says so. Statements about "production" are statements
+about `876005c`, dated 2026-09-20, and the document says so where the
+state is likely to move.
 
 == Claim strength
 <claim-strength>
@@ -117,6 +118,10 @@ because none of these exercises the point.
     [production P11 and ADR-0029 (`3c6c8be`)], [the natural forms
     implemented; one canonical type per relationship, the empty product
     `()` as the unit domain, protocol 0.13/0.14],
+    [Phase 13 --- Source provision (PRP-0001 audit)], [device channels
+    and profiles, shared-raw provision as an `EnvRefines` step,
+    transparency, trace abstraction, joint-section exactness, the
+    corrected claims],
     [Phase 12 --- unit-domain normalization], [`() -> B` as an interface
     normalization whose value is the kernel type `B`\; the source role
     as a realization state; `A -> ()` shown unable to name a consumer],
@@ -948,9 +953,9 @@ The development builds with Lean 4.33.1 with no `sorry`. The axioms used
 by every theorem are propositional extensionality and quotient
 soundness, the latter only through function extensionality and the
 choice-free rational quotient of Part VII; classical choice is absent,
-and each phase re-audited the whole development for it. As of Phase 12
-the sources are 53 modules: 11 in `Core`, 12 in `Behavior`, 11 in
-`Surface`, 2 in `Validation`, and 17 experiment modules holding
+and each phase re-audited the whole development for it. As of Phase 13
+the sources are 55 modules: 11 in `Core`, 12 in `Behavior`, 12 in
+`Surface`, 2 in `Validation`, and 18 experiment modules holding
 alternatives, counterexamples and executed examples. Every trace,
 assignment, unsatisfiability result and executed example reported here
 was obtained by running a proved-sound interpreter or solver inside the
@@ -3072,6 +3077,147 @@ a drive edge is not a write. Both are boundaries at which the
 environment provides and receives values, and the kernel's theorems are
 about what happens between them.
 
+=== Deployment provision of Sources (Phase 13, PRP-0001 audited)
+<deployment-provision-of-sources-phase-13-prp-0001-audited>
+A Source `s : () -> C` is environment provision at the concept's type
+(Part III): the kernel input gives a `Temperature`, and nothing in the
+design or the deployment says how a value of `Temperature` comes to
+exist. On a product it does not; an ADC yields counts, a GPIO a level,
+an I²C sensor a register image. Production's proposal PRP-0001
+(`876005c`, status #emph[draft]) asks for a construction that turns the
+abstract Source into a raw reading `r : () -> R` plus a realization
+`s := tr(r)` taken from a #emph[device profile], with a theorem that the
+design cannot tell the difference --- so that the transducer, today the
+platform adapter's unchecked host code, becomes an ordinary term the
+kernel types and the compiler compiles, while the design file keeps
+`mapping TempSensor : () -> RoomTemp`. Phase 13 tested the proposal as a
+hypothesis; the construction exists, and four of its seven claims had to
+be corrected (#strong[formally proved] unless marked;
+`Surface/Provision.lean`).
+
+#strong[The construction.] A #emph[channel] is a representation type
+`rep`, a term `tr`, its transfer function `transfer` on values, and the
+coherence `computes` (the term computes the function on every raw-typed
+value); the term is #strong[pure] --- no `declRef`, `delay` or `sync`. A
+#emph[device profile] is a raw type (sem-free data) and its channels; it
+mentions no concept. A #emph[provision] is one fresh raw declaration `r`
+with its clock and an assignment of channels to target Sources ---
+several targets may share one raw reading (an IMU image feeding pitch,
+roll and acceleration), and one target is the singleton case. Then
+
+$ upright(p r o v i s i o n)\(Delta\,P\)med = med Delta thin\[thin r mapsto chevron.l italic(r a w)\,\[thin\]chevron.r med upright("unresolved") thin\]thin\[thin s mapsto upright(m k)_c thin\(upright(t r) med\(upright(d e c l R e f) med r\)\)med upright("for each target ") s : upright(s e m) med c thin\]\, $
+
+with `tr (declRef r)` alone at a representation-typed Source; the raw
+declaration's kernel type is `raw` and its canonical type `() -> raw`
+(Part III). Fitting is decidable: at `sem c` the concept's
+representation is the channel's; at a representation type the types
+coincide. Nothing enters the kernel: `provision` is a function on
+environments built from `DesignDecl`, `declRef`, `app` and `mk`.
+
+#strong[Why purity, and why a transfer function.] Typing the channel
+term in the #emph[empty] design already forbids reading a declaration
+(`Channel.WF_refFree`), but not memory: `(λk. λn. k) (delay 0 1)` is
+typed at `q₀ → q₀` and maps the raw value 7 to 0 at tick 0 and to 1 at
+tick 1 (`exD`, #strong[executable example]). A transducer must be a
+function of the raw reading, so the profile condition is purity ---
+equivalently, typed in the empty design and delay-free
+(`pure_iff_delayFree_of_wf`). The channel carries `transfer` beside `tr`
+because the #emph[induced] abstract input must be a function: extracting
+it from per-tick existence of a value would be a choice principle, which
+this development does not use. The grant argument the proposal relied on
+is a theorem of the existing rules: a declaration typed `sem c` is
+realized under `Grant.of (sem c) = {c}`
+(`realization_checked_under_own_grant`, `grant_of_sem`), and a channel
+term typed under `Grant.none` constructs nothing
+(`channel_constructs_nothing`); the same `λx. mk RoomTemp x` is refused
+under the empty grant and accepted under the Source's own (`exC`).
+
+#strong[Structure.] Provision is an environment refinement
+(`provision_envRefines`): each target keeps its identity and interface
+and goes from unresolved to realized, `r` is new, nothing else moves.
+The provisioned design is globally well formed (`provision_wf`) from the
+abstract design's well-formedness, monotone evidence, the provision's
+preconditions --- and evidence for each target's #emph[commitments] on
+its new realization, a hypothesis the proposal did not state: a Source's
+commitments are obligations on the profile. Causality is preserved with
+the rank shifted by one and `r` at the bottom; purity keeps the channel
+term edge-free (`provision_causal`). The domain judgment is preserved
+with `Κ r = Κ s` (`provision_wellClocked`); no device clock is
+introduced, and a device with its own rate is a later `sync`.
+
+#strong[Transparency.] For every schedule, domain, tick, term that does
+not mention `r`, and local environment whose closures avoid `r`,
+
+$ upright(M E v) med S med Delta med I med c med t med rho med e med v med arrow.l.r.double med upright(M E v) med S med\(upright(p r o v i s i o n) thin Delta thin P\)med I' med c med t med rho med e med v\,#h(2em) I = upright(i n d u c e d)\(Delta\,P\,I'\)\, $
+
+where the induced input gives each target the wrapped transfer of the
+raw reading and leaves every other identity as `I'` gives it
+(`provision_transparent`). The hypotheses the proposal lacked are
+stated: the raw input is typed at `r` and closure-free, and the abstract
+design mentions no `r` --- true of every globally well-typed design
+(`NoMention.of_globalWF`). The observation boundary has two equivalent
+forms: syntactic (`r ∉ e.refs`) and by typing (a term typed in the
+abstract design cannot name `r`, `provision_transparent_typed`). The
+proof is one simulation lemma over `MEv` with the closure invariant "no
+closure body mentions `r`", instantiated in both directions and once
+more for input congruence; the provisioned target's value comes from the
+pure term's canonical evaluation transported to any design, input,
+domain and tick (`Transduces.mev`, `MEv.of_ev_pure`) --- at top level,
+where a realization is evaluated, which is what avoids a
+closure-equivalence theorem. Physical outputs are unchanged
+(`provision_physicalOutput`).
+
+#strong[Trace abstraction, exactness, strictness.] Every behaviour of
+the provisioned design under a raw input is a behaviour of the abstract
+design under the induced input (`provision_abstracts`): deployment
+#emph[restricts] the abstract environment; it does not give the abstract
+design its meaning. The proposal's converse --- "when the transducer is
+surjective the trace sets are equal" --- is wrong as stated: pointwise
+surjectivity is an existence per tick, and with a shared raw reading it
+is insufficient even in principle (`id` and `succ` from one reading are
+each onto, and the abstract pair `(5, 9)` has no witness,
+`no_joint_witness`). Equality needs a #emph[joint section], a raw trace
+every channel transfers to what the abstract input gives its target
+(`provision_exact`); for one channel a pointwise right inverse on typed
+values is one (`JointSection.one`). The strict case is executed: a
+saturating ADC never yields 451 K, the abstract design observes
+`TempSensor = 451 K`, and no provisioned deployment does (`exE`).
+
+#strong[Re-application and commutation.] The proposal called provision
+"idempotent per Source". After provision a target is realized, is no
+longer a Source, and the operation's precondition fails because `r` is
+no longer fresh (`provision_not_reapplicable`\; the Source role moves to
+`r`, `provision_source_role`). The totalized function does satisfy
+`P(P(Δ)) = P(Δ)` (`provision_idem_total`) --- only because a second pass
+overwrites every target with the same body; a second pass with a
+different term is not a refinement
+(`provision_reprovision_not_refinement`). Independent provisions commute
+#emph[exactly], as environment equality (`provision_comm`), and the
+channel assignment is a set (`provision_perm`).
+
+#strong[Executed] (`Experiments/ProvisionExamples.lean`): the identity
+GPIO channel on a `bool` Source; the thermistor `T = 2n + 250 K` on
+`TempSensor`, with the consumer `tooHot` computing the same truth values
+from counts as from the induced temperature and the provisioned design
+proved refining, causal and well clocked; rejected profiles; the impure
+typed term; the saturating ADC; one IMU image provisioning `pitch` and
+`roll` with `level` reading both.
+
+#strong[What changed in the proposal] (#strong[design recommendation]):
+the purity condition; the transfer function beside the term; the
+commitment hypothesis; the transparency hypotheses; the joint-section
+exactness; "not re-applicable" for "idempotent"\; shared raw as the
+primitive with the singleton as its case; the terminology ---
+#emph[abstract Source], #emph[provisioned Source], #emph[raw
+declaration], never "monomorphised", which Part IV's rank-1 polymorphism
+owns; and the removal of the dependency on designer-facing °C/°F
+(ISS-0004): the thermistor is a linear chart on counts and the language
+keeps kelvin. Output provision remains the duality note the proposal
+made; nothing here made it free. Verdict: provision is a
+deployment/surface construction over existing kernel terms, not a kernel
+construct. The proposal stays a draft, revised, for human review;
+nothing in production implements it.
+
 == Target-Specific Hardware Validation
 <target-specific-hardware-validation>
 Everything to this point is board-independent. A design that is typed,
@@ -4034,6 +4180,13 @@ planned.
     syntax], [`Natural.lean`], [`bdl-elab::formula::binder` (P11,
     protocol 0.13)], [transcribed; production-tested
     (`natural_forms_lower_to_the_same_core_as_the_call_forms`)],
+    [Source provision by device profiles], [`Provision.lean`
+    `provision_envRefines`, `provision_wf`, `provision_causal`,
+    `provision_wellClocked`, `provision_transparent`,
+    `provision_abstracts`, `provision_exact`,
+    `provision_not_reapplicable`, `provision_comm`], [not implemented
+    (PRP-0001, draft)], [formal guidance; the proposal revised from the
+    audit],
     [unit-domain canonical type], [`UnitDomain.lean` `elim_canonical`,
     `decode_encode`, `zero_input_obligation`, `refForms_agree`,
     `source_value`], [`bdl_ir::Ty::Unit`, `Ty::of_signature`,
@@ -4127,8 +4280,8 @@ planned.
   , kind: table
   )
 
-== Implementation status snapshot (production `3c6c8be`, 2026-09-18)
-<implementation-status-snapshot-production-3c6c8be-2026-09-18>
+== Implementation status snapshot (production `876005c`, 2026-09-20)
+<implementation-status-snapshot-production-876005c-2026-09-20>
 Implemented and exercised by named tests: the language core through
 outputs and completeness; formula language v0 with the slot; the unit
 registry with linear charts offered and affine charts as infrastructure;
@@ -4141,10 +4294,19 @@ unified project format with migration; the layout service; text ↔ graph
 synchronisation; the IDE service and LSP with a VS Code extension; the
 protocol and daemon at 0.14 (0.13 added the binder and range nodes, 0.14
 the unit kind); the natural forms (P11); one canonical type per
-relationship with the empty product as its unit domain (ADR-0029); the
-standard concept library. Partial: Studio (the Formula view's remaining
-pieces are listed in production's status page). Planned, designed and
-not implemented: any platform adapter, build orchestration, flash,
+relationship with the empty product as its unit domain (ADR-0029), with
+`() -> A` the preferred spelling and the shorthand deprecated with a
+quick fix and a lossless migration; complete-project persistence
+(ADR-0030); a first internationalization layer with locale as
+presentation only (ADR-0031); the Source as a derived presentation role
+on the canvas, inspector, hover and Explain, consuming Phase 12
+(ADR-0032, ISS-0014 resolved, ISS-0016 opened for a device binding for a
+Source); the generalized Standard Library with Sources as items
+(protocol 0.17); canvas reference edges (ADR-0034, protocol 0.18);
+PRP-0001, the Source-provision proposal Part VIII audits (draft, not
+implemented). Partial: Studio (the Formula view's remaining pieces are
+listed in production's status page). Planned, designed and not
+implemented: any platform adapter, build orchestration, flash,
 telemetry, supplied Rust components. Not implemented by decision: user
 enums (open, ISS-0005), temporal modifiers and contexts in the surface
 (ISS-0010), a surface form for occurrence windows (ISS-0001), record
@@ -4490,6 +4652,11 @@ none is hidden in a "future work" sentence.
 + #strong[Several candidate definitions with one active] (ISS-0002):
   whether this is a surface convenience over a write-once kernel
   realization.
++ #strong[Source provision, next steps] (PRP-0001, ISS-0016): stateful
+  transducers and a stream-level transparency theorem; a device clock
+  with a deployment `sync`\; how a profile's declared range discharges a
+  Source's commitments; the output dual; whether `computes` is checked
+  or trusted at the catalog; out-of-type raw readings as validation.
 + #strong[Projection deltas and a persisted edit history] (ISS-0009);
   #strong[a structural diagnostic entity for outputs] (ISS-0008);
   #strong[packaging inside a component body] (ISS-0007); #strong[a
@@ -4961,6 +5128,14 @@ are in `KCN-judu/BDL_FV`\; production locations in `KCN-judu/BDL` at
     (P11)], [`natural_forms_lower_to_the_same_core_as_the_call_forms`,
     parser tests], [D-111--D-114; ADR-0028 second amendment], [no parser
     in the model],
+    [a Source is provisioned by a raw reading and a pure transducer
+    without the design noticing], [`provision_transparent`,
+    `provision_abstracts`, `provision_exact` (joint section),
+    `provision_wf`, `provision_causal`, `provision_wellClocked`,
+    `provision_not_reapplicable`, `provision_comm`\; `exD`, `exE`,
+    `no_joint_witness`], [not implemented], [---], [D-121--D-130;
+    PRP-0001 (draft)], [stateful transducers, device clocks, output dual
+    open],
     [`() -> B` is a conservative interface normalization whose kernel
     value is `B`], [`elim_canonical`, `decode_encode`,
     `canonicalOfKernel_encode`, `zero_input_obligation`, `lams_typed`,
@@ -5043,6 +5218,8 @@ are in `KCN-judu/BDL_FV`\; production locations in `KCN-judu/BDL` at
     III, Part
     VIII], [`Surface/UnitDomain.lean`], [ADR-0029], [`bdl_ir::ty`,
     `bdl-model::Signature::is_unit_domain`, `bdl-ide::explain`],
+    [Source provision as a construction over designs], [Part
+    VIII], [`Surface/Provision.lean`], [PRP-0001 (draft)], [---],
     [LSP is an adapter], [Part IX], [---], [ADR-0017], [`bdl-lsp`],
     [three information levels], [Part X], [---], [ADR-0018], [Studio],
     [generated Rust implements the reference evaluator], [Part
