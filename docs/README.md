@@ -43,7 +43,7 @@ One folder per kind of record; every page carries a header that
 
 | Page                                  | What it fixes                                                                                                 |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [kernel.md](kernel/kernel.md)         | the cumulative kernel after Phase 17: objects, judgments, primitives, the refinement/edit split               |
+| [kernel.md](kernel/kernel.md)         | the cumulative kernel after Phase 18: objects, judgments, primitives, the refinement/edit split               |
 | [layout.md](kernel/layout.md)         | every Lean file and the definitions and theorems it holds                                                     |
 | [minimality.md](kernel/minimality.md) | every construct ever proposed with its verdict: kernel · surface · library · validation · UI · defer · remove |
 
@@ -68,18 +68,23 @@ One folder per kind of record; every page carries a header that
   natural binders, the unit domain, Source provision, output realization, the
   adapter boundary and the device clock — is a construction over designs proved
   to preserve the kernel's judgments.
-- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15, 16, 17 complete;
-  153 decisions; 29 items: 8 open, 9 deferred, 12 resolved. Build clean on Lean
-  4.33.1, no `sorry`, `propext`/`Quot.sound` only.
+- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15, 16, 17, 18
+  complete; 158 decisions; 29 items: 7 open, 9 deferred, 13 resolved. Build
+  clean on Lean 4.33.1, no `sorry`, `propext`/`Quot.sound` only.
 - **Not started:** Phase 8c (surface elaboration of the remaining
   designer-facing forms, executable semantics); the final minimality audit.
-- **Recently changed:** Phase 17 — the provider's occurrence contract (one
-  occurrence per fresh transport identity, arrival order, retransmissions
-  erased, a bounded batch with an observable overflow flag, several raw sources
-  as several provisions) and the occurrence-preserving output window (Phase 9a's
-  window over the encoder into the device domain, `lowerWindow_correspondence`),
-  the adapter's batch as `List Op`, FVI-0029 resolved; Phase 16 — communication
-  as state: the auto_typer stress case (queue, cancellation, freshness, faults,
+- **Recently changed:** Phase 18 — the Source-side boundary: provider state as a
+  machine below or above the reading with the same trace
+  (`provider_state_movable`), the sampled and windowed Source-side device clock
+  with an explicit initial value, commitment discharge at three evidence levels,
+  `computes` derived and decided, out-of-type readings refused; FVI-0020
+  resolved; Phase 17 — the provider's occurrence contract (one occurrence per
+  fresh transport identity, arrival order, retransmissions erased, a bounded
+  batch with an observable overflow flag, several raw sources as several
+  provisions) and the occurrence-preserving output window (Phase 9a's window
+  over the encoder into the device domain, `lowerWindow_correspondence`), the
+  adapter's batch as `List Op`, FVI-0029 resolved; Phase 16 — communication as
+  state: the auto_typer stress case (queue, cancellation, freshness, faults,
   acknowledgement, cross-clock delivery, a paired axis) encoded and executed on
   the unchanged kernel, no message/event/queue/transaction primitive;
   Source-side non-interference (`two_providers_same_behavior`) completing the

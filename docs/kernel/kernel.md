@@ -6,7 +6,7 @@ status: current
 
 # The kernel in one paragraph
 
-The cumulative kernel after Phase 17 (unchanged since Phase 9b), as the reports
+The cumulative kernel after Phase 18 (unchanged since Phase 9b), as the reports
 state it; the Lean sources under `BDL/` are the authority and this page is their
 summary. Per-phase results are in [`../reports/`](../reports/README.md); the
 construct-by-construct verdicts in [minimality.md](minimality.md); the file map

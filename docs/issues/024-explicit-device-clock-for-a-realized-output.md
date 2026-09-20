@@ -55,6 +55,20 @@ narrower: a device that acknowledges (a bus transaction with a reply is not a
 `sync` and not a window) and which initial representation a device should hold
 before the first activation.
 
+## Amendment (2026-09-20, Phase 18)
+
+The Source side's initialization (FVD-0155) shares one principle with the
+"initial representation" left here: every crossing carries an explicit `InitRep`
+— `lowerSync`'s and `syncBody`'s on the output side, `provisionSync`'s on the
+input side — and the input side names its two policies (`InitPolicy.supplied`,
+`InitPolicy.unavailable`). The output side's choice of that value is a device
+profile's field, not a theorem's subject; what remains open here is only whether
+the sink should carry an _unavailable_ form before the first command (the dual
+of the optional Source), which no device yet asks for. A device that
+acknowledges is an interaction of two boundaries — the acknowledgement is a
+Source (Phase 16's `acked`) — and not a new crossing; it stays here only as the
+codegen half FVI-0023 owns.
+
 ## Resolution
 
 Open.

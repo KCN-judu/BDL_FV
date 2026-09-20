@@ -1,10 +1,13 @@
 ---
 id: FVI-0020
 legacy-id: OI-20
-state: open
+state: resolved
 area: surface
 opened: 2026-09-20
-resolved-by: []
+resolved-by:
+  [
+    docs/reports/phase-18-the-source-side-boundary-provider-state-device-clock-commitments-and-readings.md,
+  ]
 related: []
 production: [PRP-0001, ISS-0016]
 ---
@@ -50,9 +53,28 @@ clock (the input dual of `lowerSync` / `lowerWindow`), commitment discharge,
 
 ## Resolution
 
-Open. The **output provision** part is answered by Phase 14
-([report](../reports/phase-14-output-realization-by-device-encoders.md)): output
-realization is a lowering, not a provision, and its own open questions are
-FVI-0022. The Source-side questions (stateful transducers, a device clock,
-commitment discharge, `computes` checked or trusted, out-of-type readings)
-remain open here.
+Resolved by
+[Phase 18](../reports/phase-18-the-source-side-boundary-provider-state-device-clock-commitments-and-readings.md)
+(2026-09-20), each remainder on its own:
+
+- **stateful transducers** — resolved: a Mealy machine below the raw reading or
+  above it gives the same Source trace (`provider_state_movable`); placement is
+  visibility, and a state that reads a design value is the design's (FVD-0154);
+- **a Source-side device clock** — resolved: `provisionSync` (sampled, an
+  explicit `sync` with an explicit initial value) and `provisionWindow`
+  (occurrences, Phase 9a's window) (FVD-0155);
+- **commitment discharge by profile ranges** — resolved: three evidence levels,
+  static / checked / trusted, the trusted assumption a visible hypothesis
+  (FVD-0156);
+- **`computes` checked or trusted** — resolved: proof-carrying, derived from the
+  term (`Channel.ofTerm`), decided at a finite raw type (`computes_of_bool`); a
+  separately supplied function at an infinite raw type is a claim to test, not a
+  formal question (FVD-0157);
+- **out-of-type readings** — resolved: refused by the checking provider,
+  crossing as `none` or a flag (FVD-0158).
+
+Earlier remainders: the output-provision half was answered by Phase 14;
+freshness is behaviour state (Phase 16); bounded buffered input is the
+provider's occurrence contract (Phase 17, FVI-0029). What stays outside the
+formal development: which bound or range a physical device needs (a deployment
+assumption), and the production slice itself (ISS-0016).

@@ -27,3 +27,4 @@ Nine notes were top-level files until 2026-09-20
 | [The adapter boundary and the device clock (Phase 15)](the-adapter-boundary-and-the-device-clock.md)                                    | 15    | surface  | 2026-09-20 |
 | [Communication as state, catalogue profiles, and `assign` (Phase 16)](communication-as-state.md)                                        | 16    | surface  | 2026-09-20 |
 | [The provider's occurrence contract and the output window (Phase 17)](the-provider-contract-and-the-output-window.md)                   | 17    | surface  | 2026-09-20 |
+| [The Source-side boundary (Phase 18)](the-source-side-boundary.md)                                                                      | 18    | surface  | 2026-09-20 |

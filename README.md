@@ -14,7 +14,7 @@ lake build
   `Experiments/` (the alternatives tried and the executed cases)
 - [`docs/`](docs/README.md) — the records: the kernel in one page, the file map
   and the minimality table; one report per phase; one record per design decision
-  (FVD-0001 … FVD-0153); the design notes with production guidance; the open
+  (FVD-0001 … FVD-0158); the design notes with production guidance; the open
   items; status and governance
 - [`paper/`](paper/README.md) — the BDL Design and Formalization Monograph, the
   living technical record that synthesizes the records by concept and pins
