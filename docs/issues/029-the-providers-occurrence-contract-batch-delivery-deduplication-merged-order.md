@@ -22,18 +22,18 @@ transport retry that the adapter delivers twice is two semantic occurrences
 that a transport identity the channel discards is unobservable — but which of
 the two a given provider does is the provider's); two raw sources delivering
 inside one base tick have no order in the model unless the adapter merges them
-into one raw reading; and the per-tick batch must be bounded for the
-deployment to be bounded (ADR-0027's rule, on the input side). None of this is
-a language question; all of it is what a Source device profile (ISS-0016) has
-to promise, and no formal statement of the promise exists.
+into one raw reading; and the per-tick batch must be bounded for the deployment
+to be bounded (ADR-0027's rule, on the input side). None of this is a language
+question; all of it is what a Source device profile (ISS-0016) has to promise,
+and no formal statement of the promise exists.
 
 ## Current evidence
 
 `BDL/Experiments/CommunicationExamples.lean` `exC_same_tick`, `exF_identity`,
 `exK_cross_clock`, `exL_theorem`; Phase 16 report §16.2 (the attacks);
 `Validation/Capacity.lean` for the cross-domain bound; production refuses a
-design with a Source (`adapter.inputs_unbound`, ADR-0037) and bounds
-collections by the design (ADR-0027).
+design with a Source (`adapter.inputs_unbound`, ADR-0037) and bounds collections
+by the design (ADR-0027).
 
 ## Dependencies
 

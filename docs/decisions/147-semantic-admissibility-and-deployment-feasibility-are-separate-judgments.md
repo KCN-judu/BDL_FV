@@ -21,10 +21,10 @@ Accepted in Phase 16.
 
 `OutputContract Θ accepts P` (the encoder typed `rep -> raw` under no grant and
 fitting the accepted type; no board) and `Feasible H P` (the requirements
-allocate on the board; no type) are distinct decidable judgments, and Phase
-14's `Admissible Θ accepts H P ↔ OutputContract Θ accepts P ∧ Feasible H P`
-(`admissible_iff`). A profile check in a package or a catalogue must report
-the two separately.
+allocate on the board; no type) are distinct decidable judgments, and Phase 14's
+`Admissible Θ accepts H P ↔ OutputContract Θ accepts P ∧ Feasible H P`
+(`admissible_iff`). A profile check in a package or a catalogue must report the
+two separately.
 
 ## Alternatives rejected
 
@@ -38,6 +38,6 @@ not modelled.
 
 `admissible_iff` is definitional. `exQ_contract_not_feasible`
 (`CommunicationExamples.lean`): the pair-command profile satisfies the contract
-for `DesiredPos`, is feasible on the Nano and admissible; on a one-pin board
-it satisfies the same contract, is not feasible and is not admissible — the
+for `DesiredPos`, is feasible on the Nano and admissible; on a one-pin board it
+satisfies the same contract, is not feasible and is not admissible — the
 contract judgment did not change between the boards.

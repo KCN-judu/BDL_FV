@@ -23,14 +23,14 @@ A deployment operation `assign <output> using <entry>` is
 `assignOutput Δ en o d p e spec := lowerΔ Δ (en.realization o d p e) spec`;
 `assign <source> using <entry>.channel i` is
 `assignSource Δ en i r s clock := provision Δ (Provision.one r s clock ch)` for
-the entry's `i`-th channel. Assignment selects provision or realization
-evidence and deployment structure; it adds no construction of its own.
+the entry's `i`-th channel. Assignment selects provision or realization evidence
+and deployment structure; it adds no construction of its own.
 
 ## Alternatives rejected
 
-An `assign` that rewrites the driver, the output's accepted type or the
-Source's interface (Model A, refuted in Phase 14); an assignment recorded in
-the design graph.
+An `assign` that rewrites the driver, the output's accepted type or the Source's
+interface (Model A, refuted in Phase 14); an assignment recorded in the design
+graph.
 
 ## Reason
 
@@ -43,6 +43,6 @@ by the unchanged judgments: `lower_wf`, `lower_causal`, `lower_wellClocked`,
 
 ## Consequences
 
-Production's `DeviceBinding.realization` (ADR-0036) is an output assignment;
-the Source binding ISS-0016 asks for is a Source assignment; both are
-deployment data in the device body, never in the design.
+Production's `DeviceBinding.realization` (ADR-0036) is an output assignment; the
+Source binding ISS-0016 asks for is a Source assignment; both are deployment
+data in the device body, never in the design.

@@ -20,12 +20,12 @@ Accepted in Phase 16.
 ## Decision
 
 A device protocol of the shape _prepare motor 2, prepare motor 3, commit_ for
-one semantic `YPosition` is realized as one logical output whose raw command
-is a pair `(p, p)` (`pairEnc`, `exN_pair`), or as two realizations of the one
+one semantic `YPosition` is realized as one logical output whose raw command is
+a pair `(p, p)` (`pairEnc`, `exN_pair`), or as two realizations of the one
 output whose commands are the two encoders' transfers of the one value the
-output carries (`paired_commands_of_one_value`). The order of the frames
-within the tick is the backend's per-tick commit, below `AdapterOp`
-(FVD-0140). No transaction, batch or frame primitive is added.
+output carries (`paired_commands_of_one_value`). The order of the frames within
+the tick is the backend's per-tick commit, below `AdapterOp` (FVD-0140). No
+transaction, batch or frame primitive is added.
 
 ## Alternatives rejected
 
@@ -44,5 +44,5 @@ carries. Executed: `exN_pair` (`(10, 10)` then `(40, 40)` at the sink),
 ## Consequences
 
 FVI-0026 is not touched: the paired axis is one meaningful output by design
-intent, not several independently meaningful outputs in one frame. The
-device's need for a commit is the adapter's (FVI-0023).
+intent, not several independently meaningful outputs in one frame. The device's
+need for a commit is the adapter's (FVI-0023).

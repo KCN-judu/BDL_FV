@@ -39,21 +39,21 @@ Source's type.
 
 The state-encoding audit of `BDL/Experiments/CommunicationExamples.lean`: every
 case of a reduced auto_typer-style controller — multiplicity
-(`exA_multiplicity`), ordering (`exB_ordering`), several occurrences in one
-tick (`exC_same_tick`), cancellation by semantic id (`exD_cancellation`), a
-bounded queue with an observable refusal (`exE_bounded`), semantic identity
+(`exA_multiplicity`), ordering (`exB_ordering`), several occurrences in one tick
+(`exC_same_tick`), cancellation by semantic id (`exD_cancellation`), a bounded
+queue with an observable refusal (`exE_bounded`), semantic identity
 (`exF_identity`), freshness and timeout (`exG_freshness`), settling over
 repeated samples (`exH_settling`), fault latching (`exI_fault_latch`),
 acknowledgement (`exJ_ack`), the composed controller (`exQM_composed`),
 cross-clock delivery (`exK_cross_clock`), transport identity (`exL_theorem`,
 `exL_executed`), the paired axis (`exN_pair`) — is executed with the existing
-kernel; no non-encodability witness was found. The bar for a new primitive
-(a minimal counterexample the existing state, list, clock, sync and buffer
+kernel; no non-encodability witness was found. The bar for a new primitive (a
+minimal counterexample the existing state, list, clock, sync and buffer
 machinery cannot encode without changing observable behaviour) was not met.
 
 ## Consequences
 
 Production's Source device binding (ISS-0016) and the window's surface form
-(ISS-0001) are the work; the language is not. What the thesis rests on below
-the boundary is the provider's occurrence contract (FVI-0029) and the
+(ISS-0001) are the work; the language is not. What the thesis rests on below the
+boundary is the provider's occurrence contract (FVI-0029) and the
 occurrence-preserving crossing to a slower device (FVI-0024, amended).
