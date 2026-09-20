@@ -13,11 +13,14 @@ production: [ISS-0017]
 
 ## Problem
 
-If a logical output ever carries a commitment (a range, monotonicity), whether the realization's declared transfer must discharge it — the output analogue of FVD-0128.
+If a logical output ever carries a commitment (a range, monotonicity), whether
+the realization's declared transfer must discharge it — the output analogue of
+FVD-0128.
 
 ## Current evidence
 
-Production authors no commitments at all (production-correspondence.md); the kernel's commitment machinery would make the theorem small once one exists.
+Production authors no commitments at all (production-correspondence.md); the
+kernel's commitment machinery would make the theorem small once one exists.
 
 ## Dependencies
 
