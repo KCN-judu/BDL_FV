@@ -50,6 +50,8 @@ import BDL.Experiments.AffineExamples
 import BDL.Surface.Natural
 import BDL.Surface.UnitDomain
 import BDL.Surface.Provision
+import BDL.Surface.OutputRealization
 import BDL.Experiments.NaturalExamples
 import BDL.Experiments.UnitDomainExamples
 import BDL.Experiments.ProvisionExamples
+import BDL.Experiments.OutputRealizationExamples

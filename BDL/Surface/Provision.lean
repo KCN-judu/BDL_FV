@@ -328,6 +328,20 @@ theorem Ev.prim2 {Δ : DeclEnv} {I : Input} {t : Nat} {ρ : List Value} {p : Pri
   have := Ev.appPrim h1 hb
   simpa [applyPrim, h2] using this
 
+/-- A ternary primitive applied to three evaluated arguments computes. -/
+theorem Ev.prim3 {Δ : DeclEnv} {I : Input} {t : Nat} {ρ : List Value} {p : Prim} (h3 : p.arity = 3)
+    {a b c : Expr} {va vb vc : Value} (ha : Ev Δ I t ρ a va) (hb : Ev Δ I t ρ b vb) (hc : Ev Δ I t ρ c vc) :
+    Ev Δ I t ρ (.app (.app (.app (.prim p) a) b) c) (p.compute [va, vb, vc]) := by
+  have h1 : Ev Δ I t ρ (.app (.prim p) a) (.prim p [va]) := by
+    have := Ev.appPrim (Δ := Δ) (I := I) (t := t) (ρ := ρ) (f := .prim p) (a := a) (p := p) (args := []) (va := va)
+      (by simpa [applyPrim, h3] using (Ev.prim (Δ := Δ) (I := I) (t := t) (ρ := ρ) (p := p))) ha
+    simpa [applyPrim, h3] using this
+  have h2 : Ev Δ I t ρ (.app (.app (.prim p) a) b) (.prim p [va, vb]) := by
+    have := Ev.appPrim h1 hb
+    simpa [applyPrim, h3] using this
+  have := Ev.appPrim h2 hc
+  simpa [applyPrim, h3] using this
+
 /-! ## Raw and representation values -/
 
 /-- A value of a sem-free data type: the logical relation at that type,
