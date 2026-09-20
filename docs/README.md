@@ -35,7 +35,7 @@ One folder per kind of record; every page carries a header that
 | **what builds, on which axioms, which phases exist**                   | [project/status.md](project/status.md)                                                                                                                                             |
 | **which production ADR / issue / proposal used which phase**           | [project/production-correspondence.md](project/production-correspondence.md)                                                                                                       |
 | **how these records work; the old ids**                                | [project/governance.md](project/governance.md) · [project/migration-report.md](project/migration-report.md) · [project/decision-id-migration.md](project/decision-id-migration.md) |
-| **the monograph**                                                      | `../paper/paper.md` (canonical), `../paper/build.sh`                                                                                                                               |
+| **the monograph**                                                      | `../paper/monograph/paper.md` (canonical), `../paper/monograph/build.sh`                                                                                                           |
 
 ## Pages
 

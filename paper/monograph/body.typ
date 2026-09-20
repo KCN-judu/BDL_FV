@@ -15,9 +15,9 @@ appears where the question it answers is asked.
 The document is not a conference paper and is not written to a page
 limit. It keeps its negative results, its reversed decisions and its
 unproved boundaries, and it says at every substantive claim how strong
-the claim is. The directory it lives in is still called `paper/` because
-renaming it would break history; reader-facing text says
-#emph[monograph] or #emph[record].
+the claim is. It lives in `paper/monograph/` beside the core-calculus
+paper (`paper/core_calculus/`); reader-facing text says #emph[monograph]
+or #emph[record].
 
 Two repositories are described. The formal model is `KCN-judu/BDL_FV`, a
 Lean 4 development with no external libraries; it is described as of the
@@ -1200,8 +1200,8 @@ interlock is exactly the decision worth writing down. Rates belong to
 deployment.
 
 #strong[Temporal modifiers and contexts --- designed, not offered.] The
-earlier draft of BDL (archived in `paper/archive/`) described temporal
-phrases as qualifiers on relationships --- `p for 300 ms`,
+earlier draft of BDL (archived in `paper/monograph/archive/`) described
+temporal phrases as qualifiers on relationships --- `p for 300 ms`,
 `after e by 2 s`, `while p`, `until e`, `since e`, `once e`,
 `every 1 s`, `rise p`, `previous x`, `count e`, `hold x e` --- and
 #strong[contexts] (StateHandlers): named product situations, activated
@@ -9885,11 +9885,11 @@ unnumbered bullets, and for a few hours on the same day `OI-NN`. The
 stable identifiers keep the sequence number (`D-07` → `FVD-0007`) so
 that a citation in a commit message, an archived draft or a conversation
 can be followed by hand; the number encodes neither a phase nor a
-production record. Archived documents (`paper/archive/`, the dated
-entries of `paper/NOTES.md`) keep the old numbers and are not rewritten.
-Production's records at the snapshot still cite the old numbers
-(ADR-0024, ADR-0025, `formal-correspondence.md`, `status.md`); this
-table resolves each. The canonical copy is
+production record. Archived documents (`paper/monograph/archive/`, the
+dated entries of `paper/monograph/NOTES.md`) keep the old numbers and
+are not rewritten. Production's records at the snapshot still cite the
+old numbers (ADR-0024, ADR-0025, `formal-correspondence.md`,
+`status.md`); this table resolves each. The canonical copy is
 `docs/project/decision-id-migration.md` in the formal repository.
 
 #figure(
@@ -10726,9 +10726,9 @@ conceptual Parts do not go stale with the next milestone.
 == Canonical source and the production mirror
 <canonical-source-and-the-production-mirror>
 There is one BDL monograph. Its canonical source is
-`KCN-judu/BDL_FV/paper/`\; `paper.md` is the only file whose prose is
-edited, and `body.typ` and the PDF are generated from it there. The
-production repository carries a copy under `reference/paper/` as a
+`KCN-judu/BDL_FV/paper/monograph/`\; `paper.md` is the only file whose
+prose is edited, and `body.typ` and the PDF are generated from it there.
+The production repository carries a copy under `reference/paper/` as a
 reference mirror, refreshed after a revision lands in the formal
 repository and never edited in place; it is not a second authority.
 

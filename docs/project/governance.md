@@ -25,20 +25,23 @@ in one place and history is never rewritten.
 | **Status**          | which phases exist, what builds, on which axioms                                       | `docs/project/status.md`                    | mutable                                                   | —          |
 | **Correspondence**  | which production record consumed which phase, at which strength                        | `docs/project/production-correspondence.md` | mutable index of links                                    | —          |
 
-The **monograph** (`paper/paper.md`, built to
-`paper/BDL_behavior_design_language.pdf`) is the conceptual synthesis of all of
-the above: organized by concept, pinned to one production commit, and edited as
-a whole; it cites the records and never replaces them. A phase report is the
-local experiment record; a decision record the stable conclusion; a note the
-focused derivation with production guidance; the monograph the current
-synthesis; `paper/archive/` the history. The roles are different and none is
-derived from another by tooling.
+The **monograph** (`paper/monograph/paper.md`, built to
+`paper/monograph/BDL_behavior_design_language.pdf`) is the conceptual synthesis
+of all of the above: organized by concept, pinned to one production commit, and
+edited as a whole; it cites the records and never replaces them. A phase report
+is the local experiment record; a decision record the stable conclusion; a note
+the focused derivation with production guidance; the monograph the current
+synthesis; `paper/monograph/archive/` the history. The roles are different and
+none is derived from another by tooling.
 
 The Lean sources under `BDL/` are the authority for what is defined and proved;
 every record above cites them and none of them replaces them. The monograph in
-`paper/` is a separate product with its own history (`paper/NOTES.md`). The
-production repository keeps its own records; this repository never edits them
-and carries only the correspondence.
+`paper/monograph/` is a separate product with its own history
+(`paper/monograph/NOTES.md`), and the core-calculus paper in
+`paper/core_calculus/` is a presentation of `BDL/Core/` for a
+programming-languages audience that cites the same Lean names. The production
+repository keeps its own records; this repository never edits them and carries
+only the correspondence.
 
 The front door for all of it is [docs/README.md](../README.md).
 
