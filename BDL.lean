@@ -56,6 +56,7 @@ import BDL.Surface.DeviceClock
 import BDL.Surface.Assignment
 import BDL.Surface.Provider
 import BDL.Surface.OutputWindow
+import BDL.Surface.SourceBoundary
 import BDL.Experiments.NaturalExamples
 import BDL.Experiments.UnitDomainExamples
 import BDL.Experiments.ProvisionExamples
@@ -64,3 +65,4 @@ import BDL.Experiments.AdapterExamples
 import BDL.Experiments.CommunicationExamples
 import BDL.Experiments.ProviderExamples
 import BDL.Experiments.OutputWindowExamples
+import BDL.Experiments.SourceBoundaryExamples
