@@ -38,7 +38,7 @@ semantics       Ev Δ I t ρ e v (one domain) ⊂ MEv S Δ I c t ρ e v (many do
 OutputEnv Ω     maps OutputId ↦ (accepted Ty, ClockId): what each logical output carries (Phase 6: resource identity; Phase 14: realized by deployment)
 DriveEnv β      maps DeclId ↦ Option OutputId: the drive edges; write-once               (Phase 6)
 DriveWF         driver type = accepted type ∧ driver clock = sink clock; no coercion, no sync in the binding
-SingleDriver β  at most one driver per sink — global, not typing; CompleteOutputs: every required sink driven
+SingleDriver β  at most one driver per logical output — global, not typing; CompleteOutputs: every required sink driven
 validation      (Phase 7, outside the kernel) Hardware = resources with capabilities + per-capability units + sharing policy;
                 Requirements from device bindings; ValidFor H R A decidable by an exhaustive solver (sound and complete);
                 feasibility is a relation Design × Target and is not monotone under design refinement

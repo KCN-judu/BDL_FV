@@ -67,7 +67,7 @@ One folder per kind of record; every page carries a header that
   else — behaviours, groups, buffers, the equation library, units, charts,
   natural binders, the unit domain, Source provision, output realization — is a
   construction over designs proved to preserve the kernel's judgments.
-- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14 complete; 138
+- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14 complete; 139
   decisions; 22 open items (17 open). Build clean on Lean 4.33.1, no `sorry`,
   `propext`/`Quot.sound` only.
 - **Not started:** Phase 8c (surface elaboration of the remaining

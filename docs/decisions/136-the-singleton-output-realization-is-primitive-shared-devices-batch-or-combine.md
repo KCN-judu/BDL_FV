@@ -19,12 +19,34 @@ Accepted in Phase 14.
 
 ## Decision
 
-`Realization` realizes one logical output by one encoder into one machine sink. A device that consumes several logical outputs at once is either (a) several machine sinks committed in the same tick — the runtime already commits all outputs of a domain together — or (b) one concept combined upstream in the behaviour (an H-bridge takes one `MotorSpeed = (forward?, magnitude)` and emits `(duty, direction)`, `exD_hbridge`), never (c) a many-to-one lowering primitive.
+`Realization` realizes one logical output by one encoder into one machine sink.
+A device that consumes several logical outputs at once is either (a) several
+machine sinks committed in the same tick — the runtime already commits all
+outputs of a domain together — or (b) one concept combined upstream in the
+behaviour (an H-bridge takes one `MotorSpeed = (forward?, magnitude)` and emits
+`(duty, direction)`, `exD_hbridge`), never (c) a many-to-one lowering primitive.
 
 ## Alternatives rejected
 
-`lowerMany` (several drivers → one encoder → one sink) as the primitive, by analogy with Phase 13's shared raw reading.
+`lowerMany` (several drivers → one encoder → one sink) as the primitive, by
+analogy with Phase 13's shared raw reading.
 
 ## Reason
 
-The analogy fails: a raw *reading* physically arrives as one image and the split is real, so shared-raw provision had to be primitive (FVD-0125); a device *frame* is assembled by the machine from values the behaviour already produces separately, and Phase 6 already places every combination of several behaviours into one target upstream of a single drive edge (Counterexample B). `lower_comm` shows independent singleton realizations compose in any order to one design. Whether an *atomic* multi-value frame ever forces a construction is FVI-0022.
+The analogy fails: a raw _reading_ physically arrives as one image and the split
+is real, so shared-raw provision had to be primitive (FVD-0125); a device
+_frame_ is assembled by the machine from values the behaviour already produces
+separately, and Phase 6 already places every combination of several behaviours
+into one target upstream of a single drive edge (Counterexample B). `lower_comm`
+shows independent singleton realizations compose in any order to one design.
+Whether an _atomic_ multi-value frame ever forces a construction is FVI-0022.
+
+## Amendment (2026-09-20, Phase 14 hardening)
+
+The choice stands and its strength is stated: this is a **design decision**
+supported by the executed examples (`exD_hbridge`, `exH`) and the minimality
+argument in Reason, not a theorem that every atomic multi-output physical
+protocol reduces to upstream combination or per-tick batching. The
+counter-pressure case — one indivisible device frame carrying values derived
+from several independently meaningful logical outputs — is recorded in FVI-0022
+and stays open; `lowerMany` is not built.

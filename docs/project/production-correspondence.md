@@ -2,7 +2,7 @@
 kind: project
 area: process
 status: current
-snapshot: 7a800bc68412cb5bbefb663c0ae8754f9d07c628
+snapshot: de8154f5153495de2ad8a09f3ca3166c3678dc93
 snapshot-date: 2026-09-20
 ---
 
@@ -16,9 +16,16 @@ _engineering choice_. This page mirrors what production's records say **at
 commit `de8154f5153495de2ad8a09f3ca3166c3678dc93` (2026-09-20, after the
 syntax-highlighting milestone, protocol 0.21)**; the `snapshot` field above is
 the one canonical place that hash lives, and the monograph's production snapshot
-cites it. It does not grade production's labels. The direction of authority is
-fixed by production's ADR-0010: the Lean development is a specification, never a
-dependency.
+cites it. The pin is deliberate: `de8154f` is the commit the whole table and the
+monograph were audited against. Production has moved on (HEAD `3fba224` at the
+Phase-14 hardening, protocol 0.23: the Code view IDE, Source creation over a
+chosen concept); none of those milestones touches a row here, and the Phase-14
+output-side facts were additionally verified at `7a800bc`, where every
+output-side crate and spec (`bdl-model::surface`, `bdl-lower`, `bdl-hardware`,
+`bdl-codegen-rust`, `bdl-output`, `runtime-semantics.md`, `hardware-model.md`)
+is byte-identical to `de8154f`. The pin moves when a row does. It does not grade
+production's labels. The direction of authority is fixed by production's
+ADR-0010: the Lean development is a specification, never a dependency.
 
 The formal side of every row is named by its `FVD` decision records
 ([decisions/README.md](../decisions/README.md)); each of those records names the
@@ -117,11 +124,17 @@ and nothing else.
 Phase 14 (output realization by device encoders) has no production consumer:
 production's `PhysicalOutput`, `DeviceBinding { kind, output, fixed_pins }`, the
 requirement generation and the allocator are the logical output and the
-requirements half of a device profile (FVD-0131, FVD-0137 support ADR-0015 and
+requirements half of a device profile (FVD-0131, FVD-0139 support ADR-0015 and
 ADR-0005 as they stand); the encoder half, the machine sink and the lowering do
-not exist. The [note](../notes/output-realization-by-device-encoders.md) §5
-records what a consumer would need. No ISS or PRP exists for it; ISS-0016 is the
-Source side.
+not exist. Where a consumer would lower: `bdl-lower` plans one `OutputPlan` per
+validated edge at the driver's type and the generated core emits
+`Outputs { output_n: Option<T> }`; the encoder declaration and the machine sink
+would enter there, and the differential corpus would compare the lowered core's
+raw outputs against `transfer` of the reference evaluator's logical outputs.
+What is proved stops at the raw command trace (`lower_correspondence`); the step
+to the generated backend call is FVI-0022 and is not claimed. The
+[note](../notes/output-realization-by-device-encoders.md) §5 records what a
+consumer would need. No ISS or PRP exists for it; ISS-0016 is the Source side.
 
 ## What this page never says
 
@@ -129,7 +142,11 @@ That a theorem proves production code. A theorem here proves a property of the
 model; production discharges it by transcription plus its own tests and labels
 the result itself. When a production record claims more than the theorem states,
 the correction belongs in production's records, and this page notes the
-discrepancy until it is fixed there. Production's records at the snapshot still
-cite the retired ledger numbers (ADR-0024, ADR-0025, `formal-correspondence.md`,
-`status.md`); [decision-id-migration.md](decision-id-migration.md) resolves
-each.
+discrepancy until it is fixed there. Production's committed records at the
+snapshot — and still at HEAD `3fba224` — cite the retired ledger numbers
+(`D-NN`) in ADR-0024, ADR-0025, ADR-0028, `formal-correspondence.md`,
+`status.md`, PRP-0001 and `equation-library.md`, and no `FVD-` id appears in a
+committed production page; a documentation-convergence pass exists only in
+production's working tree, uncommitted. Until it lands,
+[decision-id-migration.md](decision-id-migration.md) resolves each retired
+number, and this repository does not edit production's records.

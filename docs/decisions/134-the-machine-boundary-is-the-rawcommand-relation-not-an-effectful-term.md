@@ -19,16 +19,28 @@ Accepted in Phase 14.
 
 ## Decision
 
-The behaviour semantics ends at `RawCommand S Δ I Ω β R t w`: the command sink `p` receives at tick `t`. The backend — a PWM write, a GPIO write, an I²C transaction, a UART send — consumes it outside the formal semantics. No `Expr.write`, `Expr.effect`, `Ty.effect`, `Action`, `IO`, effect row or unit-returning consumer is added.
+The behaviour semantics ends at `RawCommand S Δ I Ω β R t w`: the command
+_specified_ for realization `R` at tick `t`, a relation in which the machine
+sink `p` does not occur — that the lowered design's `p` carries exactly it is
+`lower_correspondence`. The backend — a PWM write, a GPIO write, an I²C
+transaction, a UART send — consumes it outside the formal semantics. No
+`Expr.write`, `Expr.effect`, `Ty.effect`, `Action`, `IO`, effect row or
+unit-returning consumer is added.
 
 ## Alternatives rejected
 
-A pure `R -> ()` as the physical sink (Phase 12 `consumers_indistinguishable`: it cannot name a receiver); an effect type; "validation performs the side effect".
+A pure `R -> ()` as the physical sink (Phase 12 `consumers_indistinguishable`:
+it cannot name a receiver); an effect type; "validation performs the side
+effect".
 
 ## Reason
 
-`RawCommand.det` (a function of the tick under `SingleDriver`); `lower_correspondence` (the lowered design's machine sink carries exactly it). Nothing downstream of it is modelled, and nothing upstream needs it.
+`RawCommand.det` (a function of the tick under `SingleDriver`);
+`lower_correspondence` (the lowered design's machine sink carries exactly it).
+Nothing downstream of it is modelled, and nothing upstream needs it.
 
 ## Consequences
 
-The future theorem boundary is stated, not claimed: abstract output trace → encoded raw command trace (proved) → generated backend call trace (open, FVI-0022).
+The future theorem boundary is stated, not claimed: abstract output trace →
+encoded raw command trace (proved) → generated backend call trace (open,
+FVI-0022).
