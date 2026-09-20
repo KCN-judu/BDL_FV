@@ -1,0 +1,37 @@
+# Markdown lint for this repository. `just docs-fmt` runs Prettier (layout),
+# labels bare fences and applies markdownlint's own fixes; `just docs-lint`
+# (part of `just check`) reports what is left.
+# Rules: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+config:
+  default: true
+  # Prettier wraps prose at 80, so a longer line is an unwrappable span (a
+  # long inline-code shape, a theorem list); those are allowed up to 120 and
+  # become a fenced block beyond that. Tables, code and headings are exempt.
+  MD013:
+    line_length: 120
+    tables: false
+    code_blocks: false
+    headings: false
+  # Tables are padded to column width by Prettier.
+  MD060:
+    style: any
+  # Bare fences are text (the kernel summary, ASCII diagrams): `just docs-fmt`
+  # labels them; anything else names its language.
+  MD040: true
+  # `-` bullets, as Prettier writes them.
+  MD004:
+    style: dash
+  # Comments and a few inline elements used on purpose.
+  MD033:
+    allowed_elements: [br, sup, sub, details, summary]
+  # Numbered lists may all be `1.` or count up; both are used.
+  MD029:
+    style: one_or_ordered
+  # A record may repeat a heading under different parents.
+  MD024:
+    siblings_only: true
+  MD041: true
+ignores:
+  - ".claude/**"
+  - ".lake/**"
+  - "paper/**"

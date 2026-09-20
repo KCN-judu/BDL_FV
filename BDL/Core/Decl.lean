@@ -9,7 +9,9 @@ The kernel object is a **declaration with an optional realization**:
 
 `realization = none` means the declaration exists and clients may refer to
 its interface, but no body has been supplied yet.  It is *not* a syntactic
-hole position; "hole" survives only as a surface metaphor (D-15).
+hole position; "hole" survives only as a surface metaphor (FVD-0015).  The
+designer-facing reading of the realization state is production's derived role
+— Source, Rule, Value (ADR-0032) — never a kernel kind.
 
 * `DeclEnv` — the global map from ids to declarations that references are
   resolved against, and its *type view* `tyView`, which is all that typing

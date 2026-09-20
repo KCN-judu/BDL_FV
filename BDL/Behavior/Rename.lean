@@ -11,7 +11,7 @@ kernel changes: a renamed design is an ordinary design, and every kernel
 judgment is preserved by renaming under the obvious agreement conditions
 between the environments before and after.
 
-Renaming is **meta-level** (elaboration machinery, MINIMALITY: surface /
+Renaming is **meta-level** (elaboration machinery, docs/kernel/minimality.md: surface /
 elaboration).  No kernel construct is added here.
 -/
 

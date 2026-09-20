@@ -1,15 +1,30 @@
-# BDL ACM-style Typst project
+# The BDL Design and Formalization Monograph
 
-This project is an ACM-inspired two-column research-paper layout written for Typst.
+This directory holds the monograph: the living technical record of BDL — its
+design position, the mechanically derived kernel, the production toolchain,
+the formal ↔ production correspondence, the rejected alternatives and the open
+agenda. It is not a paper and is not prepared for publication; the directory
+keeps its historical name because renaming it would break history. The
+reader-facing name is _the monograph_ or _the record_.
 
 ## Files
 
-- `main.typ` - paper layout, title block, abstract, CCS concepts, keywords, and bibliography.
-- `body.typ` - generated Typst body used by `main.typ`.
-- `paper.md` - canonical prose source used to regenerate both Typst and the PDF fallback build.
-- `references.bib` - bibliography.
-- `assets/` - paper figures.
-- `build.sh` - regenerates `body.typ` from `paper.md`, then compiles with Typst if `typst` is installed.
+- `paper.md` — the canonical source. Everything is edited here.
+- `main.typ` — the document chrome: a single-column monograph layout, the
+  title page (revision date, the formal and production snapshots), the table
+  of contents (three levels), the bibliography.
+- `body.typ` — **generated** from `paper.md` by Pandoc; never edited by hand.
+- `BDL_behavior_design_language.pdf` — **generated** by Typst from `main.typ`.
+- `references.bib` — the bibliography.
+- `assets/` — figures.
+- `NOTES.md` — the dated changelog of the document's revisions (its entries
+  are historical and keep the vocabulary and identifiers of their date).
+- `archive/` — historical snapshots. `paper-2026-09-conference-manuscript.md`
+  is the conference-style manuscript the monograph grew out of; it is kept as
+  it was submitted, with its own claims, vocabulary and the old decision
+  numbers, and is not updated. The monograph is authoritative wherever the two
+  differ.
+- `build.sh` — the build.
 
 ## Build
 
@@ -17,13 +32,24 @@ This project is an ACM-inspired two-column research-paper layout written for Typ
 ./build.sh
 ```
 
-The script runs:
+The script regenerates `body.typ` from `paper.md` with Pandoc (verified with
+3.11), patches the symbol names Pandoc emits for pre-0.13 Typst
+(`bracket.l.double`, `angle.l`, `gt.tri`, …) to their current names, and
+compiles `main.typ` with Typst (0.13 or later; verified with 0.15) to the PDF.
+Without Pandoc the existing `body.typ` is used; without Typst the script stops
+after regenerating it. The build is deterministic: the same `paper.md` yields
+the same `body.typ`. No external Typst packages are used; fonts fall back to the
+bundled Libertinus family.
 
-```bash
-pandoc paper.md -f markdown -t typst -o body.typ
-typst compile main.typ BDL_behavior_design_language.pdf
-```
+## Conventions
 
-`paper.md` is the single source for the body; never edit `body.typ` by hand — run `./build.sh` (needs pandoc, verified with 3.11) to regenerate it. Typst 0.13+ is required (verified with 0.15). The project does not depend on external Typst packages; fonts fall back to the bundled Libertinus family. `build.sh` patches the symbol names pandoc emits (`bracket.l.double`, `angle.l`, `gt.tri`, …) to their current Typst names after regenerating `body.typ`.
-
-`BDL_behavior_design_language.pdf` in this directory is the Typst rendering. An earlier draft was distributed as an ACM `acmart` rendering of the same `paper.md`; that pipeline is not part of this repository.
+- Production is described as of one pinned commit, stated in the front matter
+  and in Appendix F, and the formal repository's canonical copy of that hash is
+  the `snapshot` field of `docs/project/production-correspondence.md`.
+- Formal decisions are cited as `FVD-NNNN`, formal open items as `FVI-NNNN`,
+  production records as `ADR`/`PRP`/`ISS-NNNN`; a formal result and the
+  production record it concerns are cited together. The map from the retired
+  `D-NN` numbers is Appendix E.
+- Theorem names are Lean identifiers and never change to track a document id.
+- Every substantive claim carries one of the strength labels of the front
+  matter.

@@ -20,7 +20,7 @@ Phase-0 result preserved here: `InterfaceRefines` is a decidable preorder,
 frozen on the type and monotone on commitments.  Refinement is the only
 interface change the kernel treats as safe for dependents; anything else
 (changing the type, dropping a commitment) is an *edit* — see
-`DESIGN_DECISIONS.md` D-16.
+`docs/decisions/` FVD-0016 (refinement versus edit; production ADR-0009).
 -/
 
 namespace BDL

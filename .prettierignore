@@ -1,0 +1,4 @@
+# Prettier is used for Markdown only (`just docs-fmt` passes the tracked
+# .md files).  The monograph has its own pipeline (paper/build.sh).
+.lake/
+paper/

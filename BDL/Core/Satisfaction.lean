@@ -27,7 +27,7 @@ Future distinction (documented, not implemented): the validation layer will
 eventually separate
 * *stable* (monotone) evidence, which survives refinement, from
 * *environment-sensitive* evidence, which must be flagged for recheck when
-  the environment changes — including after arbitrary edits (D-16), which
+  the environment changes — including after arbitrary edits (FVD-0016), which
   are outside `EnvRefines` altogether.
 -/
 

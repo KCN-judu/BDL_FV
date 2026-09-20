@@ -1,4 +1,12 @@
-# Design changes in this revision
+# Revision notes
+
+A dated changelog of the document. Entries are historical: each keeps the
+vocabulary and the identifiers of its date (the ledger numbers `D-NN` in the
+older entries map to `FVD-NNNN` through Appendix E of the monograph), and none
+is rewritten when a later revision changes a claim. The first section below is
+the note of the original 2026-09 draft.
+
+## The 2026-09 draft (conference manuscript, archived)
 
 - Rewritten in academic English.
 - Reorganized into an ACM-style research-paper structure.
@@ -79,3 +87,39 @@
   vary paragraph openings, and restore ordinary prose where lists had been
   used for conceptual material. No technical claims changed; formulas,
   tables and figures kept verbatim.
+
+## The conceptual restructuring and the production snapshot `de8154f` (2026-09-20)
+
+- The monograph is restructured by concept: Purpose and design position;
+  the designer-facing language; the core declaration model; semantic identity
+  and physical quantities; the data and equation language; units, coordinates
+  and charts; reactive semantics; behavior systems; the environment and the
+  physical boundaries (the canonical type `() -> B`, the source role, physical
+  sinks, `A -> ()`, and Phase 13's provision, integrated as the completion of
+  the input boundary); validation and deployment; production compiler,
+  runtime and daemon; Studio and the IDE; formal ↔ production correspondence;
+  minimality and rejected alternatives (with the two kinds of minimality made
+  explicit); the open agenda with the empirical questions kept apart. Phase
+  numbers remain as provenance and in Appendix G; no chapter is a phase.
+- Production is described at `de8154f5153495de2ad8a09f3ca3166c3678dc93`
+  (2026-09-20): the derived relationship role (Source, Rule, Value) with one
+  home in the model; a Source may drive an output; `applied_by` as the direct
+  inverse of `references`; `reactive.rule_unapplied` and `rule.apply`; the
+  generalized Standard Library (items, fragments); the unified project with
+  invalid text saveable; the Formula Composer's structured forms (binders,
+  ranges, `??`, boolean logic, `if`) and its opaque forms; semantic
+  highlighting from one classifier on the LSP token vocabulary; protocol
+  0.20/0.21. Commitments are stated as empty in production. Earlier snapshot
+  hashes (`f1ce82c`, `3c6c8be`, `876005c`) survive only in this changelog and
+  in Appendix H.
+- The formal decisions are cited as `FVD-NNNN` and the open items as
+  `FVI-NNNN`, each with its production record; Appendix E is the migration map
+  from `D-01 … D-130`. Theorem names are unchanged.
+- New apparatus: the notation appendix, the theorem index by concept (every
+  name checked against the Lean sources), the decision index, the
+  evidence-strength ledger, the production snapshot appendix, the development
+  chronology, the revision log. The internal "possible paper slices" section
+  is removed; the front matter states what the document is and is not.
+- `paper/README.md` and `main.typ` describe the monograph pipeline; the
+  ACM-era description is gone. `archive/` keeps the conference manuscript as
+  submitted.

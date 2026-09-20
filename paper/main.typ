@@ -19,6 +19,14 @@
 #show table.cell: set par(justify: false)
 #show table.cell.where(y: 0): set text(weight: "bold")
 #set table(inset: (x: 4pt, y: 3pt), stroke: (x: none, y: 0.3pt))
+// Pandoc wraps every table in a figure; let long tables break across pages,
+// and let identifiers inside table cells break at their separators.
+#show figure.where(kind: table): set block(breakable: true)
+#show figure.where(kind: table): set figure(placement: none)
+#show raw.where(block: false): it => {
+  show regex("[_./:]"): m => m.text + sym.zws
+  it
+}
 
 #show heading.where(level: 1): it => {
   pagebreak(weak: true)
@@ -39,29 +47,30 @@
   #v(10pt)
   #text(size: 13pt)[
     A Behavior Design Language for Industrial Designers: \
-    Motivation, Mechanically Derived Kernel, Production Toolchain, \
-    Correspondence, Rejected Alternatives and Open Agenda
+    Design Position, Mechanically Derived Kernel, Environment Boundaries, \
+    Production Toolchain, Correspondence, Rejected Alternatives and Open Agenda
   ]
   #v(24pt)
   #text(size: 11pt)[ZHU ZHEHAO]
   #v(6pt)
-  #text(size: 9.5pt, style: "italic")[Living technical record — revision of 2026-09-18]
+  #text(size: 9.5pt, style: "italic")[Living technical record — revision of 2026-09-20]
   #v(4pt)
   #text(size: 9pt)[
-    Formal development `KCN-judu/BDL_FV` at `3b4f11b` · production `KCN-judu/BDL` at `f1ce82c`
+    Formal development `KCN-judu/BDL_FV` — this working tree, last pushed commit `af25567` (Phase 13) \
+    Production `KCN-judu/BDL` at `de8154f5153495de2ad8a09f3ca3166c3678dc93` (2026-09-20, protocol 0.21)
   ]
   #v(1.6in)
   #block(width: 88%)[
     #set par(justify: true)
     #set text(size: 9.3pt)
-    This document is the authoritative narrative record of BDL. It is not a paper and is not written to a page limit; it records what the language is, why each construct exists or was rejected, which theorem or executed example supports each claim, how production implements it, where production deviates from the formal model, and what remains open. Every claim carries a strength label (formally proved, executable example, informed by FV, production-tested, design recommendation). No usability claim in it has been tested with users.
+    This document is the authoritative narrative design record of BDL and a bridge between its formal model and its production system. It is not a paper, not a submission and not written to a page limit; it records what the language is, why each construct exists or was rejected, which theorem, counterexample or executed example supports each claim, how production implements it, where production deviates from the formal model, and what remains open — including the alternatives that failed. Every claim carries a strength label (formally proved; formally characterized under restricted hypotheses; mechanically executed example; counterexample; informed by FV; production implemented and tested; production architecture decision; proposal / not implemented; design recommendation; open empirical question). No usability claim in it has been tested with users.
   ]
 ]
 
 #pagebreak()
 
 // ---------------------------------------------------------------- contents
-#outline(title: [Contents], indent: 1.2em, depth: 2)
+#outline(title: [Contents], indent: 1.2em, depth: 3)
 
 #pagebreak()
 

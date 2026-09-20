@@ -1,2 +1,6 @@
 /.lake
 .DS_Store
+
+# Local tool state and working notes (never committed)
+.claude/
+CLAUDE.md

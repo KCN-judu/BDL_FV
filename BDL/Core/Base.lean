@@ -222,8 +222,9 @@ def Prim.ty : Prim → Ty
   | .toList τ => .arr (.opt τ) (.list τ)
 
 /-- Stable identity of a design declaration — an ordinary declaration name,
-    not a novel abstraction (Phase 1, REPORT §1.5).  A wrapper rather than a
-    bare `Nat` so ids cannot be confused with de Bruijn indices or numerals.
+    not a novel abstraction (Phase 1 report §1.5,
+    `docs/reports/phase-01-cross-declaration-references.md`).  A wrapper rather
+    than a bare `Nat` so ids cannot be confused with de Bruijn indices or numerals.
     Display names are a surface concern and are not modelled. -/
 structure DeclId where
   n : Nat
