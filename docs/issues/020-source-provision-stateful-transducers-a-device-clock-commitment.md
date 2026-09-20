@@ -39,6 +39,15 @@ per tick, bounded, in arrival order). What remains here: stateful transducers, a
 device clock on the Source side (the reverse of `lowerSync`), commitment
 discharge, `computes` checked or trusted, out-of-type readings.
 
+## Amendment (2026-09-20, Phase 17)
+
+Bounded buffered input is answered: the provider's occurrence contract
+(FVI-0029, resolved) delivers `(list raw, bool)` through Phase 13's shared raw
+reading (`batchProvision`), and a scalar Source is the batch sampled
+(`chLatest`). What remains here: stateful transducers, a Source-side device
+clock (the input dual of `lowerSync` / `lowerWindow`), commitment discharge,
+`computes` checked or trusted, out-of-type readings.
+
 ## Resolution
 
 Open. The **output provision** part is answered by Phase 14

@@ -1,10 +1,13 @@
 ---
 id: FVI-0029
 legacy-id:
-state: open
+state: resolved
 area: surface
 opened: 2026-09-20
-resolved-by: []
+resolved-by:
+  [
+    docs/reports/phase-17-the-provider-occurrence-contract-and-the-output-window.md,
+  ]
 related: [FVI-0020, FVI-0024, FVI-0001]
 production: [ISS-0016, ISS-0001]
 ---
@@ -42,4 +45,16 @@ Production's Source device binding (ISS-0016) and the window's surface form
 
 ## Resolution
 
-Open.
+Resolved by
+[Phase 17](../reports/phase-17-the-provider-occurrence-contract-and-the-output-window.md)
+(2026-09-20): the contract is stated and proved in `BDL/Surface/Provider.lean` —
+one semantic occurrence per fresh transport identity (`dedup_of_fresh`), arrival
+order (`dedup_sublist`), retransmissions erased by identity below the boundary
+(`run_retry`, `retry_invisible`), a per-tick bound with an observable overflow
+flag (`provide`, `provide_overflow_iff`), several raw sources as several
+provisions with any merge an explicit policy (`mergeBySource_interleaving`,
+`perSource_of_interleaving`); the batch is Phase 13's shared raw reading with
+two channels (`batchProvision`), a scalar Source its sample (`Batch.latest`).
+FVD-0149 … FVD-0151. Which bound a physical arrival rate needs stays a
+deployment assumption, decided as Phase 9a decides capacity — not a formal
+question.

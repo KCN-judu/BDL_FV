@@ -44,6 +44,17 @@ a cursor in the device domain, a `list raw` sink whose batch the backend commits
 in order — and it is not built. Not a primitive gap; a lowering to write and
 prove when a device that must not miss a command exists.
 
+## Amendment (2026-09-20, Phase 17)
+
+The occurrence-preserving crossing is built: `lowerWindow` in
+`BDL/Surface/OutputWindow.lean` — Phase 9a's window over the encoder declaration
+into the device domain, a `list raw` sink — with `lowerWindow_transparent`,
+`lowerWindow_correspondence`, `lowerWindow_bounded` and the structural theorems
+(FVD-0152); the adapter's batch is `List Op` (FVD-0153). What remains here is
+narrower: a device that acknowledges (a bus transaction with a reply is not a
+`sync` and not a window) and which initial representation a device should hold
+before the first activation.
+
 ## Resolution
 
 Open.
