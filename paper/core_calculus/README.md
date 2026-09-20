@@ -1,14 +1,16 @@
 # A Core Calculus for Signature-First Reactive Design
 
 The core-calculus paper: the kernel of `BDL/Core/` and its metatheory,
-written for a programming-languages audience. It presents the calculus
-λ_BDL — persistent declarations with a refinement order, nominal concepts
-with a construction grant, dimensions in operator types, one temporal
-primitive over nominal clock domains, one list recursor, explicit outputs
-with a single driver, and composition by renaming — with its typing,
-tick-indexed semantics, logical relation, and the mechanized counterexamples
-that fixed each choice. Every theorem is cited by its Lean name; Appendix A
-indexes them by section.
+written for a programming-languages audience around one thesis — *relation
+before realization*: a typed semantic relationship is the primary design
+object, it may be declared, depended upon, clocked and driven while its
+computation is undecided, and a realization refines it. The calculus λ_BDL
+is presented as constraints on that one object — the refinement order and
+client stability, nominal concepts with the construction grant, dimensions,
+clock domains with one temporal primitive, explicit outputs with a single
+driver, composition by renaming — with its typing, tick-indexed semantics,
+logical relation, and the mechanized counterexamples that fixed each choice.
+Every theorem is cited by its Lean name; Appendix A indexes them by section.
 
 The paper is derived from Part IV and Appendices A–B of the monograph in
 `../monograph/`, which remains the record: where the two differ in wording

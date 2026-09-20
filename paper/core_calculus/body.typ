@@ -1,247 +1,325 @@
 #heading(level: 1, numbering: none)[Abstract]
 <abstract>
-Interactive physical products are designed by people who state
-#emph[relationships] before they can define them: a lamp's brightness
-follows its tilt; the room's temperature is read once a second while the
-tilt is read fifty times a second; the light is the product's only
-physical effect. We present $lambda_(upright(B D L))$, the core calculus
-of the Behavior Design Language, in which such a design is a finite
-environment of #emph[persistent declarations] --- each a stable
-identity, a frozen expected type with a growable set of public
-commitments, and an optional realization --- over a simply typed term
-language extended with nominal #emph[concept] types bound write-once to
-data representations, a #emph[construction grant] derived from the
-declaration's own signature, physical #emph[dimensions] carried by
-operator types, ordinary data (options, lists, products) with one list
-recursor, and exactly one temporal primitive: read a #emph[clock domain]
-at its last activation strictly before now. We give the calculus a
-tick-indexed big-step semantics and prove it deterministic and total on
-#emph[causal] designs by a tick-indexed logical relation with a
-lexicographic induction on (tick, instantaneous rank, derivation); the
-single-domain semantics is the diagonal of the multi-domain one, memory
-is transport at the own domain, and no scheduler order is observable. We
-prove that refining a declaration --- adding a commitment, supplying a
-body, strengthening a realized interface with re-verification ---
-preserves every client's typing unconditionally and every client's
-discharged commitment provided the validation layer's evidence is
-monotone in the environment, and we show by a mechanized counterexample
-that the monotonicity condition is necessary. Semantic identity has no
-runtime residue (erasure is sound), cannot be manufactured except where
-a signature announces it (construction is granted, and provenance is
-preserved through memory and transport), and is orthogonal to dimension.
-Physical effect passes through explicit drive edges with a single driver
-per output, which makes the physical output a function of the tick.
-Behavior components are derived from renaming and realization alone, and
-flattening a composition yields an ordinary design checked by the
-unchanged judgments. Every definition and theorem is mechanized in Lean
-4 with no `sorry` and no classical choice; every rejected alternative is
-a mechanized counterexample; every trace is computed by an interpreter
-proved sound for the relation.
+When the behavior of an interactive physical product is designed, the
+designer often knows #emph[that] one product quantity determines another
+before knowing #emph[how]: a lamp's brightness follows its tilt, and
+other parts of the design can be built on that relationship long before
+its formula is chosen. This paper presents $lambda_(upright(B D L))$,
+the core calculus of the Behavior Design Language, in which a typed
+semantic relationship is the primary design object. A relationship is a
+persistent declaration --- a stable identity, a signature between
+nominal #emph[concepts], a growable set of public commitments --- that
+may exist and be depended upon while its realization is absent; a
+realization, when it arrives, #emph[refines] the declaration rather than
+replacing it. The calculus gives this intermediate design state a
+precise semantics and proves that design progression respects it:
+refining a declaration preserves every client's typing unconditionally
+and every client's discharged commitment under a monotonicity condition
+on evidence that a mechanized counterexample shows necessary. Nominal
+concepts keep a relationship between #emph[meanings] distinct from a
+relationship between the representations those meanings share, and a
+realization may construct only the concepts its own signature announces,
+so that realization cannot silently cross a semantic boundary the
+designer did not draw. Because relationships in a physical product hold
+over time, the calculus interprets declarations as streams in authored
+clock domains with one temporal primitive, and is deterministic and
+total on causal designs without exposing any scheduler order; because a
+computed value is not yet an effect, a relationship reaches the world
+only through an explicit drive edge with a single driver. Reusable
+behavior is a structured set of relationships instantiated by renaming,
+and composition adds no semantic machinery. All definitions, theorems
+and counterexamples are mechanized in Lean 4 with no `sorry` and no
+classical choice.
 
-#strong[Keywords:] reactive semantics, clock domains, nominal types,
-refinement, logical relations, mechanized metatheory, Lean 4,
-synchronous languages, units of measure
+#strong[Keywords:] design calculi, refinement, nominal types, reactive
+semantics, clock domains, logical relations, mechanized metatheory, Lean
+4
 
 = Introduction
 <introduction>
-A behavior designer working on an interactive physical product does
-something that a programmer's language makes awkward: they #emph[declare
-a relationship they cannot yet define]. "Brightness follows tilt" is a
-complete design statement long before anyone knows the formula; it has a
-type --- the concept `Tilt` to the concept `Brightness` --- and other
-parts of the design depend on it at that type. Later the relationship
-acquires a formula, a promise ("monotone"), a timing domain, a physical
-output; none of these later steps should disturb what already depended
-on it. The formula must be unable to produce anything but a
-`Brightness`, even though a brightness and an opacity are both
-represented by a dimensionless number and a tilt and a motor angle are
-both angles. Values must be remembered across time with an explicit
-first value, and read across timing domains without making the scheduler
-visible. Physical effect must happen exactly once per output,
-explicitly.
+Consider a designer working out the behavior of a tilt-dimmed lamp.
+Early in the work they know five things that are not yet code.
+Brightness depends on tilt --- a relationship whose formula is undecided
+and may stay undecided for weeks. Other parts of the design already rest
+on that relationship: the light is driven by it, a warming base reads
+it, a second lamp will reuse it. When the formula does arrive, it must
+not retroactively change what the earlier declaration meant to those
+parts. A tilt and a motor angle are both angles, and a brightness and an
+opacity are both numbers between zero and one, yet the relationship
+#emph[tilt to brightness] is not the relationship #emph[motor angle to
+brightness], and no formula should be able to turn one into the other by
+accident. And the relationship will eventually hold over time, in a
+timing domain, and move a physical light --- facts that must attach to
+it without collapsing the design into its implementation.
 
-This paper presents the core calculus that gives these requirements a
-semantics and proves that they compose: $lambda_(upright(B D L))$, the
-kernel of the Behavior Design Language (BDL). The calculus is
-deliberately small. Its term language is a simply typed λ-calculus with
-registered first-order operators; what makes it a #emph[design] calculus
-is not its terms but the environments they are typed and evaluated
-against, and the two disciplines those environments impose --- a
-#emph[refinement order] on declarations, and a #emph[grant] on the
-construction of nominal values.
+The first of these is the one that a programming-language presentation
+handles least naturally. In a functional language, writing
 
-== What the calculus adds to the simply typed λ-calculus
-<what-the-calculus-adds-to-the-simply-typed-λ-calculus>
-- #strong[Persistent declarations] (§4). A design is an environment
-  $Delta$ of declarations
-  $chevron.l italic(i d)\,chevron.l tau\,C chevron.r\,italic(r e a l i z a t i o n) chevron.r$
-  with a stable identity, a frozen expected type, a growable list of
-  public commitments, and an optional body. Terms refer to declarations
-  by identity, and the typing judgment reads $Delta$ through exactly one
-  projection, the #emph[type view]. A refinement order on declarations
-  and environments captures the operations that a client may survive;
-  everything else is an #emph[edit] about which nothing is promised. We
-  prove that refinement preserves every client's typing with no
-  hypothesis, and every client's discharged commitment under a
-  Kripke-style monotonicity condition on the validation layer's evidence
-  --- a condition we show necessary (Theorems 4--5, Proposition 6).
-- #strong[Nominal concepts with granted construction] (§5). A concept is
-  a nominal type $upright("sem") thick s$\; a concept environment
-  $Theta$ binds it, write-once, to a representation type that is data
-  and mentions no concept. Observing a representation ($upright("rep")$)
-  is always permitted; constructing a value ($upright("mk") thick s$)
-  requires a grant, and a declaration's body is granted exactly the
-  concepts in result position of its own signature. Under that
-  discipline a hidden crossing between concepts is untypable, erasure to
-  the representation is sound, and no tag is created by evaluation,
-  memory, or transport (Theorems 8, 9 and 14).
-- #strong[Dimensions in operator types] (§5.3). A physical quantity has
-  type $upright("q") thick d$ for an exponent vector $d$\; the algebra
-  lives entirely in the registered operators' types and no typing rule
-  mentions it. The dimensionless baseline is the erasure of this typing,
-  exactly as the numeric baseline is the erasure of nominal typing.
-- #strong[One temporal primitive] (§6--7).
-  $upright("sync") thick c thick italic(i n i t) thick e$ reads $e$ in
-  clock domain $c$ at $c$'s last activation strictly before the current
-  tick, or $italic(i n i t)$ if there is none; $upright("delay")$ is
-  $upright("sync")$ at the own domain. The semantics is tick-indexed
-  big-step evaluation against an input stream and a schedule. It is
-  deterministic unconditionally and total on #emph[causal] designs ---
-  those whose instantaneous dependency graph is acyclic --- by a logical
-  relation indexed by the tick with a lexicographic induction on tick,
-  rank and derivation (Theorems 10--13, 18--19). The delayed type must
-  be data and $upright("delay")$ may appear only at top level; both
-  restrictions are forced by the totality proof rather than chosen.
-  Clock domains are nominal identities, not rates; the #emph[strictly
-  before] rule makes the semantics independent of any order between
-  simultaneously active domains, and the alternative is mechanically
-  shown to expose the scheduler (Theorem 20).
-- #strong[Data with one recursor] (§8). Options, lists and products are
-  ordinary data; $upright("fold")$ is the one term former that applies a
-  function value during evaluation. Its evaluation rule unrolls
-  syntactically through the environment so that the evaluation relation
-  remains an ordinary inductive relation. Polymorphism is rank-1 by
-  definitional families instantiated by one-way matching against closed
-  types; no type variable enters the kernel. The lossless cross-domain
-  window buffer --- the one construction a designer would expect to be
-  primitive --- is five declarations over $upright("delay")$,
-  $upright("sync")$ and list operators, with a correctness theorem for
-  every schedule (Theorem 21).
-- #strong[Explicit outputs] (§9). A declaration computes a value;
-  hardware moves only through a drive edge to a nominally identified
-  output with a single driver. With one driver the physical output is a
-  partial function of the tick; with a hidden arbitration policy three
-  different outputs arise from one design (Theorem 23).
-- #strong[Composition by renaming] (§10). Behavior components, fresh
-  instantiation, bindings and flattening are derived from realization
-  steps and an equivariance theorem for every judgment; the flattened
-  system is an ordinary design accepted by the unchanged checkers
-  (Theorems 24--26).
+$ f : A arrow.r B $
 
-== Mechanization and claims
-<mechanization-and-claims>
-Every definition, theorem and counterexample in this paper is a Lean 4
-declaration in the development `KCN-judu/BDL_FV` @moura2021lean. The
-development builds with no `sorry`\; the axioms used are propositional
-extensionality and quotient soundness (the latter only through function
-extensionality), and classical choice is absent. Negative results are
-theorems whose content is a rejection; every trace is computed by an
-interpreter proved sound for the evaluation relation, inside the proof
-checker. The paper cites the Lean name of each result at the point it is
-stated, and Appendix A indexes them by section.
+is normally the first line of a definition; the signature anticipates,
+and is soon accompanied by, a computation $f thin x = dots.h$. The
+signature has meaning on its own --- it is checked, it documents, it
+constrains --- but the object being authored is the function. In the
+design workflow above, the first line alone is already the artifact.
+`dimByTilt : Tilt -> Brightness` states that a relationship exists, what
+it connects, and which semantic boundary it draws; it says nothing about
+how the relationship is computed, and the designer has not yet decided.
+This is not an unfinished program. It is a complete design commitment at
+one level of detail, deliberately left open at the next.
 
-Two conventions bound the claims. #emph[Minimal] always means minimal
-among the alternatives that were formalized and refuted, never a
-minimality theorem. Where a theorem is proved for a fragment --- the
-modular-semantics result holds for single-domain wiring designs with
-direct bindings --- the restriction is part of the statement.
+This paper is about giving that state a semantics. We present
+$lambda_(upright(B D L))$, the core calculus of the Behavior Design
+Language (BDL), a language for designing the behavior of interactive
+physical products. Its organizing thesis is #strong[relation before
+realization]: the primary authored object is a typed semantic
+relationship, represented in the calculus as a #emph[persistent
+declaration] with a stable identity, a signature, and public
+commitments; a computation is one possible #emph[realization] of that
+relationship, supplied later as a refinement. The calculus exists to
+make the intermediate state --- declared, typed, depended upon,
+unrealized --- typable, referenceable, composable, refinable, stable for
+its clients, and eventually realizable, without pretending that the
+computation already exists.
 
-== What this paper is not
-<what-this-paper-is-not>
-It is not a paper about the surface language, the authoring environment
-or the production toolchain that implements the calculus; those are
-described in the BDL monograph, of which this paper is the formal core.
-It is not a paper about hardware validation or deployment, which live
-above the kernel as decidable relations that never enter typing or
-evaluation. And it is not a new type-theoretic mechanism: each
-ingredient is a known shape --- the interface/implementation separation
-of module signatures @leroy1994manifest@harper1994modules, an abstract
-type with a private constructor @mitchell1988abstract, a Kripke-style
-stability condition, the `pre` of Lustre @halbwachs1991lustre confined
-to nodes, a step-indexed logical relation
-@appel2001indexed@ahmed2006stepindexed. What is specific is where the
-ingredients come from --- the grant from the signature the designer
-already wrote, the domain from an authored identity rather than an
-inferred clock, the buffer from two reads of a log --- and that their
-combination has been proved to compose.
+We are careful about what this claim is. Existing mechanisms provide
+every piece of the story: module signatures separate interface from
+implementation; abstract types hide representations; refinement and
+contract systems attach progressively stronger constraints; synchronous
+languages interpret definitions as clocked streams.
+$lambda_(upright(B D L))$ does not show that any of these cannot express
+a declared-but-unrealized relationship. What it contributes is a direct,
+compositional semantics for a workflow in which #emph[semantic identity,
+interface commitment, delayed realization, temporal structure and
+physical effect coexist as facts about one object], together with
+mechanized proofs that they interact as the workflow needs. A
+relationship is representationally a declaration in an environment,
+referred to by identity from terms; it is a first-class #emph[design]
+object, not a first-class value that terms pass around, and the paper
+says so wherever the distinction matters.
 
-= Overview: a lamp in $lambda_(upright(B D L))$
-<overview-a-lamp-in-lambda_mathrmbdl>
-We fix a small product to make the calculus concrete: a lamp whose
-brightness follows its tilt, dims smoothly, and warms its base according
-to the room temperature. The design begins with concepts and signatures
-and nothing else.
+== One object, six constraints
+<one-object-six-constraints>
+A likely first reaction to the calculus is that it bundles unrelated
+mechanisms --- a refinement order, nominal types, dimensions, clocks,
+output bindings, renaming. The answer that organizes this paper is that
+each is a constraint on the same object:
 
-#strong[Concepts.] `Tilt`, `Brightness`, `RoomTemp` and `MotorAngle` are
-semantic identities $s in upright("SemanticId")$. Each is a nominal type
-$upright("sem") thick s$. The concept environment $Theta$ binds `Tilt`
-and `MotorAngle` to $upright("q") thick upright("Angle")$ and
-`Brightness` to $upright("q") thick 0$\; the two angles remain distinct
-types.
+- #strong[Refinement] governs how a relationship acquires commitments
+  and a realization (§4). The refinement order is the mathematical form
+  of design progression, and the stability theorems say that progress
+  does not destroy the meaning of earlier decisions.
+- #strong[Nominal concepts and the construction grant] govern #emph[what
+  meanings] a relationship connects and #emph[what] a realization is
+  authorized to produce (§5). Representation is not meaning; a
+  signature's result concept is the only concept its realization may
+  construct.
+- #strong[Dimensions] govern the arithmetic of representations once a
+  concept is observed, and are orthogonal to semantic identity (§5.3).
+- #strong[Clock domains] govern #emph[when] a relationship's value
+  belongs to the design (§6). A relationship participates in an authored
+  temporal structure, and the semantics must respect it without exposing
+  a scheduler.
+- #strong[Outputs] govern when a relationship's value becomes physical
+  effect (§8). A computed value is not an effect; the drive edge is
+  where the design meets the world, once per output.
+- #strong[Composition] governs how relationship structures are reused
+  (§9). A behavior is a structured set of relationships; instantiation
+  renames, binding connects, and flattening shows that nothing new is
+  needed.
 
-#strong[Declarations before definitions.] The relationship
-`dimByTilt : Tilt -> Brightness` is a declaration
-$chevron.l d_1\,chevron.l upright("sem") thick upright("Tilt") arrow.r upright("sem") thick upright("Brightness")\,\[thin\]chevron.r\,upright("none") chevron.r$:
-an identity, an interface, and no body. `tilt : Tilt` is a declaration
-with no body that will never receive one --- an #emph[input], whose
-value the environment supplies at every tick. `light : Brightness` is
-realized as
-$upright("app") thick\(upright("declRef") thick d_1\)thick\(upright("declRef") thick italic(t i l t)\)$
-and is well typed now, against $d_1$'s interface, whether or not $d_1$
-ever acquires a formula.
+The same choice recurs on three of these axes: identity is nominal ---
+of a concept, of a clock domain, of an output --- and crossing an
+identity is always a visible artifact (a declared relationship, a
+transport with an initial value, a drive edge), never a coercion the
+implementation performs on the designer's behalf.
 
-#strong[Refinement.] Giving `dimByTilt` the body
-$lambda x : upright("sem") thick upright("Tilt") . thick upright("mk") thick upright("Brightness") thick\(upright("clamp") thick\(upright("rep") thick x thin\/thin 90^compose\)thick 0 thick 1\)$
---- where `90 deg` is surface notation for a dimensioned literal
-$upright("lit")_(upright("Angle"))$ and `clamp` for a library term over
-$upright("lt")$ and $upright("ite")$ --- is a refinement step. The body
-is typed under the grant ${ upright("Brightness") }$ --- the concepts in
-result position of `Tilt -> Brightness` --- so
-$upright("mk") thick upright("Brightness")$ is permitted and
-$upright("mk") thick upright("MotorAngle")$ would not be. `light`'s
-typing is untouched (Theorem 4). Adding the commitment `monotone` to
-`dimByTilt` later is a refinement; changing its expected type is an
-edit.
+== Contributions
+<contributions>
+The contributions, in the order the paper develops them, each answer a
+design question with a formal mechanism and a theorem.
 
-#strong[Memory.] A smooth dimmer remembers its previous output:
-`smooth : Brightness` realized as a mix of `light` and
-$upright("delay") thick italic(i n i t) thick\(upright("declRef") thick italic(s m o o t h)\)$.
-The self-reference is a structural cycle every path of which passes
-through a delayed operand; the design is #emph[causal] and has a value
-at every tick (Theorem 13). The initial value is part of the syntax:
-without it the first tick is undefined or nondeterministic, and both
-failure modes are mechanized.
++ #strong[Relationship-first declarations and refinement] (§2, §4). A
+  design is an environment of declarations each of which may lack a
+  realization; typing reads declarations through their signatures only.
+  The refinement order (add a commitment, supply a realization,
+  strengthen a realized interface with re-verification) formalizes
+  progressive commitment. Theorem 3 shows that a client typed against a
+  relationship before its realization is typed after it, with no
+  hypothesis; Theorem 4 shows that a client's discharged commitments
+  survive refinement when the validation layer's evidence is monotone in
+  the environment; Theorem 5 is a mechanized counterexample showing the
+  condition necessary.
++ #strong[Semantic integrity of realizations] (§5). A relationship
+  connects concepts, not representations. Nominal concept types with
+  write-once representation bindings keep `Tilt -> Brightness` distinct
+  from `MotorAngle -> Brightness`\; the construction grant, derived from
+  the declaration's own signature, is the authority a realization has to
+  produce a concept (Theorem 7); erasure to representations is sound,
+  and no evaluation, memory or transport creates a concept tag (Theorem
+  12).
++ #strong[Temporal interpretation of relationships] (§6). Declarations
+  are interpreted as streams in nominal clock domains with one temporal
+  primitive --- read a domain at its last activation strictly before
+  now. Evaluation is deterministic (Theorems 9, 14) and total on causal
+  designs by a tick-indexed logical relation (Theorems 11, 14); the
+  strictly-before rule keeps the scheduler unobservable, and its
+  alternative is mechanically shown to expose it (Theorem 15).
++ #strong[Derived rather than primitive design structure] (§7). Lists,
+  products and one recursor suffice for the collection equations a
+  designer writes, and the lossless cross-domain window --- the
+  construction most likely to be proposed as a primitive --- is five
+  declarations over memory, transport and lists, correct for every
+  schedule (Theorem 16).
++ #strong[Explicit physical effect] (§8). A relationship becomes effect
+  only through a drive edge to a nominally identified output with a
+  single driver; the physical output is then a function of the tick
+  (Theorem 17), and hidden arbitration is shown to make three outputs
+  from one design.
++ #strong[Compositional reuse] (§9). Components, instances and bindings
+  are derived from renaming and realization; the flattened composition
+  is an ordinary design accepted by the unchanged judgments (Theorem
+  19), and modular and flat evaluation agree on a stated fragment
+  (Theorem 20).
++ #strong[Mechanization.] Every definition, theorem and counterexample
+  is a Lean 4 declaration in `KCN-judu/BDL_FV` @moura2021lean\; the
+  development has no `sorry`, uses only propositional extensionality and
+  quotient soundness (through function extensionality), and no classical
+  choice. Each result is cited by its Lean name where it is stated;
+  Appendix A indexes them.
 
-#strong[Clock domains.] `tilt` and `light` live in a domain `fast`\;
-`roomTemp` and `heat` in a domain `slow`. Domains are nominal: a clone
-of `fast` with the same schedule is a different domain, and a direct
-wire between them is rejected by the domain judgment. `heat` may read
-the tilt only through
-$upright("sync") thick upright("fast") thick italic(i n i t) thick\(upright("declRef") thick italic(l i g h t)\)$,
-whose value is `light` at the last `fast` activation strictly before the
-current `slow` tick. Typing is blind to domains and unchanged.
+Two conventions bound every claim. #emph[Minimal] means minimal among
+the alternatives that were formalized and refuted, never a minimality
+theorem. Where a theorem holds for a fragment, the fragment is part of
+the statement. The paper is not about the surface language, the
+authoring environment, the toolchain, hardware validation or deployment,
+all of which live above the kernel and are described in the BDL
+monograph of which this paper is the formal core; and it makes no claim
+about designers --- that a workflow is well served by this semantics is
+an empirical question no theorem here addresses.
 
-#strong[Output.] The physical light is an output identity $o$ accepting
-$upright("sem") thick upright("Brightness")$ in domain `fast`\; the
-drive edge $beta thick italic(s m o o t h) = upright("some") thick o$ is
-well formed because the types are equal and the domains agree, and it is
-the only driver of $o$. Nothing else in the design has a physical
-effect.
+= The design problem
+<the-design-problem>
+== A relationship as a design object
+<a-relationship-as-a-design-object>
+We fix vocabulary for the rest of the paper. A #strong[relationship] is
+the design-level commitment: #emph[brightness follows tilt]. A
+#strong[declaration] is the formal object that represents it --- a
+stable identity $delta$, an #strong[interface] (the relationship's
+public promise: an expected type between concepts and a list of
+commitments), and an optional #strong[realization] (a computation
+implementing the promise). #strong[Refinement] is the progressive
+strengthening of a declaration --- more commitments, then a realization,
+then stronger commitments re-verified --- under which clients that
+relied on the earlier state remain valid. A #strong[design] is an
+environment of declarations. In the Lean development a declaration
+without a realization is `unresolved`\; the paper says
+#emph[unrealized], because the word matters: nothing is missing from
+such a declaration. Its identity, its concepts, its commitments and,
+later, its timing domain and output are all present. What is postponed
+is the computation, and postponing it is the designer's decision.
 
-Sections 3--10 give each of these steps its rules and theorems.
+Three kinds of declaration will appear. A relationship with inputs,
+`dimByTilt : Tilt -> Brightness`, has an arrow signature. A relationship
+with no inputs, `light : Brightness`, is a value the design computes.
+And a declaration that will #emph[never] receive a realization,
+`tilt : Tilt`, is an #emph[input]: a relationship the environment
+realizes, whose value the product reads. The kernel distinguishes none
+of these by kind; all are declarations, and the last two differ only in
+whether a realization is present. That an input is "a relationship
+realized by the world" is not a metaphor here --- it is exactly how the
+semantics of §6 reads it.
+
+== Unrealized but usable
+<unrealized-but-usable>
+The claim that an unrealized declaration is a complete design state is
+only worth making if the state is #emph[usable]. In
+$lambda_(upright(B D L))$ it is. Let the design $Delta_0$ contain
+
+$ italic(d i m B y T i l t) = chevron.l delta_1\,med chevron.l upright("sem") thick upright("Tilt") arrow.r upright("sem") thick upright("Brightness")\,med\[thin\]chevron.r\,med upright("none") chevron.r\,\
+italic(t i l t) = chevron.l delta_2\,med chevron.l upright("sem") thick upright("Tilt")\,med\[thin\]chevron.r\,med upright("none") chevron.r\, $
+
+and let the designer now declare and #emph[realize] the light:
+$ italic(l i g h t) = chevron.l delta_3\,med chevron.l upright("sem") thick upright("Brightness")\,med\[thin\]chevron.r\,med upright("some") thick\(\(upright("declRef") thick delta_1\)thick\(upright("declRef") thick delta_2\)\)chevron.r . $
+The realization of `light` is well typed in $Delta_0$, by T-Ref twice
+--- using only
+$Delta_0^(upright(t y))\(delta_1\)= upright("some") thick\(upright("sem") thick upright("Tilt") arrow.r upright("sem") thick upright("Brightness")\)$
+and
+$Delta_0^(upright(t y))\(delta_2\)= upright("some") thick\(upright("sem") thick upright("Tilt")\)$
+--- and T-App once:
+$ upright("(T-Ref)") & Theta\;Delta_0\;G\;\[thin\]tack.r upright("declRef") thick delta_1 : upright("sem") thick upright("Tilt") arrow.r upright("sem") thick upright("Brightness")\
+upright("(T-Ref)") & Theta\;Delta_0\;G\;\[thin\]tack.r upright("declRef") thick delta_2 : upright("sem") thick upright("Tilt")\
+upright("(T-App)") & Theta\;Delta_0\;G\;\[thin\]tack.r\(upright("declRef") thick delta_1\)thick\(upright("declRef") thick delta_2\): upright("sem") thick upright("Brightness") $
+
+The derivation consults $Delta_0$ only through the #emph[type view]
+$Delta^(upright(t y))$ --- the expected type of each declared identity
+--- and never asks whether $delta_1$ has a realization. `light` is a
+well-formed, typed, referenceable part of the design while `dimByTilt`
+has no formula. This is the calculus's thesis made formal, and the
+theorem that completes it is stated in §4: when `dimByTilt` is later
+realized, or given a commitment, every judgment about `light` in
+$Delta_0$ holds in the refined design (Theorem 3). The client did not
+depend on a body, so no body can invalidate it.
+
+== Design progression as refinement
+<design-progression-as-refinement>
+The running example progresses through eight commitments, in the order a
+designer might make them; each is a step in the calculus and each is
+taken up in a later section.
+
+#figure(
+  align(center)[#table(
+    columns: (25%, 25%, 25%, 25%),
+    align: (auto,auto,auto,auto,),
+    table.header([step], [the designer commits to], [the calculus
+      records], [§],),
+    table.hline(),
+    [1], [a relationship `dimByTilt : Tilt -> Brightness` exists], [an
+    unrealized declaration with that signature], [2.2, 4],
+    [2], [`light` is what `dimByTilt` yields for the current tilt], [a
+    realized declaration referring to `dimByTilt` by identity], [2.2],
+    [3], [`Tilt` is represented by an angle, `Brightness` by a
+    scalar], [write-once bindings in the concept environment
+    $Theta$], [5],
+    [4], [a formula for `dimByTilt`], [a realization, typed under the
+    grant of its own signature], [4, 5],
+    [5], [`dimByTilt` promises `monotone`], [a commitment, with evidence
+    re-verified], [4],
+    [6], [`light` updates with the interaction, in domain `fast`], [a
+    clock assignment and the domain judgment], [6],
+    [7], [the lamp's LED shows `light`], [a drive edge to an output with
+    a single driver], [8],
+    [8], [a second lamp reuses the whole behavior], [a component
+    instantiated by renaming and bound], [9],
+  )]
+  , kind: table
+  )
+
+#emph[Table 1. The running example as progressive commitment.]
+
+Conceptually, a design before all its realizations are chosen describes
+a constrained family of completed behaviors, and each step narrows the
+family: a commitment excludes realizations that lack the property, a
+realization fixes one computation, a clock assignment fixes when values
+are observed, a drive edge fixes what the product does. We use this
+reading as motivation only. The calculus does not denote a set of
+possible products; what it has is a #emph[refinement relation] on
+declarations and environments (§4.2), and the theorems are about that
+relation --- one direction of progressive commitment, from less
+determined to more. Steps that do not narrow --- changing a signature,
+dropping a commitment, replacing a realization --- are #emph[edits], and
+the calculus promises nothing about them (§4.4).
 
 = The calculus
 <the-calculus>
+The term language of $lambda_(upright(B D L))$ is a simply typed
+λ-calculus with registered first-order operators. What makes it a
+calculus of relationships rather than of functions is not its terms but
+the environments they are typed and evaluated against, and the
+projections through which each judgment may read them. This section
+fixes the syntax, the environments and the typing judgment; the design
+content of each environment is developed in the sections that follow.
+
 == Syntax
 <syntax>
 Figure 1 gives the syntax. Types are those of a simply typed calculus
@@ -267,10 +345,12 @@ Bruijn indices in the development; the paper writes names. $h$ in
 $upright("eq")_tau^h$ is a proof that $tau$ is a data type.]
 
 Terms are those of the λ-calculus plus five design-specific forms.
-$upright("declRef") thick delta$ refers to a declaration by identity;
-nothing about the declaration's interface or body is in the syntax.
-$upright("rep") thick e$ observes the representation of a concept value
-and $upright("mk") thick s thick e$ constructs one.
+$upright("declRef") thick delta$ refers to a relationship by the
+identity of its declaration; nothing about the declaration's interface
+or realization is in the syntax, which is what lets a term refer to a
+relationship that has no realization yet. $upright("rep") thick e$
+observes the representation of a concept value and
+$upright("mk") thick s thick e$ constructs one.
 $upright("delay") thick i thick e$ is the value of $e$ at the previous
 activation of the current domain, $i$ before any;
 $upright("sync") thick c thick i thick e$ is the value of $e$ in domain
@@ -293,9 +373,10 @@ hold definitionally (`Ty.prod_data`, `Ty.list_data`).
 <environments>
 A term is typed and evaluated against several environments, each read
 through a stated projection and nothing else. This discipline ---
-#emph[which environment a judgment may see] --- is what the metatheory
-rests on, and each theorem's hypotheses name the environments it depends
-on.
+#emph[which environment a judgment may see] --- is what the stability
+results of §4 rest on: a client sees a relationship's signature and
+never its realization, so the realization can change without the client
+noticing.
 
 - A #strong[declaration] is a triple
   $ upright("DesignDecl") = chevron.l thin italic(i d) : upright("DeclId")\,med italic(i n t e r f a c e) : chevron.l italic(e x p e c t e d T y p e) : upright("Ty")\,med italic(c o m m i t m e n t s) : upright("PropertyId")^(*) chevron.r\,med italic(r e a l i z a t i o n) : upright("Option") thick upright("Expr") thin chevron.r . $
@@ -305,10 +386,9 @@ on.
   $Delta^(upright(t y))\(delta\)=\(Delta thick delta\). upright("map")\(dot.op . italic(i n t e r f a c e) . italic(e x p e c t e d T y p e)\)$
   is all that typing sees; its #emph[realization view]
   $Delta^(upright(r e a l))\(delta\)=\(Delta thick delta\). upright("bind")\(dot.op . italic(r e a l i z a t i o n)\)$
-  is all that evaluation sees. An #strong[unresolved] declaration is one
+  is all that evaluation sees. An #strong[unrealized] declaration is one
   whose realization is $upright("none")$\; nothing else distinguishes
-  it.
-- A #strong[concept environment]
+  it. - A #strong[concept environment]
   $Theta : upright("SemanticId") arrow.r upright("Option") thick upright("Ty")$
   binds each concept to a representation. It is well formed,
   $Theta . upright("WF")$, when every bound representation is
@@ -323,17 +403,18 @@ on.
   $upright("grant")\(\_\)=\[thin\]$.
 - A #strong[clock environment]
   $upright(K) : upright("DeclId") arrow.r upright("Option") thick upright("ClockId")$
-  assigns each declaration a domain; $upright("none")$ is a
-  domain-agnostic pure mapping. A #strong[schedule]
+  assigns each declaration a domain; $upright("none")$ marks a
+  domain-agnostic relationship usable in any domain. A #strong[schedule]
   $S : upright("ClockId") arrow.r bb(N) arrow.r upright("Bool")$ says at
   which global ticks each domain activates. An #strong[input]
   $I : upright("DeclId") arrow.r bb(N) arrow.r upright("Value")$
-  supplies a value for every unresolved declaration at every tick.
+  supplies a value for every unrealized declaration at every tick ---
+  the environment's realization of the design's inputs.
 - An #strong[output environment]
   $Omega : upright("OutputId") arrow.r upright("Option") thick chevron.l italic(a c c e p t s) : upright("Ty")\,italic(c l o c k) : upright("ClockId") chevron.r$
   and the #strong[drive edges]
   $beta : upright("DeclId") arrow.r upright("Option") thick upright("OutputId")$
-  are introduced in §9.
+  are introduced in §8.
 
 Typing sees $Theta$, $Delta^(upright(t y))$ and $G$. Evaluation sees
 $Delta^(upright(r e a l))$, $I$ and (in several domains) $S$. The domain
@@ -399,16 +480,17 @@ Three features of Figure 2 carry the rest of the paper.
 #emph[The typing boundary.] Typing depends on the type view of
 declarations and the representation view of concepts and on nothing else
 --- not on realizations, commitments, evidence, clocks or drive edges.
-The client-stability theorem of §4 is a one-line consequence, and its
-necessity is a one-line counterexample.
+This is the formal content of #emph[relation before realization]: a
+reference is typed by the relationship's promise, and the stability of
+clients under later realization (Theorem 3) is a direct consequence.
 
 #emph[The construction boundary.] Client code is typed under
 $upright("Grant.none")$\; a declaration's realization is typed under
 $upright("Grant.of")$ its own expected type (§4.1). A value of
 $upright("sem") thick s$ is therefore constructed only inside a
-declaration whose signature announces $upright("sem") thick s$. This is
-the whole of the semantic-isolation mechanism, and §5 shows what each
-weaker alternative admits.
+declaration whose signature announces $upright("sem") thick s$: the
+signature is the realization's authority, and §5 shows what each weaker
+alternative admits.
 
 #emph[The temporal boundary.] $upright("delay")$ and $upright("sync")$
 are typed only in the empty context and only at data types. Both
@@ -416,9 +498,10 @@ restrictions were forced by the totality proof of §6, not chosen: a
 delayed closure would have to be transported across ticks, and a delay
 under a binder would re-evaluate its operand at the previous tick in an
 environment created at the current one. Temporal state therefore belongs
-to declarations, and mappings are pointwise --- the arrangement of `pre`
-in Lustre, where it lives in nodes rather than in functions
-@halbwachs1991lustre.
+to declarations --- memory is a property of a relationship, not of a
+function --- and relationships with inputs are pointwise --- the
+arrangement of `pre` in Lustre, where it lives in nodes rather than in
+functions @halbwachs1991lustre.
 
 == Inference, uniqueness and monotonicity
 <inference-uniqueness-and-monotonicity>
@@ -427,43 +510,45 @@ $upright("infer") thick Theta thick Delta thick G thick Gamma thick e : upright(
 follows the rules of Figure 2 and needs only decidability of $G$, of
 type equality and of $tau . upright("Data")$.
 
-#strong[Theorem 1 (Inference; `infer_sound`, `infer_complete`,
+#strong[Proposition 1 (Inference; `infer_sound`, `infer_complete`,
 `HasType.unique`).]
 $upright("infer") thick Theta thick Delta thick G thick Gamma thick e = upright("some") thick tau$
 iff $Theta\;Delta\;G\;Gamma tack.r e : tau$\; hence typing is decidable
 and every term has at most one type.
 
 Uniqueness matters beyond decidability: it is why the surface language's
-polymorphism can be #emph[matching] rather than unification (§8.4), and
+polymorphism can be #emph[matching] rather than unification (§7.2), and
 why a nominal mismatch is reported as "Brightness and Opacity are
-different concepts" and never as a unification residue.
-
-#strong[Theorem 2 (Monotonicity; `HasType.mono_env`,
-`HasType.mono_concept`, `HasType.mono_grant`).] Typing is monotone in
-each of its three environments: if
-$Theta\;Delta\;G\;Gamma tack.r e : tau$, then the same holds in any
-$Delta'$ with $upright("EnvRefines") thick Delta thick Delta'$ (§4.2),
-any $Theta'$ that binds at least what $Theta$ binds, and any
-$G' supset.eq G$.
+different concepts" and never as a unification residue. Typing is
+moreover monotone in each of its three environments --- under
+environment refinement (§4.2), under binding more concepts, and under a
+larger grant (`HasType.mono_env`, `HasType.mono_concept`,
+`HasType.mono_grant`); each monotonicity is one direction of progressive
+commitment.
 
 Weakening holds for the delay-free fragment by appending to the context
 (`HasType.weaken_append`); a stateful term cannot be moved under a
 binder at all, so no stronger weakening is needed.
 
-= Declarations, interfaces and refinement
-<declarations-interfaces-and-refinement>
-The foundational object is the declaration, and the foundational
-question is which changes to a declaration its clients survive. This
-section fixes the answer: a #emph[refinement order], the three steps
-that generate it, and two preservation theorems with deliberately
-different hypotheses.
+= Progressive realization
+<progressive-realization>
+A declaration evolves: it is declared with a signature, it acquires
+commitments, it acquires a realization, its commitments are
+strengthened. Throughout, other declarations refer to it. This section
+gives design progression its mathematical form --- a #emph[refinement
+order] generated by three steps --- and proves that progression
+preserves what was established before it: clients typed against a
+relationship stay typed (Theorem 3), and clients whose commitments were
+discharged through it stay discharged, provided the validation layer's
+evidence is monotone (Theorem 4), a proviso that Theorem 5 shows cannot
+be dropped.
 
 == Interfaces, evidence and satisfaction
 <interfaces-evidence-and-satisfaction>
-An interface $S = chevron.l tau\,C chevron.r$ is an expected type and a
-list of commitments --- atomic labels such as `total`, `monotone`,
-`bounded` that a client may rely on. Interfaces are ordered by monotone
-refinement:
+An interface $S = chevron.l tau\,C chevron.r$ is the relationship's
+public promise: an expected type and a list of commitments --- atomic
+labels such as `total`, `monotone`, `bounded` that a client may rely on.
+Interfaces are ordered by monotone refinement:
 $ S subset.eq.sq S' thick := thick S . tau = S' . tau thick and thick S . C subset.eq S' . C\, $
 a decidable preorder, frozen on the type and growing on commitments
 (`InterfaceRefines`). Nothing else is an interface refinement.
@@ -474,7 +559,7 @@ relation
 $italic(e v) : upright("DeclEnv") arrow.r upright("Expr") arrow.r upright("PropertyId") arrow.r upright("Prop")$.
 Evidence takes the environment because compositional discharge needs it
 --- "$A$ is monotone because $B$ is committed to be monotone" consults
-$B$'s interface. A body $e$ #strong[satisfies] $S$ in
+$B$'s interface. A realization $e$ #strong[satisfies] $S$ in
 $Theta\,Delta\,Gamma$ when it has the expected type under the grant of
 that type and every commitment is discharged:
 $ upright("Satisfies") thick italic(e v) thick Theta thick Delta thick Gamma thick e thick S thick := thick Theta\;Delta\;upright("Grant.of")\(S . tau\)\;Gamma tack.r e : S . tau thick and thick forall p in S . C . thick italic(e v) thick Delta thick e thick p . $
@@ -482,7 +567,7 @@ A declaration is well formed when its body, if any, satisfies its
 interface; a design is #strong[globally well formed],
 $upright("GlobalWF") thick italic(e v) thick Theta thick Delta$, when
 every stored declaration sits under its own identity and is well formed
-in $Delta$ at top level. An unresolved declaration is always well
+in $Delta$ at top level. An unrealized declaration is always well
 formed.
 
 The refinement order is complete for abstract evidence:
@@ -494,14 +579,14 @@ at a reference to a single declaration.
 
 == The refinement order and the lifecycle
 <the-refinement-order-and-the-lifecycle>
-A declaration takes a refinement step in one of three ways
-(`DeclRefines`), each preserving the identity by construction and each
-checked against the current environment $Delta$:
+Design progression is generated by three steps (`DeclRefines`), each
+preserving the identity by construction and each checked against the
+current environment $Delta$:
 $ frac(S subset.eq.sq S', chevron.l delta\,S\,upright("none") chevron.r arrow.r.squiggly chevron.l delta\,S'\,upright("none") chevron.r) #h(2em) frac(upright("Satisfies") thick italic(e v) thick Theta thick Delta thick Gamma thick e thick S, chevron.l delta\,S\,upright("none") chevron.r arrow.r.squiggly chevron.l delta\,S\,upright("some") thick e chevron.r) #h(2em) frac(S subset.eq.sq S' quad upright("Satisfies") thick italic(e v) thick Theta thick Delta thick Gamma thick e thick S', chevron.l delta\,S\,upright("some") thick e chevron.r arrow.r.squiggly chevron.l delta\,S'\,upright("some") thick e chevron.r) $
-An unresolved declaration may have its interface refined; an unresolved
-declaration may be realized by a satisfying body; a realized declaration
-may have its interface strengthened provided the body is
-#emph[re-verified] against the new interface. Strengthening without
+An unrealized declaration may have its interface refined; an unrealized
+declaration may be realized by a satisfying computation; a realized
+declaration may have its interface strengthened provided the realization
+is #emph[re-verified] against the new interface. Strengthening without
 re-verification breaks well-formedness, and the counterexample is
 mechanized (`naive_breaks_wellformedness`).
 
@@ -518,7 +603,7 @@ $Delta thick h . italic(i d) = upright("some") thick h and upright("DeclLeq") th
 work: it makes the update land on the slot every reference resolves to,
 which is what a name does in any environment semantics.
 
-#strong[Theorem 3 (The lifecycle is the structural order;
+#strong[Proposition 2 (The lifecycle is the structural order;
 `DeclRefinesStar_iff`).] The reflexive--transitive closure of the three
 steps, all side conditions checked in $Delta$, relates $h$ to $h'$ iff
 $upright("DeclLeq") thick h thick h'$ and $h'$ is well formed in
@@ -526,23 +611,29 @@ $Delta$.
 
 == Client stability
 <client-stability>
-Can a declaration be refined or realized without editing its clients,
-and without invalidating what was established about them? The answer has
-two halves.
+Another part of the product may already depend on a relationship before
+that relationship is realized (§2.2). Can the relationship then be
+realized, or strengthened, without editing those clients and without
+invalidating what was established about them? The answer has two halves
+with deliberately different hypotheses, and together they are the
+paper's central result: progress in the design does not destroy the
+meaning of earlier design decisions.
 
-#strong[Theorem 4 (Client stability, typing;
+#strong[Theorem 3 (Clients survive realization --- typing;
 `local_refinement_preserves_global_typing`).] If
 $Delta thick B . italic(i d) = upright("some") thick B$ and
 $upright("DeclLeq") thick B thick B'$, then every judgment
 $Theta\;Delta\;G\;Gamma tack.r e : tau$ holds in $Delta\[B'\]$.
 
 The proof is one line: typing reads $Delta$ through the type view, and
-the type view is invariant under $upright("DeclLeq")$. The theorem
-should be read as such --- its content is that letting clients see
-interfaces and never bodies is #emph[sufficient] for client stability.
-It is also necessary: change $B$'s expected type while keeping its
-identity and every client breaks; that is why the type is frozen in
-$subset.eq.sq$.
+the type view is invariant under $upright("DeclLeq")$. That the proof is
+short is the point, not a weakness. The theorem says that the decision
+to let clients see a relationship's promise and never its realization is
+#emph[sufficient] for every client to survive every realization and
+every added commitment, with no side condition. It is also necessary:
+change $B$'s expected type while keeping its identity and every client
+breaks, which is why the type is frozen in $subset.eq.sq$ and why
+changing it is an edit (§4.4).
 
 The commitment half needs more.
 
@@ -553,7 +644,7 @@ Evidence that ignores the environment is monotone; evidence that
 consults only the #emph[presence] of commitments and realizations is
 monotone; evidence that consults their #emph[absence] is not.
 
-#strong[Theorem 5 (Client stability, commitments;
+#strong[Theorem 4 (Clients survive realization --- commitments;
 `local_refinement_preserves_global_wf`,
 `local_lifecycle_preserves_global_wf`).] If $italic(e v)$ is monotone,
 $upright("GlobalWF") thick italic(e v) thick Theta thick Delta$,
@@ -563,20 +654,22 @@ $upright("GlobalWF") thick italic(e v) thick Theta thick\(Delta\[B'\]\)$.
 The same holds for a whole lifecycle $B arrow.r.squiggly^(*) B'$ checked
 against the original $Delta$.
 
-#strong[Proposition 6 (Monotonicity is necessary; `badEv_not_mono`).]
-There is an evidence relation $italic(e v)_(upright(b a d))$, a globally
-well formed two-declaration design, and a valid realization step of one
+#strong[Theorem 5 (Monotonicity is necessary; `badEv_not_mono`).] There
+is an evidence relation $italic(e v)_(upright(b a d))$, a globally well
+formed two-declaration design, and a valid realization step of one
 declaration after which the design is not globally well formed;
 consequently $italic(e v)_(upright(b a d))$ is not monotone.
 
 The relation $italic(e v)_(upright(b a d))$ discharges "$A$ is total"
-whenever the declaration $A$ reads is still unresolved --- evidence from
+whenever the declaration $A$ reads is still unrealized --- evidence from
 absence. Realizing that declaration is a perfectly valid step, and it
 destroys the discharge. The monotonicity hypothesis was not part of the
-original design; it appeared when Theorem 5 was attacked, and it is a
-Kripke-style stability condition on the validation layer: any discharge
-mechanism meant to survive refinement must be positive in the
-environment.
+original design; it appeared when Theorem 4 was attacked, and it is a
+Kripke-style stability condition imposed by the kernel on the validation
+layer: any discharge mechanism meant to survive design progression must
+be positive in the environment. Its design reading is direct --- a
+commitment may be justified by what other relationships promise, never
+by what they have not yet decided.
 
 Binding a representation to a previously unbound concept is likewise a
 refinement: typing, satisfaction and global well-formedness are monotone
@@ -586,7 +679,9 @@ different representation is an edit that breaks existing realizations
 
 == Refinement versus edit
 <refinement-versus-edit>
-Theorems 4--5 cover refinement only. Table 1 classifies the operations a
+Theorems 3--4 cover refinement only; they are what the calculus promises
+about design progression, and the line between progression and
+#emph[edit] is part of the design. Table 2 classifies the operations a
 tool offers on a declaration $B$ read by a client $A$\; each row is
 witnessed by a mechanized example on a two-declaration design.
 
@@ -608,33 +703,35 @@ witnessed by a mechanized example on a two-declaration design.
     [replace $B$ by a new identity], [edit], [dangling reference],
     [detach or replace the realization], [edit], [evidence that
     consulted the body is void],
-    [assign or change a clock domain (§7)], [edit], [domain judgment on
+    [assign or change a clock domain (§6)], [edit], [domain judgment on
     clients broken],
-    [retarget an output binding (§9)], [edit], [completeness or
+    [retarget an output binding (§8)], [edit], [completeness or
     single-driver may break],
   )]
   , kind: table
   )
 
-#emph[Table 1. Refinement versus edit.]
+#emph[Table 2. Refinement versus edit.]
 
 Two rows are instructive. Dropping a commitment changes no type, so the
 type checker is silent, yet $A$'s own commitment was discharged through
 $B$'s and is now unsupported: commitments are part of the interface in
 the same load-bearing sense as the expected type. Detaching a
-realization is an edit for the same reason. The kernel does not forbid
-edits; it declines to promise anything about them.
+realization is an edit for the same reason: clients' typing is
+unaffected, but evidence that consulted the body is void. The kernel
+does not forbid edits; it declines to promise anything about them, and a
+tool must reopen the validation of transitive dependents.
 
 == Unfolding
 <unfolding>
 Before time enters, the semantics of a design is #emph[unfolding]:
-replace each reference to a realized declaration by its body,
-recursively, stopping at unresolved declarations
+replace each reference to a realized declaration by its realization,
+recursively, stopping at unrealized declarations
 ($upright("Unfolds") thick Delta thick e thick e'$). Let
 $upright("DependsOn") thick Delta thick a thick b$ hold when the body of
 $a$ refers to $b$.
 
-#strong[Theorem 7 (Unfolding; `Unfolds.det`,
+#strong[Proposition 6 (Unfolding; `Unfolds.det`,
 `Unfolds.exists_of_acyclic`, `Unfolds.not_of_cyclic`,
 `Unfolds.refFree_of_fullyRealized`).] Unfolding is deterministic; on the
 delay-free fragment it exists iff the reference graph is acyclic; a
@@ -647,57 +744,72 @@ $upright("Acyclic") thick Delta := exists thin italic(r a n k) . thick forall a 
 and excludes cycles (`Acyclic.not_cyclic`). The pure fragment has no
 fixpoints, so a cyclic definition denotes nothing; §6 shows which cycles
 become meaningful once $upright("delay")$ exists, and that unfolding
-agrees with tick evaluation on the first-order fragment (Theorem 15).
+agrees with tick evaluation on the first-order fragment
+(`unfolds_preserves_eval`).
 
-= Nominal concepts, representation and dimensions
-<nominal-concepts-representation-and-dimensions>
-Section 4 typed declarations without saying what a type means. This
-section adds the two things a product concept carries that a number does
-not --- an identity that survives representation, and a physical
-dimension --- and states the theorems that make the identity
-trustworthy.
+= Semantic integrity
+<semantic-integrity>
+A relationship connects #emph[meanings].
+`dimByTilt : Tilt -> Brightness` relates a product concept to a product
+concept, and it is not the relationship `MotorAngle -> Brightness` even
+though a tilt and a motor angle are both angles. Section 4 typed
+declarations without saying what a type means; this section adds the two
+things a product concept carries that a number does not --- an identity
+that survives representation, and a physical dimension --- and shows
+that a realization, when it arrives, is constrained to preserve the
+semantic boundary the signature drew before it existed. The distinction
+the section rests on is stated once: a #strong[concept] is what the
+designer means, its #strong[representation] is the data it is carried
+by, and the two are bound separately, later, and write-once.
 
-== Nominal identity and the grant
-<nominal-identity-and-the-grant>
-Suppose concepts were represented only by their representation types, so
-that `Tilt` and `MotorAngle` are both
-$upright("q") thick upright("Angle")$. Then the wire
-`motorTarget := tiltSensor` is well typed and the design is globally
-well formed, because nothing in the model records the distinction.
-Nominal types $upright("sem") thick s$ over an internal identity record
-it: two distinct identities are distinct types regardless of
-representation, so the invalid wire is rejected by T-App with no
-additional judgment. An explicit relationship
+== Nominal identity, and the grant as realization authority
+<nominal-identity-and-the-grant-as-realization-authority>
+#emph[Why not identify concepts by representation?] Suppose concepts
+were represented only by their representation types, so that `Tilt` and
+`MotorAngle` are both $upright("q") thick upright("Angle")$. Then the
+wire `motorTarget := tiltSensor` is well typed and the design is
+globally well formed, because nothing in the model records the
+distinction the designer drew. Nominal types $upright("sem") thick s$
+over an internal identity record it: two distinct identities are
+distinct types regardless of representation, so the invalid wire is
+rejected by T-App with no additional judgment. An explicit relationship
 `tiltToMotor : Tilt -> MotorAngle` is an ordinary declaration of arrow
-type --- signature-first, possibly unresolved --- and it appears in the
+type --- signature-first, possibly unrealized --- and it appears in the
 term wherever a crossing occurs. The kernel has no cast, coercion or
 conversion.
 
-Nominal identity alone leaves concept values opaque: under T-Ref and
-T-App only, a value of $upright("sem") thick s$ can originate only in a
-declaration of semantic type (`no_semantic_value_without_declaration`).
-To let a formula realize a mapping, representation must be observable
-and constructible, and the obvious way to add it destroys what identity
-just bought. With global
-$upright("rep")_s : upright("sem") thick s arrow.r R$ and
+#emph[Why not let any realization construct any concept of matching
+representation?] Nominal identity alone leaves concept values opaque:
+under T-Ref and T-App only, a value of $upright("sem") thick s$ can
+originate only in a declaration of semantic type
+(`no_semantic_value_without_declaration`). That is the right state
+#emph[before] a realization exists. To let a formula realize a
+relationship, representation must be observable and constructible, and
+the obvious way to add it destroys what identity just bought. With
+global $upright("rep")_s : upright("sem") thick s arrow.r R$ and
 $upright("mk")_s : R arrow.r upright("sem") thick s$ available
 everywhere,
 $lambda x . thick upright("mk")_(upright(M o t o r))\(upright("rep")_(upright(T i l t)) thick x\)$
 is a well-typed `Tilt -> MotorAngle` in the empty environment with no
-declaration and no mapping
+declared relationship
 (`unrestricted_representation_binding_bypasses_semantic_identity`), and
 the crossing can hide inside a body whose signature mentions no motor
 (`hidden_crossing_inside_unrelated_body`). Observation alone is safe but
 cannot realize a mapping.
 
-The grant separates the two. $upright("rep")$ is typed everywhere
-(T-Rep); $upright("mk") thick s$ is typed only where $G thick s$ (T-Mk);
-client code is typed under $upright("Grant.none")$ and a body under
-$upright("Grant.of")$ of its own signature (the definition of
-$upright("Satisfies")$). Let $e . upright("constructs") thick s$ hold
-when $upright("mk") thick s$ occurs in $e$.
+The grant separates the two, and its design reading is #emph[realization
+authority]: the signature the designer wrote before any computation
+existed is what authorizes the computation's result. $upright("rep")$ is
+typed everywhere (T-Rep); $upright("mk") thick s$ is typed only where
+$G thick s$ (T-Mk); client code is typed under $upright("Grant.none")$
+and a realization under $upright("Grant.of")$ of its own signature (the
+definition of $upright("Satisfies")$). A realization of
+`Tilt -> Brightness` may construct a `Brightness` and nothing else ---
+not a `MotorAngle`, not an `Opacity`, whatever their representations.
+Let $e . upright("constructs") thick s$ hold when
+$upright("mk") thick s$ occurs in $e$.
 
-#strong[Theorem 8 (Construction is granted;
+#strong[Theorem 7 (Realization authority;
 `HasType.constructs_granted`).] If
 $Theta\;Delta\;G\;Gamma tack.r e : tau$ and
 $e . upright("constructs") thick s$, then $G thick s$. Under
@@ -726,11 +838,11 @@ annotation is added, and one consequence follows: after all bodies are
 inlined into one program, that program is checked under the universal
 grant, because each construction was authorized at its own declaration.
 Semantic isolation is a property of the design graph and survives
-inlining as provenance (Theorem 14), not as a type property of the
+inlining as provenance (Theorem 12), not as a type property of the
 executable.
 
-== Erasure
-<erasure>
+== Representation is not meaning: erasure
+<representation-is-not-meaning-erasure>
 Let $rho : upright("SemanticId") arrow.r upright("Ty")$ map each concept
 to a data type, agreeing with $Theta$ on bound concepts. Erasure
 $tau^rho$ replaces $upright("sem") thick s$ by $rho thick s$ throughout
@@ -738,7 +850,7 @@ a type; on terms, $upright("rep") thick e$ and
 $upright("mk") thick s thick e$ erase to $e^rho$, and the type indices
 of operators are erased.
 
-#strong[Theorem 9 (Erasure is sound; `HasType.erase`).] If
+#strong[Proposition 8 (Erasure is sound; `HasType.erase`).] If
 $Theta . upright("WF")$, $rho$ agrees with $Theta$, and
 $Theta\;Delta\;G\;Gamma tack.r e : tau$, then
 $Theta\;Delta^rho\;G'\;Gamma^rho tack.r e^rho : tau^rho$ for every grant
@@ -748,7 +860,10 @@ Erasure is not injective --- `Tilt` and `MotorAngle` erase to the same
 type (`erase_not_injective`) --- and the untyped baseline is exactly
 what erasure leaves: the design the nominal calculus rejects is accepted
 after erasure (`baseline_is_erased_modelA`). Generated code is therefore
-ordinary code; the semantic layer has no runtime residue.
+ordinary code; the semantic layer has no runtime residue. This is the
+precise sense in which representation is not meaning: the meaning lives
+in the design's declarations and is checked there, and the
+representation is all that runs.
 
 Three alternatives were formalized and refuted. A model in which the
 display name #emph[is] the identity makes renaming destructive
@@ -763,10 +878,13 @@ direct wire (`bweak_evaded_by_eta`); a compositional role judgment
 strong enough to close that gap has the rule shapes of typing over
 $upright("sem")$ and duplicates it.
 
-== Dimensions
-<dimensions>
-A physical quantity has type $upright("q") thick d$. There is no
-dimension-specific typing rule:
+== Dimensions: coherent arithmetic on representations
+<dimensions-coherent-arithmetic-on-representations>
+Dimensions play a narrower role than semantic identity. Once a concept
+is observed through $upright("rep")$, the arithmetic on its
+representation must remain physically coherent, and that is all
+dimensions do. A physical quantity has type $upright("q") thick d$.
+There is no dimension-specific typing rule:
 $upright("add")_d : upright("q") thick d arrow.r upright("q") thick d arrow.r upright("q") thick d$,
 $upright("mul")_(d_1 d_2) : upright("q") thick d_1 arrow.r upright("q") thick d_2 arrow.r upright("q") thick\(d_1 + d_2\)$
 and $upright("div")_(d_1 d_2)$ with $d_1 - d_2$ are registered
@@ -777,9 +895,10 @@ the zero vector is a sound translation that accepts it
 numeric baseline is the erasure of dimensional typing in the same sense
 that it is the erasure of nominal typing.
 
-Dimension and identity are orthogonal. `Tilt` and `MotorAngle` both
-bound to $upright("q") thick upright("Angle")$ remain distinct types
-(`same_dimension_does_not_imply_same_semantic_identity`); a mapping
+Dimension and identity are orthogonal, and the orthogonality is what the
+relationship-first reading needs: `Tilt` and `MotorAngle` both bound to
+$upright("q") thick upright("Angle")$ remain distinct types
+(`same_dimension_does_not_imply_same_semantic_identity`); a relationship
 realized by the dimensioned formula
 $lambda x . thick upright("mk") thick upright("Brightness") thick\(upright("rep") thick x dot.op italic(g a i n)\)$
 with $italic(g a i n) : upright("q") thick\(0 - upright("Angle")\)$ is
@@ -787,7 +906,8 @@ typed, a dimension error inside it is caught by the same typing, and the
 formula cannot manufacture a `MotorAngle` despite the shared dimension
 (`explicit_semantic_mapping_uses_dimensioned_formula`). The association
 between a concept and its dimension lives in $Theta$, not in the
-identity and not in the type constructor.
+identity and not in the type constructor: the designer says #emph[tilt
+to brightness] first and #emph[tilt is an angle] separately.
 
 Units are not in the calculus at all. A literal `90 deg` elaborates to
 $upright("lit")_(upright("Angle"))$ of a scaled magnitude; a coordinate
@@ -801,19 +921,24 @@ group in which π is a generator, so that a degree is exactly π/180
 radian; we do not develop them here. Dimensional typing is thus
 Kennedy's discipline @kennedy1997units@kennedy2010units without unit
 polymorphism in the kernel: dimension variables appear only in the
-surface's definitional families (§8.4), where matching against closed
+surface's definitional families (§7.2), where matching against closed
 dimensions instantiates them.
 
-= Reactive semantics in one domain
-<reactive-semantics-in-one-domain>
-Every declaration denotes a stream over a tick domain. This section
-gives the single-domain semantics --- one primitive, $upright("delay")$
---- and proves it deterministic and total on causal designs. Section 7
-generalizes it to many domains and shows that this section is the
-diagonal of that one.
+= Relationships in time
+<relationships-in-time>
+A relationship in an interactive physical product does not hold only in
+a type space; it holds #emph[over time], and it holds in an authored
+temporal structure --- the tilt moves with the interaction, the room
+temperature with the environment. This section interprets declarations
+in time. Its order follows the thesis: first what it means for a
+declared relationship to have a value at a tick (a stream, with
+unrealized declarations read from the environment), then how memory
+enters a relationship, then which timing domain a relationship's value
+belongs to, and finally why the one rule that governs reading across
+domains is the one that keeps the designer's temporal structure intact.
 
-== Values and evaluation
-<values-and-evaluation>
+== Declarations as streams
+<declarations-as-streams>
 Values are booleans, naturals (which also carry every
 $upright("q") thick d$\; the executable kernel's magnitudes are
 naturals), tagged concept values $upright("sem") thick s thick v$,
@@ -846,15 +971,16 @@ $ frac(rho scripts(tack.r)_t f arrow.b.double v_f quad rho scripts(tack.r)_t z a
 
 #emph[Figure 4. Single-domain evaluation (`Ev`), with $Delta$ and $I$
 ambient. In one domain $upright("sync") thick c$ evaluates exactly as
-$upright("delay")$ (rules `syncZero`, `syncSucc`), which §7 justifies.
+$upright("delay")$ (rules `syncZero`, `syncSucc`), which §6.7 justifies.
 Literals evaluate to themselves. $\#i$ is de Bruijn index $i$.]
 
-Three points of Figure 4 deserve comment. An unresolved declaration is
-an #emph[input]: E-Input reads $I thick delta thick t$. A realized
-declaration is evaluated from its body at the current tick in the
-#emph[empty] environment (E-Real): a reference's value never depends on
-the local environment of the reader, which is what makes a declaration a
-stream rather than a function of its call site
+Three points of Figure 4 deserve comment. An unrealized declaration is
+an #emph[input]: E-Input reads $I thick delta thick t$, the
+environment's realization of the relationship. A realized declaration is
+evaluated from its realization at the current tick in the #emph[empty]
+environment (E-Real): a reference's value never depends on the local
+environment of the reader, which is what makes a relationship a stream
+the design observes rather than a function of its call site
 (`Ev.declRef_env_irrelevant`). And $upright("delay")$ shifts the tick:
 read at $t + 1$, it evaluates its operand at $t$\; at $0$ it evaluates
 the initial value.
@@ -867,9 +993,9 @@ $\#2 thick\#1 thick\#0$ in an environment holding the result, the head
 and the function. This keeps $upright("Ev")$ an ordinary inductive
 relation with no mutual recursion, so every proof by induction on
 $upright("Ev")$ that predated the recursor extends by one case, and
-totality is a separate lemma by induction on the list (§8.1).
+totality is a separate lemma by induction on the list (§7.1).
 
-#strong[Theorem 10 (Determinism; `Ev.det`).] If
+#strong[Theorem 9 (Determinism; `Ev.det`).] If
 $rho scripts(tack.r)_t e arrow.b.double v_1$ and
 $rho scripts(tack.r)_t e arrow.b.double v_2$ then $v_1 = v_2$.
 
@@ -901,7 +1027,7 @@ cycle every path of which passes through a delayed operand ---
 `A := delay 0 B; B := A`, or a self-delayed accumulator --- is causal. A
 cycle that is partly delayed is not.
 
-#strong[Theorem 11 (Strict cycles have no value;
+#strong[Proposition 10 (Strict cycles have no value;
 `Ev.not_of_strictCyclic`).] If $a$ lies on a cycle of references passing
 through neither a delayed operand nor a lambda, then for every tick and
 environment there is no $v$ with
@@ -911,7 +1037,7 @@ Not "some default", not "one of several": no derivation exists. A gap
 should be recorded. A cycle guarded by a lambda, `A := λx. A x`, is
 rejected by $upright("Causal")$ yet `declRef A` does evaluate --- to a
 closure; only applying it diverges. $upright("Causal")$ is conservative
-for lambda-guarded cycles and Theorem 11 covers strict cycles only.
+for lambda-guarded cycles and Proposition 10 covers strict cycles only.
 
 == The logical relation and totality
 <the-logical-relation-and-totality>
@@ -947,9 +1073,9 @@ Well-typed inputs are inputs related to the type view:
 $Delta^(upright(t y))\(delta\)= upright("some") thick tau and Delta^(upright(r e a l))\(delta\)= upright("none") arrow.r.double cal(R)_Theta^(upright("Apply") thick Delta thick I thick t)\[tau\]thick\(I thick delta thick t\)$
 for every $t$.
 
-#strong[Theorem 12 (Fundamental theorem; `fundamental`).] Let
-$Theta . upright("WF")$, let $italic(r a n k)\,R$ witness
-$upright("Causal") thick Delta$, let
+#strong[Theorem 11 (Totality under causality; `fundamental`,
+`reactive_total`, `Ev.red`).] Let $Theta . upright("WF")$, let
+$italic(r a n k)\,R$ witness $upright("Causal") thick Delta$, let
 $upright("GlobalWF") thick italic(e v) thick Theta thick Delta$ and let
 $I$ be well typed. Then for every tick $t$, bound $r$, grant $G$, and
 $Theta\;Delta\;G\;Gamma tack.r e : tau$, and every $rho$ related to
@@ -957,21 +1083,20 @@ $Gamma$ such that every instantaneous reference of $e$ has rank below
 $r$, there is $v$ with $rho scripts(tack.r)_t e arrow.b.double v$ and
 $cal(R)_Theta^(upright("Apply") thick Delta thick I thick t)\[tau\]thick v$.
 
+Consequently, in a causal, globally well formed design with well-typed
+inputs, every declared relationship has a value at every tick, and that
+value --- unique by Theorem 9 --- is related to its expected type.
+
 #emph[Proof sketch.] Lexicographic induction on
 $\(t\,r\,upright("derivation")\)$. A delayed operand at tick $t + 1$ is
 evaluated at tick $t$ under #emph[any] rank (the first component
 decreases); an instantaneous reference to a realized declaration $delta$
 is evaluated at the same tick under the smaller bound
-$italic(r a n k) thick delta$ (the second decreases), and its body is
-well typed under the grant of its own signature by
+$italic(r a n k) thick delta$ (the second decreases), and its
+realization is well typed under the grant of its own signature by
 $upright("GlobalWF")$\; every other case is the induction on the
-derivation. The $upright("fold")$ case uses `fold_total` (§8.1).
+derivation. The $upright("fold")$ case uses `fold_total` (§7.1).
 $square.stroked.tiny$
-
-#strong[Theorem 13 (Totality; `reactive_total`, `Ev.red`).] In a causal,
-globally well formed design with well-typed inputs, every declared
-identity has a value at every tick, and that value --- unique by Theorem
-10 --- is related to its expected type.
 
 The relation is a step-indexed logical relation in the sense of Appel
 and McAllester @appel2001indexed and Ahmed @ahmed2006stepindexed, with
@@ -984,7 +1109,7 @@ self-reference well defined.
 <two-restrictions-forced-by-totality>
 T-Delay and T-Sync restrict their type to data and their context to
 empty. Neither restriction was a design decision; each is what the
-induction of Theorem 12 needs. A delayed closure would be a value at
+induction of Theorem 11 needs. A delayed closure would be a value at
 tick $t$ related by
 $cal(R)^(upright("Apply") thick Delta thick I thick t)$ that must be
 transported to tick $t + 1$, and the arrow clause is tick-indexed and
@@ -995,8 +1120,9 @@ restrictions have two corollaries stated as theorems: nothing of
 function type can be delayed or transported (`arrow_not_delayable`, by
 inversion), and memory and transport are typed only in the empty context
 (`delay_not_under_binder`, `sync_not_under_binder`). Temporal state
-therefore belongs to declarations, and a reusable stateful component is
-instantiated into fresh declarations (§10) rather than abstracted over.
+therefore belongs to declarations --- a relationship may remember, a
+function may not --- and a reusable stateful behavior is instantiated
+into fresh declarations (§9) rather than abstracted over.
 
 Initialization is semantic, not validation. Every $upright("delay")$
 carries an explicit initial value. Two toy relations without one show
@@ -1010,14 +1136,14 @@ State carries semantic tags; it never creates them. Let
 $v . upright("Taints") thick s$ hold when the tag $s$ occurs anywhere
 inside $v$ --- including inside closures' environments and bodies.
 
-#strong[Theorem 14 (Tag provenance; `Ev.tag_provenance`,
+#strong[Theorem 12 (Semantic integrity over time; `Ev.tag_provenance`,
 `temporal_state_preserves_semantic_identity`).] If no realization in
 $Delta$ constructs $s$, no input value is tainted by $s$, $e$ does not
 construct $s$ and $rho$ is clean, then every value
 $rho scripts(tack.r)_t e arrow.b.double v$ is clean. In particular a delayed
 value carries exactly the tag of the value delayed.
 
-Combined with Theorem 8 this is the runtime half of semantic isolation:
+Combined with Theorem 7 this is the runtime half of semantic integrity:
 a concept appears in a value only if some signature announces it or some
 input carries it, at every tick. The typing rule
 $upright("delay") : tau arrow.r tau arrow.r tau$ at data $tau$ gives the
@@ -1025,28 +1151,354 @@ static half --- a delayed tilt is a tilt, and a backward difference over
 a time step has dimension $upright("Length") - upright("Time")$ with no
 derivative primitive.
 
-== Wiring designs and unfolding
-<wiring-designs-and-unfolding>
-The first-order fragment of interest to a compiler consists of
-#emph[wiring] terms --- references, literals, operators, applications,
-$upright("rep")$, $upright("mk")$, $upright("delay")$ and
-$upright("sync")$, with no lambda --- and designs all of whose bodies
-are wiring terms. On this fragment closures never arise (`Ev.noClo`) and
-evaluation is independent of the local environment
-(`Ev.env_irrelevant`).
+On the first-order fragment a compiler cares about --- #emph[wiring]
+designs, whose realizations contain no lambda --- closures never arise,
+evaluation is independent of the local environment, and unfolding a
+reference to its realization preserves the value at every tick
+(`Ev.noClo`, `Ev.env_irrelevant`, `unfolds_preserves_eval`); #emph[pure]
+terms, with no reference, memory or transport, have the same value in
+every design at every tick (`Ev.pure`), which §7.2 uses for the
+definitional library.
 
-#strong[Theorem 15 (Unfolding preserves stepping;
-`unfolds_preserves_eval`).] On a wiring design with closure-free inputs,
-if $upright("Unfolds") thick Delta thick e thick e'$ then
-$rho scripts(tack.r)_t e arrow.b.double v$ iff
-$rho scripts(tack.r)_t e' arrow.b.double v$.
+== Clock domains as design context
+<clock-domains-as-design-context>
+A clock domain is part of a relationship's design context: it says
+#emph[when the relationship's value belongs to the design], and the
+designer authors it as an identity --- "moves with the interaction",
+"moves with the environment" --- before any rate is known. The time
+model is one global base tick and a schedule
+$S : upright("ClockId") arrow.r bb(N) arrow.r upright("Bool")$ saying at
+which global ticks each domain activates. A period $n$ induces the
+schedule $t med mod med n = 0$ (`Sched.periodic`); the schedule lives
+outside the design. Domain-local time is not a separate counter but the
+sequence of a domain's activations. The last activation of $c$ strictly
+before $t$ is
+$ upright("prevAct") thick S thick c thick 0 = upright("none")\,#h(2em) upright("prevAct") thick S thick c thick\(t + 1\)= upright("if") thick S thick c thick t thick upright("then") thick upright("some") thick t thick upright("else") thick upright("prevAct") thick S thick c thick t\, $
+with
+$upright("prevAct") thick S thick c thick t = upright("some") thick t' arrow.r.double t' < t and S thick c thick t'$.
 
-This licenses inlining: the value of the unfolded program at a tick is
-the value of the referencing program. A more general statement is
-available for #emph[pure] terms --- closed terms with no reference,
-state or transport --- whose value is the same in every design, at every
-tick, under every input (`Ev.pure`); §8.4 uses it for the definitional
-library.
+Each declaration is assigned a domain by the clock environment
+$upright(K)$, or none if it is a domain-agnostic relationship usable
+anywhere. The clock is interface data in every sense that matters ---
+clients' validity depends on it, it is frozen under refinement, and
+changing it is an edit (Table 2) --- and it is stored as a projection
+beside the interface, as a concept's representation is stored in $Theta$
+rather than in the type.
+
+The #strong[domain judgment]
+$upright("Clocked") thick upright(K) thick c thick e$, for
+$c : upright("Option") thick upright("ClockId")$, says that $e$ may be
+evaluated in domain $c$:
+$ upright("Clocked") thick upright(K) thick c thick\(upright("declRef") thick delta\)arrow.l.r.double & upright(K) thick delta = upright("none") thick or thick upright(K) thick delta = c\
+upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick\(upright("delay") thick i thick e\)arrow.l.r.double & upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick i and upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick e\
+upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick\(upright("sync") thick c' thick i thick e\)arrow.l.r.double & upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick i and upright("Clocked") thick upright(K) thick\(upright("some") thick c'\)thick e\
+upright("Clocked") thick upright(K) thick upright("none") thick\(upright("delay") thick i thick e\)arrow.l.r.double & upright("False") #h(2em) #h(2em) upright("Clocked") thick upright(K) thick upright("none") thick\(upright("sync") thick c' thick i thick e\)arrow.l.r.double upright("False") $
+and homomorphically elsewhere. A reference stays in its domain or is
+agnostic; a delay needs a domain; $upright("sync") thick c'$ switches
+the domain of its operand. A design is well clocked when every
+realization is clocked in its own declaration's domain. Typing is
+unchanged and blind to domains: the direct wire between two domains at
+the same value type is well typed and rejected only by
+$upright("Clocked")$. Placing the domain in the type instead was tried
+and set aside: every domain-agnostic relationship would then need clock
+polymorphism (`clocked_type_forces_polymorphism`), and nothing the type
+rejects is missed by the judgment.
+
+== Multi-domain evaluation
+<multi-domain-evaluation>
+The judgment $rho scripts(tack.r)_t^c e arrow.b.double v$ --- in domain $c$ at
+global tick $t$, with $S$, $Delta$, $I$ ambient --- is $upright("Ev")$
+with the two temporal rules replaced by four (`MEv`):
+$ frac(upright("prevAct") thick S thick c thick t = upright("none") quad rho scripts(tack.r)_t^c i arrow.b.double v, rho scripts(tack.r)_t^c upright("delay") thick i thick e arrow.b.double v) #h(2em) frac(upright("prevAct") thick S thick c thick t = upright("some") thick t' quad rho scripts(tack.r)_(t')^c e arrow.b.double v, rho scripts(tack.r)_t^c upright("delay") thick i thick e arrow.b.double v) $
+$ frac(upright("prevAct") thick S thick c' thick t = upright("none") quad rho scripts(tack.r)_t^c i arrow.b.double v, rho scripts(tack.r)_t^c upright("sync") thick c' thick i thick e arrow.b.double v) #h(2em) frac(upright("prevAct") thick S thick c' thick t = upright("some") thick t' quad rho scripts(tack.r)_(t')^(c') e arrow.b.double v, rho scripts(tack.r)_t^c upright("sync") thick c' thick i thick e arrow.b.double v) $
+$upright("delay")$ reads the previous activation of the current domain;
+$upright("sync") thick c'$ reads the previous activation of $c'$ and
+evaluates its operand #emph[there], in $c'$. All other rules carry $c$
+unchanged.
+
+#strong[Proposition 13 (One temporal primitive; `delay_is_sync_own`,
+`clocked_delay_iff_sync_own`, `single_domain_embedding`).]
+$rho scripts(tack.r)_t^c upright("delay") thick i thick e arrow.b.double v$ iff
+$rho scripts(tack.r)_t^c upright("sync") thick c thick i thick e arrow.b.double v$,
+and $upright("delay") thick i thick e$ is clocked in $c$ iff
+$upright("sync") thick c thick i thick e$ is. Under the always-active
+schedule, $rho scripts(tack.r)_t^c e arrow.b.double v$ iff
+$rho scripts(tack.r)_t e arrow.b.double v$, for every $c$.
+
+The kernel therefore has one temporal primitive --- read a domain at its
+previous activation --- and $upright("delay")$ is notation for its
+diagonal; a $upright("delay")$ in a slow domain reads three global ticks
+back where a $upright("delay")$ in a fast one reads one, with the same
+syntax. The single-domain semantics of §6.1 is the one-domain special
+case of this one rather than a replaced machine.
+
+#strong[Theorem 14 (Determinism and totality in every domain; `MEv.det`,
+`mfundamental`, `multi_domain_total`).] Multi-domain evaluation is a
+partial function, for every schedule. In a causal, globally well formed
+design with inputs well typed in every domain, every declared
+relationship has a value in every domain at every tick, related to its
+expected type.
+
+The proof reuses the logical relation of §6.3 with the application
+relation
+$upright("MApply") thick S thick Delta thick I thick c thick t$, and the
+same lexicographic induction: a transport at $t$ evaluates its operand
+at $t' < t$ under any rank. Causality is the #emph[same]
+$upright("Causal") thick Delta$: a transport's operand is never
+instantaneous, so no cross-domain cycle can be. An interpreter
+$upright("mevalF")$ is proved sound (`mevalF_sound`). Tag provenance
+holds across domains (`MEv.tag_provenance`): transport changes timing,
+not identity, and a crossing from `Tilt@fast` to `Tilt@slow` authorizes
+neither `Tilt -> MotorAngle` nor
+$upright("q") thick upright("Length") arrow.r upright("q") thick upright("Time")$,
+by the typing rule.
+
+== Strictly before: preserving the authored temporal structure
+<strictly-before-preserving-the-authored-temporal-structure>
+#emph[Why not expose scheduler order?] A transport sees only source
+activations strictly before the destination tick. The rule exists to
+preserve the designer's declared temporal relationship --- "`heat` reads
+the light as it stood before this tick" --- without adding a fact the
+designer never authored, namely which of two simultaneously active
+domains the implementation happens to run first. That is a choice with
+an observable alternative, and the alternative was built.
+
+#strong[Theorem 15 (Same-tick visibility exposes the scheduler;
+`scheduling_order_observable`).] Let $upright("MEv")_lt.eq$ be the
+semantics in which a transport may also see a simultaneously active
+source, resolved by a priority between domains. There is a two-domain
+design, a schedule and an input such that two priorities give two
+different values to the same declaration at the same tick.
+
+At tick 1 both domains are active for the first time; with the source
+first the transport delivers the source's current value, with the
+destination first it delivers the initial value. The strictly-before
+rule has no such parameter, and Theorem 14 has no order between
+simultaneously active domains in its statement. Every crossing costs one
+destination-visible step; "synchronous sub-domains evaluated in one
+instant" are, in this model, the same domain.
+
+Rate and identity are distinct. A clone of a domain with the identical
+schedule is a different domain, and a direct wire between them is
+rejected (`equal_rate_not_same_domain`); a domain at the same rate but
+shifted in phase reads different values through a transport. Rate
+changes are validation-only: they change the induced schedule and the
+observed values, but no client's well-formedness. This is where the
+calculus departs from synchronous languages that recover clocks by
+inference @colaco2003clocks@biernacki2008clock: the domain is authored,
+because the information needed to infer it --- the realization binding
+--- arrives at the point where a designer is least able to make the
+decision.
+
+= Derived structure
+<derived-structure>
+The calculus deliberately has no primitive for most of what a designer
+names. This section records what #emph[is] in the kernel for computation
+over data --- one recursor, products, equality --- and then two negative
+design results that follow the same method: before adding a primitive,
+ask whether the behavior is already derivable from declarations, memory,
+transport and lists. Every temporal operator of the surface language is,
+and so is the one construction most likely to be proposed as primitive,
+the lossless cross-domain window.
+
+== The recursor, products and equality
+<the-recursor-products-and-equality>
+$upright("fold") thick f thick z thick l$ is a #emph[term former], not a
+registered operator. The kernel has no recursion, deliberately; a total
+language needs an eliminator for its inductive data, and
+$upright("fold")$ is the one construct that applies a function value in
+the course of evaluation. Registered operators never apply closures. The
+alternative of one primitive per collection operation was rejected
+because a primitive cannot apply a closure and each would need its own
+evaluation rule; the alternative of bounded unrolling was rejected
+because lists --- the cross-domain window --- are unbounded.
+
+The recursor is total on related values (`fold_total`, `mfold_total`),
+by an induction on the list separate from Theorem 11, which invokes it
+in its $upright("fold")$ case. Every collection operation --- `map`,
+`filter`, `any`, `all`, `contains`, `append`, `sum`, `zip`, and through
+$upright("toList")$ the option eliminators --- is a definition over
+$upright("fold")$, and each is proved to compute the mathematical
+function it names through one general lemma: the recursor computes
+$upright("List.foldr") thick g$ whenever the step closure implements $g$
+on the reachable accumulators (`fold_spec`\; then `any_spec`,
+`all_spec`, `map_spec`, `filter_spec`, `min_spec`, `clamp_spec`, …).
+Finite quantification is a fold ---
+$forall x in italic(x s) . thin P thin x$ iff `all xs P` evaluates to
+true (`forall_in_list`, `exists_in_list`) --- and a finite-set literal
+means membership with duplicates irrelevant (`oneOf_mem`,
+`oneOf_dup_irrelevant`), so there is no `Set` type and no uniqueness
+convention.
+
+$tau times sigma$ with $upright("pair")$, $upright("fst")$,
+$upright("snd")$ entered the kernel after the Church encoding was tried
+and refuted twice. A Church pair is an arrow, and arrows are not data:
+nothing of function type can be delayed or transported
+(`arrow_not_delayable`), so paired #emph[state] --- a delayed reading
+with its timestamp --- needs a data product. And a Church pair used as a
+first-class value needs rank-2 types: in a toy System F with a rank
+measure, the type of $upright("fst")$ on Church pairs has rank 2
+(`church_fst_rank`), and in the prenex fragment a pair instantiated at
+one result type serves only one projection
+(`church_pair_prenex_one_projection`). Products are value composition
+only; they are never a component interface or an output bundle (§9 shows
+what a tuple-returning declaration does to the dependency graph).
+
+$upright("eq")_tau^h$ is structural equality at every data type ---
+booleans, numbers, $upright("none")$/$upright("some")$, pairs and lists
+componentwise, concept values by tag and representation --- with the
+proof $h : tau . upright("Data")$ carried #emph[in the syntax]. This is
+the kernel's only capability evidence: an equality on a function type is
+unwritable rather than ill typed, which keeps T-Prim unconditional. On
+first-order values structural equality is equality (`Value.beq_iff`, by
+a mutual induction over the nested value type).
+
+Order is deliberately not generalized. A first formulation gave `<` a
+structural meaning at every data type --- booleans, options, pairs and
+lists lexicographically --- and it was formally consistent. An audit
+rejected it on the grounds that no such order has a design meaning:
+`mode1 < mode2` would order modes by a constructor tag, `None < Some x`
+is an artifact. The structural order was deleted and $upright("lt")_d$
+restored to quantities only. So
+$upright("Data") arrow.r.double upright("Eq")$ holds (`Cap.eq_iff_data`)
+but $upright("Eq") ⇏ upright("Ord")$\; order on a #emph[concept] is a
+surface capability --- a concept the designer declared ordered and
+represented by a quantity compares as $upright("lt")_d$ on
+$upright("rep")$, a term the kernel already admits
+(`lt_only_on_quantities`, `lt_rejected`, `min_mode_rejected`).
+Enumerations follow the same rule: equality is natural, declaration
+order is never silently behavioral order.
+
+== Polymorphism by families, and the library as combinators
+<polymorphism-by-families-and-the-library-as-combinators>
+Five models of polymorphism were compared: a monomorphic kernel;
+per-type duplication; rank-1 parametric polymorphism; System F; higher
+rank. The one adopted is rank-1 #emph[as definitional families]: every
+library entry is a function $upright("Ty") arrow.r upright("Expr")$ (or
+$upright("Dim") arrow.r upright("Expr")$) in the metalanguage, and a
+scheme is a pattern over type and dimension variables with capability
+constraints. The kernel sees only the instances
+(`instances_are_monomorphic`: three uses of `min` are three kernel
+terms), and T-Prim, T-App and Proposition 1 are unchanged.
+
+Why this needs no kernel support: a use site always has #emph[closed]
+argument types. Every declaration's expected type is frozen and closed,
+and inference is bottom-up, so finding the instance of a scheme is
+one-way #emph[matching] of the scheme's pattern against closed types ---
+decidable, returning the unique substitution on the pattern's variables
+(`matchTy_sound`, `matchTy_complete`). There is no unification of two
+open types, no let-generalization inside expressions
+@damas1982principal, and no principal-type search; those problems arise
+when a definition's type is inferred from its body, and every definition
+here carries its signature. The situation is that of local type
+inference @pierce2000local with no bidirectionality needed. Capability
+constraints are checked after matching (`Scheme.instantiate_sound`), and
+the two failure points have designer-level explanations: #emph[no
+instance] and #emph[capability failed]. System F was rejected by
+measuring what it would add --- the prenex fragment #emph[is]
+instantiation of families --- and every candidate higher-rank use has a
+rank-1 replacement (`applyBoth_rank`, `applyBoth_replacement`).
+Dimension polymorphism (`sum : list (q d) → q d`) uses the same
+mechanism with dimension pattern variables; no kind system, because the
+dimension algebra already lives in the operator table.
+
+Nominality survives all of it. #emph[Any] family typed at
+$alpha arrow.r alpha arrow.r alpha$, instantiated at concept $s$,
+rejects an argument of concept $s' eq.not s$, the representations never
+consulted (`generic_preserves_identity`); the same for
+$upright("q") thick d$ versus $upright("q") thick d'$
+(`generic_preserves_dimension`). This is Reynolds's abstraction
+@reynolds1983types and Wadler's free theorems @wadler1989free at the
+level of syntax: a family cannot inspect what it is instantiated at,
+because it is instantiated by substitution into a closed term.
+
+Every library entry is a #strong[combinator]: variables, literals,
+lambdas, applications, registered operators, the recursor and
+$upright("rep")$ --- no reference, no state, no transport, no
+$upright("mk")$. For combinators four facts are proved once and combine
+into an inlining statement (`lib_expansion`): typing is independent of
+the design and the grant and reads $Theta$ only through write-once
+bindings (`HasType.comb_irrelevant`); the value is the same in every
+design at every tick under every input (`lib_eval_context_free`, from
+`Ev.pure`); the term is clocked in every domain (`lib_clocked`); nothing
+is constructed (`Comb.noConstruct`). This is what lets an implementation
+inline an equation at each use without creating a declaration --- a
+library entry as a declaration would be monomorphic and would enter the
+dependency graph.
+
+The expressiveness ceiling, stated once: total first-order-data
+computation over booleans, quantities, concepts, options, lists and
+pairs, with higher-order functions and one list recursor; generic
+definitions instantiated at closed types; no general recursion, no type
+abstraction in terms, no sums (an enumeration with a payload is encoded
+as a tag paired with an optional payload, and a kernel sum would cost
+one more eliminator term former exactly like $upright("fold")$), no
+unbounded quantification. This is a design conclusion backed by executed
+cases and the proved library; it is not a minimality theorem.
+
+== The window: a negative design result
+<the-window-a-negative-design-result>
+Within one domain an occurrence is a stream of optional type (§7.4).
+Across domains this fails: $upright("sync")$ is a zero-order hold, so a
+slow consumer of a fast event source sees the last value only. Two fast
+events at ticks 1 and 2 and one event at tick 2 are indistinguishable at
+the slow activation at tick 3, and a single event at tick 1 followed by
+a quiet fast tick is dropped outright
+(`opt_loses_multiplicity_under_sync`). The counterexample is against
+$upright("sync")$ as an #emph[event transport], not against optional
+types; it says that multiplicity and order are observable across domains
+and that keeping them requires buffering.
+
+What the destination should see is the source's activations since the
+destination's own previous activation --- the #emph[window],
+$upright("windowTicks") thick S thick italic(s r c) thick italic(d s t) thick t$,
+the source ticks in
+$\[upright("prevAct") thick S thick italic(d s t) thick t\,med t\)$. The
+window equals the source's accumulated log read at the current tick
+minus its length at the previous destination activation
+(`buffer_from_log_and_cursor`): two single-instant reads, a
+$upright("sync")$ of a source-side accumulator and a $upright("delay")$
+of a cursor. With list data this is five ordinary declarations:
+
+```
+log     @src :  cons src (delay nil log)             -- source-side accumulator
+logD    @dst :  sync src nil log                     -- the log, transported
+seen    @dst :  length logD                          -- log length now
+cursor  @dst :  delay 0 seen                         -- log length at the previous activation
+window  @dst :  reverse (take (seen - cursor) logD)  -- the new entries, oldest first
+```
+
+#strong[Theorem 16 (The window is derivable;
+`buffer_window_correspondence`).] For every schedule, input, destination
+domain and tick, if the five declarations are realized as above and
+$italic(s r c)$ is an input, then
+$\[thin\]scripts(tack.r)_t^(italic(d s t)) upright("window") arrow.b.double upright("list") thin\(upright("map") thin\(I thin italic(s r c)\)thin\(upright("windowTicks") thick S thick italic(s r c) thick italic(d s t) thick t\)\)$.
+
+The elaboration is well typed and well clocked
+(`buffer_elaboration_well_typed`, `buffer_elaboration_well_clocked`);
+the list is injective on windows, ordered by tick, and
+multiplicity-preserving for every predicate (`buffer_lossless`,
+`window_to_list_preserves_order`,
+`window_to_list_preserves_multiplicity`). The general negative result is
+that any summary depending only on the newest $k$ entries, for any fixed
+$k$, identifies a $k$-entry window with a $\(k + 1\)$-entry window
+(`bounded_summary_not_lossless`); a lossless summary is injective and
+therefore unbounded (`lossless_iff_injective`). Capacity is thus a
+deployment obligation on the schedule --- for periodic schedules one
+destination period of source activations suffices
+(`periodic_capacity_sufficient`) --- and the only overflow policy that
+preserves the semantics is to reject the deployment; dropping is a
+semantic change (`bounded_buffer_agrees`, `negE`).
+
+The point for the calculus is what was #emph[not] added, and the method
+by which it was not added --- a candidate primitive was formalized, its
+behavior was derived from the existing kernel, and the derivation was
+proved correct: no event type, no buffer primitive, no scheduler order,
+no same-tick visibility, no implicit overflow rule. An event stream is a
+data-typed declaration in a domain; an occurrence is its value at an
+activation; a lossless view of it across domains is the five
+declarations; `latest`, `count`, `coalesce` are ordinary computations
+over `window`.
 
 == Derived temporal operators
 <derived-temporal-operators>
@@ -1080,7 +1532,7 @@ has the intended trace.
   , kind: table
   )
 
-#emph[Table 2. Derived temporal operators
+#emph[Table 3. Derived temporal operators
 (`Experiments/ReactiveAlternatives.lean`).]
 
 There is no signal type in $upright("Ty")$: under this semantics a
@@ -1090,372 +1542,23 @@ an input delivers at most one value per tick by construction, so an
 occurrence is a stream of optional type, and the streams of type
 $upright("opt") thick tau$ are exactly the streams of multiplicity at
 most one. What separates an occurrence from an optional value can only
-be seen when a source ticks faster than its observer, which is a
-cross-domain question (§7.5). State has no identity of its own: a cell
+be seen when a source ticks faster than its observer, which is the
+cross-domain question of §7.3. State has no identity of its own: a cell
 is a $upright("delay")$ in a declaration body, consumers refer to the
 declaration, and there is consequently no notion of two writers to one
 cell.
 
-= Clock domains
-<clock-domains>
-"Contact and orientation move with the interaction; temperature moves
-with the environment." A designer can say this before any rate is known,
-and it is a statement about which quantities update together, not about
-how often. The calculus records it as a nominal #strong[clock domain]
-and treats rate as data outside the kernel.
-
-== Schedules and the domain judgment
-<schedules-and-the-domain-judgment>
-The time model is one global base tick and a schedule
-$S : upright("ClockId") arrow.r bb(N) arrow.r upright("Bool")$ saying at
-which global ticks each domain activates. A period $n$ induces the
-schedule $t med mod med n = 0$ (`Sched.periodic`); the schedule lives
-outside the design. Domain-local time is not a separate counter but the
-sequence of a domain's activations. The last activation of $c$ strictly
-before $t$ is
-$ upright("prevAct") thick S thick c thick 0 = upright("none")\,#h(2em) upright("prevAct") thick S thick c thick\(t + 1\)= upright("if") thick S thick c thick t thick upright("then") thick upright("some") thick t thick upright("else") thick upright("prevAct") thick S thick c thick t\, $
-with
-$upright("prevAct") thick S thick c thick t = upright("some") thick t' arrow.r.double t' < t and S thick c thick t'$.
-
-Each declaration is assigned a domain by the clock environment
-$upright(K)$, or none if it is a pure mapping usable anywhere. The clock
-is interface data in every sense that matters --- clients' validity
-depends on it, it is frozen under refinement, and changing it is an edit
-(Table 1) --- and it is stored as a projection beside the interface, as
-a concept's representation is stored in $Theta$ rather than in the type.
-
-The #strong[domain judgment]
-$upright("Clocked") thick upright(K) thick c thick e$, for
-$c : upright("Option") thick upright("ClockId")$, says that $e$ may be
-evaluated in domain $c$:
-$ upright("Clocked") thick upright(K) thick c thick\(upright("declRef") thick delta\)arrow.l.r.double & upright(K) thick delta = upright("none") thick or thick upright(K) thick delta = c\
-upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick\(upright("delay") thick i thick e\)arrow.l.r.double & upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick i and upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick e\
-upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick\(upright("sync") thick c' thick i thick e\)arrow.l.r.double & upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick i and upright("Clocked") thick upright(K) thick\(upright("some") thick c'\)thick e\
-upright("Clocked") thick upright(K) thick upright("none") thick\(upright("delay") thick i thick e\)arrow.l.r.double & upright("False") #h(2em) #h(2em) upright("Clocked") thick upright(K) thick upright("none") thick\(upright("sync") thick c' thick i thick e\)arrow.l.r.double upright("False") $
-and homomorphically elsewhere. A reference stays in its domain or is
-agnostic; a delay needs a domain; $upright("sync") thick c'$ switches
-the domain of its operand. A design is well clocked when every body is
-clocked in its own declaration's domain. Typing is unchanged and blind
-to domains: the direct wire between two domains at the same value type
-is well typed and rejected only by $upright("Clocked")$. Placing the
-domain in the type instead was tried and set aside: every pure mapping
-would then need clock polymorphism (`clocked_type_forces_polymorphism`),
-and nothing the type rejects is missed by the judgment.
-
-== Multi-domain evaluation
-<multi-domain-evaluation>
-The judgment $rho scripts(tack.r)_t^c e arrow.b.double v$ --- in domain $c$ at
-global tick $t$, with $S$, $Delta$, $I$ ambient --- is $upright("Ev")$
-with the two temporal rules replaced by four (`MEv`):
-$ frac(upright("prevAct") thick S thick c thick t = upright("none") quad rho scripts(tack.r)_t^c i arrow.b.double v, rho scripts(tack.r)_t^c upright("delay") thick i thick e arrow.b.double v) #h(2em) frac(upright("prevAct") thick S thick c thick t = upright("some") thick t' quad rho scripts(tack.r)_(t')^c e arrow.b.double v, rho scripts(tack.r)_t^c upright("delay") thick i thick e arrow.b.double v) $
-$ frac(upright("prevAct") thick S thick c' thick t = upright("none") quad rho scripts(tack.r)_t^c i arrow.b.double v, rho scripts(tack.r)_t^c upright("sync") thick c' thick i thick e arrow.b.double v) #h(2em) frac(upright("prevAct") thick S thick c' thick t = upright("some") thick t' quad rho scripts(tack.r)_(t')^(c') e arrow.b.double v, rho scripts(tack.r)_t^c upright("sync") thick c' thick i thick e arrow.b.double v) $
-$upright("delay")$ reads the previous activation of the current domain;
-$upright("sync") thick c'$ reads the previous activation of $c'$ and
-evaluates its operand #emph[there], in $c'$. All other rules carry $c$
-unchanged.
-
-#strong[Theorem 16 (Memory is transport at the own domain;
-`delay_is_sync_own`, `clocked_delay_iff_sync_own`).]
-$rho scripts(tack.r)_t^c upright("delay") thick i thick e arrow.b.double v$ iff
-$rho scripts(tack.r)_t^c upright("sync") thick c thick i thick e arrow.b.double v$,
-and $upright("delay") thick i thick e$ is clocked in $c$ iff
-$upright("sync") thick c thick i thick e$ is.
-
-The kernel therefore has one temporal primitive --- read a domain at its
-previous activation --- and $upright("delay")$ is notation for its
-diagonal. A $upright("delay")$ in a slow domain reads three global ticks
-back where a $upright("delay")$ in a fast one reads one, with the same
-syntax.
-
-#strong[Theorem 17 (Single-domain embedding;
-`single_domain_embedding`).] Under the always-active schedule,
-$rho scripts(tack.r)_t^c e arrow.b.double v$ iff
-$rho scripts(tack.r)_t e arrow.b.double v$, for every $c$.
-
-The results of §6 are thus the one-domain special case of this section
-rather than a replaced machine.
-
-#strong[Theorem 18 (Determinism; `MEv.det`).] Multi-domain evaluation is
-a partial function, for every schedule.
-
-#strong[Theorem 19 (Totality in every domain; `mfundamental`,
-`multi_domain_total`).] In a causal, globally well formed design with
-inputs well typed in every domain, every declared identity has a value
-in every domain at every tick, related to its expected type.
-
-The proof reuses the logical relation of §6.3 with the application
-relation
-$upright("MApply") thick S thick Delta thick I thick c thick t$, and the
-same lexicographic induction: a transport at $t$ evaluates its operand
-at $t' < t$ under any rank. Causality is the #emph[same]
-$upright("Causal") thick Delta$: a transport's operand is never
-instantaneous, so no cross-domain cycle can be. An interpreter
-$upright("mevalF")$ is proved sound (`mevalF_sound`). Tag provenance
-holds across domains (`MEv.tag_provenance`): transport changes timing,
-not identity, and a crossing from `Tilt@fast` to `Tilt@slow` authorizes
-neither `Tilt -> MotorAngle` nor
-$upright("q") thick upright("Length") arrow.r upright("q") thick upright("Time")$,
-by the typing rule.
-
-== Strictly before, and what the alternative exposes
-<strictly-before-and-what-the-alternative-exposes>
-A transport sees only source activations strictly before the destination
-tick. That is a choice with an observable alternative, and the
-alternative was built.
-
-#strong[Theorem 20 (Same-tick visibility exposes the scheduler;
-`scheduling_order_observable`).] Let $upright("MEv")_lt.eq$ be the
-semantics in which a transport may also see a simultaneously active
-source, resolved by a priority between domains. There is a two-domain
-design, a schedule and an input such that two priorities give two
-different values to the same declaration at the same tick.
-
-At tick 1 both domains are active for the first time; with the source
-first the transport delivers the source's current value, with the
-destination first it delivers the initial value. The strictly-before
-rule has no such parameter, and Theorem 18 has no order between
-simultaneously active domains in its statement. Every crossing costs one
-destination-visible step; "synchronous sub-domains evaluated in one
-instant" are, in this model, the same domain.
-
-Rate and identity are distinct. A clone of a domain with the identical
-schedule is a different domain, and a direct wire between them is
-rejected (`equal_rate_not_same_domain`); a domain at the same rate but
-shifted in phase reads different values through a transport. Rate
-changes are validation-only: they change the induced schedule and the
-observed values, but no client's well-formedness. This is where the
-calculus departs from synchronous languages that recover clocks by
-inference @colaco2003clocks@biernacki2008clock: the domain is authored,
-because the information needed to infer it --- the realization binding
---- arrives at the point where a designer is least able to make the
-decision.
-
-== Occurrences across domains: the window buffer
-<occurrences-across-domains-the-window-buffer>
-Within one domain an occurrence is a stream of optional type. Across
-domains this fails: $upright("sync")$ is a zero-order hold, so a slow
-consumer of a fast event source sees the last value only. Two fast
-events at ticks 1 and 2 and one event at tick 2 are indistinguishable at
-the slow activation at tick 3, and a single event at tick 1 followed by
-a quiet fast tick is dropped outright
-(`opt_loses_multiplicity_under_sync`). The counterexample is against
-$upright("sync")$ as an #emph[event transport], not against optional
-types; it says that multiplicity and order are observable across domains
-and that keeping them requires buffering.
-
-What the destination should see is the source's activations since the
-destination's own previous activation --- the #emph[window],
-$upright("windowTicks") thick S thick italic(s r c) thick italic(d s t) thick t$,
-the source ticks in
-$\[upright("prevAct") thick S thick italic(d s t) thick t\,med t\)$. The
-window equals the source's accumulated log read at the current tick
-minus its length at the previous destination activation
-(`buffer_from_log_and_cursor`): two single-instant reads, a
-$upright("sync")$ of a source-side accumulator and a $upright("delay")$
-of a cursor. With list data this is five ordinary declarations:
-
-```
-log     @src :  cons src (delay nil log)             -- source-side accumulator
-logD    @dst :  sync src nil log                     -- the log, transported
-seen    @dst :  length logD                          -- log length now
-cursor  @dst :  delay 0 seen                         -- log length at the previous activation
-window  @dst :  reverse (take (seen - cursor) logD)  -- the new entries, oldest first
-```
-
-#strong[Theorem 21 (The window is computed;
-`buffer_window_correspondence`).] For every schedule, input, destination
-domain and tick, if the five declarations are realized as above and
-$italic(s r c)$ is an input, then
-$\[thin\]scripts(tack.r)_t^(italic(d s t)) upright("window") arrow.b.double upright("list") thin\(upright("map") thin\(I thin italic(s r c)\)thin\(upright("windowTicks") thick S thick italic(s r c) thick italic(d s t) thick t\)\)$.
-
-The elaboration is well typed and well clocked
-(`buffer_elaboration_well_typed`, `buffer_elaboration_well_clocked`);
-the list is injective on windows, ordered by tick, and
-multiplicity-preserving for every predicate (`buffer_lossless`,
-`window_to_list_preserves_order`,
-`window_to_list_preserves_multiplicity`). The general negative result is
-that any summary depending only on the newest $k$ entries, for any fixed
-$k$, identifies a $k$-entry window with a $\(k + 1\)$-entry window
-(`bounded_summary_not_lossless`); a lossless summary is injective and
-therefore unbounded (`lossless_iff_injective`). Capacity is thus a
-deployment obligation on the schedule --- for periodic schedules one
-destination period of source activations suffices
-(`periodic_capacity_sufficient`) --- and the only overflow policy that
-preserves the semantics is to reject the deployment; dropping is a
-semantic change (`bounded_buffer_agrees`, `negE`).
-
-The point for the calculus is what was #emph[not] added: no event type,
-no buffer primitive, no scheduler order, no same-tick visibility, no
-implicit overflow rule. An event stream is a data-typed declaration in a
-domain; an occurrence is its value at an activation; a lossless view of
-it across domains is the five declarations; `latest`, `count`,
-`coalesce` are ordinary computations over `window`.
-
-= Data, the recursor and polymorphism
-<data-the-recursor-and-polymorphism>
-The kernel of §3--7 computes with booleans, counts, quantities, concepts
-and optional values and abstracts with lambdas over them. A product
-needs more: a mode tested against a finite set of modes, every reading
-below a threshold, a pair of readings, a calibration mapped over a
-collection. This section records the smallest typed data basis that
-supports them, what could not be derived and why, and how polymorphism
-is provided without a type variable in the kernel.
-
-== The list recursor
-<the-list-recursor>
-$upright("fold") thick f thick z thick l$ is a #emph[term former], not a
-registered operator. The kernel has no recursion, deliberately; a total
-language needs an eliminator for its inductive data, and
-$upright("fold")$ is the one construct that applies a function value in
-the course of evaluation. Registered operators never apply closures. The
-alternative of one primitive per collection operation was rejected
-because a primitive cannot apply a closure and each would need its own
-evaluation rule; the alternative of bounded unrolling was rejected
-because lists --- the cross-domain window --- are unbounded.
-
-#strong[Theorem 22 (The recursor is total; `fold_total`,
-`mfold_total`).] If $v_f$ is related at
-$tau arrow.r sigma arrow.r sigma$, $v_z$ at $sigma$ and every element of
-$arrow(w)$ at $tau$, then
-$\[upright("list") thin arrow(w)\,v_z\,v_f\]scripts(tack.r)_t upright("fold") thick\#2 thick\#1 thick\#0 arrow.b.double r$
-for some $r$ related at $sigma$.
-
-The proof is an induction on the list, separate from the fundamental
-theorem, which invokes it in its $upright("fold")$ case. Every
-collection operation --- `map`, `filter`, `any`, `all`, `contains`,
-`append`, `sum`, `zip`, and through $upright("toList")$ the option
-eliminators --- is a definition over $upright("fold")$, and each is
-proved to compute the mathematical function it names through one general
-lemma: the recursor computes $upright("List.foldr") thick g$ whenever
-the step closure implements $g$ on the reachable accumulators
-(`fold_spec`\; then `any_spec`, `all_spec`, `map_spec`, `filter_spec`,
-`min_spec`, `clamp_spec`, …). Finite quantification is a fold ---
-$forall x in italic(x s) . thin P thin x$ iff `all xs P` evaluates to
-true (`forall_in_list`, `exists_in_list`) --- and a finite-set literal
-means membership with duplicates irrelevant (`oneOf_mem`,
-`oneOf_dup_irrelevant`), so there is no `Set` type and no uniqueness
-convention.
-
-== Products, and why not Church pairs
-<products-and-why-not-church-pairs>
-$tau times sigma$ with $upright("pair")$, $upright("fst")$,
-$upright("snd")$ entered the kernel after the Church encoding was tried
-and refuted twice. A Church pair is an arrow, and arrows are not data:
-nothing of function type can be delayed or transported
-(`arrow_not_delayable`), so paired #emph[state] --- a delayed reading
-with its timestamp --- needs a data product. And a Church pair used as a
-first-class value needs rank-2 types: in a toy System F with a rank
-measure, the type of $upright("fst")$ on Church pairs has rank 2
-(`church_fst_rank`), and in the prenex fragment a pair instantiated at
-one result type serves only one projection
-(`church_pair_prenex_one_projection`). Products are value composition
-only; they are never a component interface or an output bundle (§10
-shows what a tuple-returning declaration does to the dependency graph).
-
-== Equality with its evidence in the syntax
-<equality-with-its-evidence-in-the-syntax>
-$upright("eq")_tau^h$ is structural equality at every data type ---
-booleans, numbers, $upright("none")$/$upright("some")$, pairs and lists
-componentwise, concept values by tag and representation --- with the
-proof $h : tau . upright("Data")$ carried #emph[in the syntax]. This is
-the kernel's only capability evidence: an equality on a function type is
-unwritable rather than ill typed, which keeps T-Prim unconditional. On
-first-order values structural equality is equality (`Value.beq_iff`, by
-a mutual induction over the nested value type).
-
-Order is deliberately not generalized. A first formulation gave `<` a
-structural meaning at every data type --- booleans, options, pairs and
-lists lexicographically --- and it was formally consistent. An audit
-rejected it on the grounds that no such order has a design meaning:
-`mode1 < mode2` would order modes by a constructor tag, `None < Some x`
-is an artifact. The structural order was deleted and $upright("lt")_d$
-restored to quantities only. So
-$upright("Data") arrow.r.double upright("Eq")$ holds (`Cap.eq_iff_data`)
-but $upright("Eq") ⇏ upright("Ord")$\; order on a #emph[concept] is a
-surface capability --- a concept the designer declared ordered and
-represented by a quantity compares as $upright("lt")_d$ on
-$upright("rep")$, a term the kernel already admits
-(`lt_only_on_quantities`, `lt_rejected`, `min_mode_rejected`).
-Enumerations follow the same rule: equality is natural, declaration
-order is never silently behavioral order.
-
-== Rank-1 polymorphism by families
-<rank-1-polymorphism-by-families>
-Five models of polymorphism were compared: a monomorphic kernel;
-per-type duplication; rank-1 parametric polymorphism; System F; higher
-rank. The one adopted is rank-1 #emph[as definitional families]: every
-library entry is a function $upright("Ty") arrow.r upright("Expr")$ (or
-$upright("Dim") arrow.r upright("Expr")$) in the metalanguage, and a
-scheme is a pattern over type and dimension variables with capability
-constraints. The kernel sees only the instances
-(`instances_are_monomorphic`: three uses of `min` are three kernel
-terms), and T-Prim, T-App and Theorem 1 are unchanged.
-
-Why this needs no kernel support: a use site always has #emph[closed]
-argument types. Every declaration's expected type is frozen and closed,
-and inference is bottom-up, so finding the instance of a scheme is
-one-way #emph[matching] of the scheme's pattern against closed types ---
-decidable, returning the unique substitution on the pattern's variables
-(`matchTy_sound`, `matchTy_complete`). There is no unification of two
-open types, no let-generalization inside expressions
-@damas1982principal, and no principal-type search; those problems arise
-when a definition's type is inferred from its body, and every definition
-here carries its signature. The situation is that of local type
-inference @pierce2000local with no bidirectionality needed. Capability
-constraints are checked after matching (`Scheme.instantiate_sound`), and
-the two failure points have designer-level explanations: #emph[no
-instance] and #emph[capability failed]. System F was rejected by
-measuring what it would add --- the prenex fragment #emph[is]
-instantiation of families --- and every candidate higher-rank use has a
-rank-1 replacement (`applyBoth_rank`, `applyBoth_replacement`).
-Dimension polymorphism (`sum : list (q d) → q d`) uses the same
-mechanism with dimension pattern variables; no kind system, because the
-dimension algebra already lives in the operator table.
-
-Nominality survives all of it. #emph[Any] family typed at
-$alpha arrow.r alpha arrow.r alpha$, instantiated at concept $s$,
-rejects an argument of concept $s' eq.not s$, the representations never
-consulted (`generic_preserves_identity`); the same for
-$upright("q") thick d$ versus $upright("q") thick d'$
-(`generic_preserves_dimension`). This is Reynolds's abstraction
-@reynolds1983types and Wadler's free theorems @wadler1989free at the
-level of syntax: a family cannot inspect what it is instantiated at,
-because it is instantiated by substitution into a closed term.
-
-== The library as combinators, and inlining
-<the-library-as-combinators-and-inlining>
-Every library entry is a #strong[combinator]: variables, literals,
-lambdas, applications, registered operators, the recursor and
-$upright("rep")$ --- no reference, no state, no transport, no
-$upright("mk")$. For combinators four facts are proved once and combine
-into an inlining statement (`lib_expansion`): typing is independent of
-the design and the grant and reads $Theta$ only through write-once
-bindings (`HasType.comb_irrelevant`); the value is the same in every
-design at every tick under every input (`lib_eval_context_free`, from
-`Ev.pure`); the term is clocked in every domain (`lib_clocked`); nothing
-is constructed (`Comb.noConstruct`). This is what lets an implementation
-inline an equation at each use without creating a declaration --- a
-library entry as a declaration would be monomorphic and would enter the
-dependency graph.
-
-The expressiveness ceiling, stated once: total first-order-data
-computation over booleans, quantities, concepts, options, lists and
-pairs, with higher-order functions and one list recursor; generic
-definitions instantiated at closed types; no general recursion, no type
-abstraction in terms, no sums (an enumeration with a payload is encoded
-as a tag paired with an optional payload, and a kernel sum would cost
-one more eliminator term former exactly like $upright("fold")$), no
-unbounded quantification. This is a design conclusion backed by executed
-cases and the proved library; it is not a minimality theorem.
-
-= Physical outputs
-<physical-outputs>
-A declaration computes a value; it does not move hardware. Physical
-effect happens only through an explicit #strong[drive edge] from a
-declaration to a nominally identified #strong[output] --- a logical
-actuator channel, a resource in a different sort from both concepts and
-declarations: "the desired steering angle" is a value, "the steering
-motor" is a resource.
+= Physical effect
+<physical-effect>
+A relationship, realized and evaluated, yields a value; a value is not
+yet an effect. The chain the calculus draws is #emph[relationship →
+realized value → explicit drive edge → physical effect], and this
+section is the last arrow. A declaration computes a value; it does not
+move hardware. Physical effect happens only through an explicit
+#strong[drive edge] from a declaration to a nominally identified
+#strong[output] --- a logical actuator channel, a resource in a
+different sort from both concepts and declarations: "the desired
+steering angle" is a value, "the steering motor" is a resource.
 
 - $Omega : upright("OutputId") arrow.r upright("Option") thick chevron.l italic(a c c e p t s)\,italic(c l o c k) chevron.r$
   --- each output's accepted type and domain;
@@ -1480,7 +1583,7 @@ concept-accepting output is necessarily a value, not a function
 #strong[Definition.]
 $upright("PhysicalOutput") thick S thick Delta thick I thick Omega thick beta thick o thick t thick v := exists delta thin italic(s p e c) . thick beta thick delta = upright("some") thick o and Omega thick o = upright("some") thick italic(s p e c) and\[thin\]scripts(tack.r)_t^(italic(s p e c) . italic(c l o c k)) upright("declRef") thick delta arrow.b.double v$.
 
-#strong[Theorem 23 (One driver, one output;
+#strong[Theorem 17 (One driver, one output;
 `single_driver_output_deterministic`,
 `multiple_direct_drivers_rejected`).] Under
 $upright("SingleDriver") thick beta$, $upright("PhysicalOutput")$ is a
@@ -1489,17 +1592,18 @@ each well typed, well clocked, causal and individually well formed ---
 violate $upright("SingleDriver")$ and nothing else, and there is a tick
 at which the output receives two values.
 
-The principle is #emph[many contributors, one explicit final driver].
-Contributors are dependencies: `base + corr -> final -> motor` passes
-every check; priority is a conditional in the single driver; blend,
-maximum and clamp are ordinary declarations of the target type. Why
-arbitration must be explicit is shown rather than argued: first-wins,
-last-wins and maximum over the same value graph give three different
-physical outputs (`hidden_arbitration_observable`). Binding an unbound
-declaration to an undriven output is a refinement and preserves
-$upright("SingleDriver")$ (`first_output_binding_is_monotone`); binding
-to a driven output is invalid; retargeting, renaming or detaching an
-edge invalidates an unchanged design.
+#emph[Why not hide output arbitration?] The principle is #emph[many
+contributors, one explicit final driver]. Contributors are dependencies:
+`base + corr -> final -> motor` passes every check; priority is a
+conditional in the single driver; blend, maximum and clamp are ordinary
+declarations of the target type. Why arbitration must be explicit is
+shown rather than argued: first-wins, last-wins and maximum over the
+same value graph give three different physical outputs
+(`hidden_arbitration_observable`). Binding an unbound declaration to an
+undriven output is a refinement and preserves $upright("SingleDriver")$
+(`first_output_binding_is_monotone`); binding to a driven output is
+invalid; retargeting, renaming or detaching an edge invalidates an
+unchanged design.
 
 Two alternatives were formalized in toy form. Direct effect rows --- the
 set of outputs a declaration drives --- are exactly the drive edges, and
@@ -1510,26 +1614,34 @@ be a policy, which is the single driver by another name. None of this
 bears on richer effect systems @plotkin2013handlers\; it says these
 formulations add no rejection the single-driver rule lacks.
 
-Finally, the dual form. Once zero-input relationships have the canonical
-interface type `() -> A` (normalized above the kernel to `A`, with the
-unit eliminated before any term is typed --- the kernel has no unit
-type, and `delay` inside a zero-input declaration is why: a unit binder
-would forbid memory there, `delay_not_under_binder`), the form `A -> ()`
-suggests itself as a consumer. It cannot name one: in a pure total
-language every function into the one-point type is the same function
-(`unit_codomain_collapse`, by function extensionality), so two
-"consumers" are indistinguishable (`consumers_indistinguishable`), and
-the evaluation relation has no effect component
-(`eval_independent_of_drives`). Naming a receiver needs an output
-semantics, and the calculus already has exactly one.
+Finally, the dual form, which shows that the boundary between semantic
+behavior and physical realization is not a matter of taste. Once
+zero-input relationships have the canonical interface type `() -> A`
+(normalized above the kernel to `A`, with the unit eliminated before any
+term is typed --- the kernel has no unit type, and `delay` inside a
+zero-input declaration is why: a unit binder would forbid memory there,
+`delay_not_under_binder`), the form `A -> ()` suggests itself as a
+consumer. It cannot name one: in a pure total language every function
+into the one-point type is the same function (`unit_codomain_collapse`,
+by function extensionality), so two "consumers" are indistinguishable
+(`consumers_indistinguishable`), and the evaluation relation has no
+effect component (`eval_independent_of_drives`). Naming a receiver needs
+an output semantics, and the calculus already has exactly one. Semantic
+behavior and physical realization are related by the drive edge and are
+not identical.
 
-= Composition by renaming
-<composition-by-renaming>
-A second lamp should reuse the first's behavior without copying it. This
-needs a component with a promised interface, instantiated with fresh
-identity and bound to other behaviors. The section's result is that all
-of it is derivable from what §4 provides --- realization plus renaming
---- and that the flattened system is checked by the unchanged judgments.
+= Reuse of relational structure
+<reuse-of-relational-structure>
+A second lamp should reuse the first's behavior without copying it. What
+is reused is not a code module but a #emph[structured set of
+relationships] --- the lamp's concepts, its declared relationships,
+their clocks and their outputs --- with some relationships left open as
+ports. This section shows that everything a component needs is derivable
+from what §4 already provides, realization plus renaming: instantiation
+gives the relationships fresh identities, binding connects an instance
+into a larger design by ordinary realization steps, and flattening
+yields an ordinary design accepted by the unchanged judgments, so that
+composition adds no semantic machinery.
 
 == Equivariance
 <equivariance>
@@ -1539,24 +1651,25 @@ terms, on interfaces, on declarations and pointwise on environments;
 $Delta . upright("RenamedBy") thick r thick Delta'$ says $Delta'$ stores
 the renamed declaration of $Delta$ at the renamed identity.
 
-#strong[Theorem 24 (Equivariance; `HasType.rename`, `Satisfies.rename`,
-`Clocked.rename`).] If $Theta\;Delta\;G\;Gamma tack.r e : tau$ and
-$Theta'\,Delta'\,G'$ are the images of $Theta\,Delta\,G$ under $r$
-(agreement on the image, with no injectivity required), then
+#strong[Proposition 18 (Equivariance; `HasType.rename`,
+`Satisfies.rename`, `Clocked.rename`).] If
+$Theta\;Delta\;G\;Gamma tack.r e : tau$ and $Theta'\,Delta'\,G'$ are the
+images of $Theta\,Delta\,G$ under $r$ (agreement on the image, with no
+injectivity required), then
 $Theta'\;Delta'\;G'\;Gamma^r tack.r e^r : tau^r$\; likewise for
 satisfaction, and for the domain judgment under a clock environment that
 agrees on the declared identities.
 
 Evidence must be equivariant as well (`Evidence.Equivariant`), an
 abstract condition beside monotonicity. Nothing else is new in the
-composition theory; the rest is definitions over Theorem 24 and §4.
+composition theory; the rest is definitions over Proposition 18 and §4.
 
 == Components, instances and flattening
 <components-instances-and-flattening>
 A #strong[port] is a template declaration by local identity with the
 public part of its interface and its parameter clock. A #strong[behavior
-interface] has required ports (unresolved declarations a composer
-binds), provided ports, elaboration-time parameters (unresolved
+interface] has required ports (unrealized declarations a composer
+binds), provided ports, elaboration-time parameters (unrealized
 data-typed declarations bound to closed constants at instantiation) and
 clock parameters. A #strong[component] is an interface, a template
 design over local identities below a width $W$, and a partition of its
@@ -1565,8 +1678,8 @@ $upright("Realizes") thick italic(e v) thick C$ is a predicate over the
 existing judgments: the template is a well-formed design (`Design.WF`:
 $upright("GlobalWF")$, $Theta . upright("WF")$, well clocked, causal,
 $upright("DriveWF")$, $upright("SingleDriver")$), every required port is
-an unresolved declaration of the stated interface, every provided port
-is declared with it, parameters are unresolved, data-typed and
+an unrealized declaration of the stated interface, every provided port
+is declared with it, parameters are unrealized, data-typed and
 clock-free.
 
 Instance $k$ of a component maps local identity $n$ to
@@ -1587,7 +1700,7 @@ or
 $upright("sync") thick c thick italic(i n i t) thick\(upright("declRef") thick italic(s r c)\)$.
 The result is a design, consumed by every existing judgment unchanged.
 
-#strong[Theorem 25 (Flattening is well formed; `binding_satisfies`,
+#strong[Theorem 19 (Composition adds no machinery; `binding_satisfies`,
 `flatten_WF`, `flatten_causal`, `flatten_wellClocked`,
 `flatten_singleDriver`, `open_port_stays_open`).] Under
 $upright("ComposeWF")$ --- every instance realizes its interface; every
@@ -1600,7 +1713,7 @@ declaration of the same interface), the flattening is globally well
 formed, well clocked, single-driver, causal when the inter-instance
 graph is acyclic, and its open ports remain open.
 
-#strong[Theorem 26 (Modular semantics, restricted; `eval_flat_to_inst`,
+#strong[Theorem 20 (Modular semantics, restricted; `eval_flat_to_inst`,
 `eval_inst_to_flat`, `modular_iff_flat`).] For wiring designs with
 closure-free inputs and direct bindings, in one domain, the value of a
 declaration in an instance evaluated alone with a consistent modular
@@ -1644,13 +1757,13 @@ and this is a reason not to add them for that purpose.
 
 Packaging a group as a component --- the one semantic step in the
 hierarchy declaration → group → component → system --- builds two
-#emph[restrictions] of the design, the component with an unresolved copy
+#emph[restrictions] of the design, the component with an unrealized copy
 of each crossing-in declaration as a required port and the residual with
-an unresolved copy of each crossing-out member, and forms a two-instance
-system with one direct binding per crossing. No body is translated or
-copied across the boundary. Both templates realize their inferred
-interfaces (`restrict_realizes`, needing evidence that depends only on
-the interfaces of the referenced declarations,
+an unrealized copy of each crossing-out member, and forms a two-instance
+system with one direct binding per crossing. No realization is
+translated or copied across the boundary. Both templates realize their
+inferred interfaces (`restrict_realizes`, needing evidence that depends
+only on the interfaces of the referenced declarations,
 `Evidence.InterfaceLocal`); the system is a well-formed composition and
 its flattening a well-formed design (`system_composeWF`, `flat_WF`);
 causality needed its own argument, since a group with both inputs and
@@ -1665,186 +1778,221 @@ and its home copy evaluate to the same value at every tick
 = Mechanization
 <mechanization>
 The development is 68 Lean 4 modules (Lean 4.33.1, no dependencies
-beyond core): 11 in `Core` (the calculus of §3--7 and §9), 12 in
-`Behavior` (§10), 19 in `Surface` (the definitional library,
-polymorphism, units, buffering and the boundary constructions above the
-kernel), 2 in `Validation` (hardware and capacity, outside this paper),
-and 24 experiment modules holding alternatives, counterexamples and
-executed examples; about 26 500 lines and 1 545 theorem declarations. It
-builds with no `sorry`. The axioms are propositional extensionality and
-quotient soundness, the latter only through function extensionality and
-the choice-free rational quotient used by the unit laws; classical
-choice is absent, and the whole development was re-audited for it at
-every phase.
+beyond core): 11 in `Core` (§3--6, §8), 12 in `Behavior` (§9), 19 in
+`Surface` (the definitional library, polymorphism, the window and the
+boundary constructions above the kernel), 2 in `Validation` (outside
+this paper), and 24 experiment modules holding alternatives,
+counterexamples and executed examples; about 26 500 lines and 1 545
+theorem declarations. It builds with no `sorry`. The axioms are
+propositional extensionality and quotient soundness, the latter only
+through function extensionality and the choice-free rational quotient
+used by the unit laws; classical choice is absent, and the whole
+development was re-audited for it at every phase.
 
-Three proof-engineering choices carried the metatheory.
-
-#emph[One inductive relation.] $upright("Ev")$ and $upright("MEv")$ are
-ordinary inductive relations with no mutual recursion and no fixpoint,
-because the recursor's rule unrolls through the environment (§6.1).
-Every induction on evaluation --- determinism, provenance,
-closure-freeness, environment irrelevance, unfolding --- extends by one
-case when a construct is added; the transport primitive and the recursor
-entered this way, and every earlier theorem was re-established without a
-change of statement.
-
-#emph[One logical relation, generic in application.] $cal(R)$ is
-parameterized by an application relation so that the single- and
-multi-domain semantics share it; at data types it is independent of that
-parameter (`Red_data`), which is the fact that lets a value cross a
-tick. The lexicographic induction on (tick, rank, derivation) is written
-once, in `fundamental`, and once more in `mfundamental` with
-$upright("prevAct")$ in place of the predecessor.
-
-#emph[Counterexamples as theorems, traces by a proved interpreter.]
-Every rejected alternative is a theorem whose content is a rejection,
-stated on a concrete design and discharged by `decide` or by running
-$upright("evalF")$/$upright("mevalF")$ (proved sound for the relations)
-inside the checker. There is no test suite beside the proofs; the
-executed examples are part of the same `lake build`. Several results are
-recorded as trivial by definition --- the typing half of client
-stability, the well-formedness of a refinement target --- and are
-reported as such rather than presented as content.
-
-Extraction to an implementation is not part of the development. The
+Three proof-engineering choices carried the metatheory. $upright("Ev")$
+and $upright("MEv")$ are ordinary inductive relations with no mutual
+recursion, because the recursor's rule unrolls through the environment
+(§6.1); every induction on evaluation extends by one case when a
+construct is added, and the transport primitive and the recursor entered
+this way with every earlier theorem re-established without a change of
+statement. The logical relation is parameterized by an application
+relation so that the single- and multi-domain semantics share it, and is
+independent of that parameter at data types (`Red_data`), which is the
+fact that lets a value cross a tick. Every rejected alternative is a
+theorem whose content is a rejection, stated on a concrete design and
+discharged by `decide` or by running the interpreters
+$upright("evalF")$/$upright("mevalF")$ --- proved sound for the
+relations --- inside the checker; there is no test suite beside the
+proofs. Several results are recorded as trivial by definition and
+reported as such. Extraction is not part of the development; the
 production toolchain implements the calculus in Rust and is tested
-differentially against the traces the interpreter computes; that
-correspondence is a tested claim, not a theorem, and is recorded as such
-in the monograph.
+differentially against the interpreter's traces, a tested claim and not
+a theorem.
 
 = Related work
 <related-work>
-#emph[Synchronous languages.] $lambda_(upright(B D L))$'s time model is
-that of Lustre @halbwachs1991lustre and Esterel @berry1992esterel: a
-global logical tick, streams as the meaning of declarations, memory as
-`pre` with an explicit initial value, causality as acyclicity of
-instantaneous dependencies. Two departures are deliberate. Clocks are
-nominal and authored, not inferred
-@colaco2003clocks@biernacki2008clock@caspi1996kahn, because the
-information that would let a clock be inferred arrives at realization
-binding, after the design has been reasoned about; and a cross-clock
-read is a single primitive with a strictly-before rule and an explicit
-initial value, so that no simultaneously active domains ever see each
-other and no `when`/`merge` calculus of sub-sampling is needed ---
-sub-domains evaluated in one instant are the same domain here. The
-window buffer of §7.5 plays the role that sampling operators play in
-Lucid Synchrone. Vélus @bourke2017velus verifies a Lustre compiler; the
-present development verifies a calculus and its metatheory, and leaves
-the compiler to differential testing. Zélus @bourke2013zelus and
-state-machine extensions @colaco2005state address continuous time and
-modes, neither of which the calculus has.
+#emph[Modules and signatures.] ML-style module systems separate an
+interface from its implementation, and a signature may be written,
+checked and depended upon before a structure matches it
+@leroy1994manifest@harper1994modules. $lambda_(upright(B D L))$ does not
+claim that such systems cannot express an unrealized relationship. The
+difference is one of organization: here an unrealized declaration is an
+ordinary inhabitant of the #emph[design environment] rather than a
+separate compilation unit; its clients are typed against it in the same
+environment and, by Theorem 3, remain typed when it is realized; and the
+same declaration is simultaneously the carrier of a nominal semantic
+signature (§5), a clock assignment (§6) and a drive edge (§8). The
+commitment list is a growable part of the interface whose growth is a
+first-class step on a declared-but-unrealized name, with a stability
+condition imposed on the layer that discharges it.
 
-#emph[Functional reactive programming.] FRP
+#emph[Refinement types, contracts and specification.] Refinement type
+systems, contracts and specification languages already support
+progressively stronger constraints on a definition, and we do not claim
+to have invented refinement. BDL's commitments are atomic labels,
+deliberately weaker than a refinement predicate; what is specific is
+where they attach --- to a persistent relationship declaration whose
+realization may be absent --- and what is proved about them: that a
+client's discharged commitment survives later realization and
+strengthening under a monotonicity condition on evidence that is shown
+necessary (Theorems 4--5). The condition is the Kripke-style stability
+familiar from logical-relations proofs
+@appel2001indexed@ahmed2006stepindexed, imposed here on a validation
+layer rather than on a store.
+
+#emph[Synchronous and reactive languages.] The temporal interpretation
+of §6 is that of Lustre @halbwachs1991lustre and Esterel
+@berry1992esterel: a global logical tick, definitions as streams, memory
+as `pre` with an explicit initial value, causality as acyclicity of
+instantaneous dependencies; Vélus @bourke2017velus verifies a compiler
+for this model, Zélus @bourke2013zelus and mode extensions
+@colaco2005state extend it. Functional reactive programming
 @elliott1997fran@nilsson2002frp@cooper2006frtime makes signals
-first-class values. The calculus has no signal type: every declaration
-is a stream by interpretation, and a signal type would reject nothing
-(§6.7). Typed FRP with modal or temporal types
-@krishnaswami2013frp@jeffrey2012ltl@cave2014fair uses the type to
-control what may be remembered; here that control is the data
-restriction on $upright("delay")$ and the empty-context restriction,
-both forced by the totality proof, and the guarantee is totality rather
-than the absence of space leaks.
+first-class values, and typed FRP
+@krishnaswami2013frp@jeffrey2012ltl@cave2014fair controls memory through
+modal types. In all of these the central authored unit is a computation
+--- a node, a stream definition, a signal function --- and clocks are
+inferred from how it samples
+@colaco2003clocks@biernacki2008clock@caspi1996kahn. In
+$lambda_(upright(B D L))$ the authored unit is a declared relationship,
+and the temporal machinery exists to interpret it in an authored domain:
+there is no signal type because a declaration already is a stream; the
+domain is a nominal identity chosen before any rate is known; and the
+one transport primitive with its strictly-before rule was chosen because
+the alternative exposes a scheduler the designer never authored (Theorem
+15). The window buffer of §7.3 does the work that sub-sampling operators
+do in Lucid Synchrone, as a derived construction.
 
-#emph[Logical relations.] The totality proof is a step-indexed logical
-relation @appel2001indexed@ahmed2006stepindexed in which the index is
-the tick and a rank on declarations is a second index; the arrow clause
-is tick-indexed and the data clauses are not, which is what makes memory
-sound. Kripke-style monotonicity conditions on a world are standard in
-such proofs; the evidence-monotonicity condition of §4.3 is the same
-shape imposed on a #emph[validation layer] rather than on a store.
-
-#emph[Modules, abstract types and nominal types.] Persistent
-declarations are the interface/implementation separation of module
-signatures @leroy1994manifest@harper1994modules with a growable
-commitment set whose growth is a first-class operation on a
-declared-but-undefined name. The grant is the private constructor of an
-abstract type @mitchell1988abstract@reynolds1983types with the
-capability derived from the signature. Nominal type identity is the
-ordinary mechanism of a nominal type system @pierce2002tapl\; the
-contribution is the pair of erasure and provenance theorems and the
-refuted alternatives, not the mechanism.
-
-#emph[Units of measure.] Kennedy's dimension types
-@kennedy1997units@kennedy2010units put dimension polymorphism in the
-type system. The calculus keeps dimensions monomorphic in operator types
-and provides dimension polymorphism only in surface families
-instantiated by matching (§8.4), with units entirely outside the kernel.
+#emph[Nominal and abstract types; units of measure.] Nominal type
+identity is the ordinary mechanism of a nominal type system
+@pierce2002tapl, and the construction grant is the private constructor
+of an abstract type @mitchell1988abstract@reynolds1983types. Dimension
+types are Kennedy's @kennedy1997units@kennedy2010units, monomorphic in
+the kernel and instantiated by matching in surface families (§7.2). None
+of these is claimed as novel. Their role here is to keep a relationship
+between meanings distinct from a relationship between representations,
+and to keep representation arithmetic coherent --- supporting mechanisms
+of the relationship-first model, with the erasure and provenance results
+(Proposition 8, Theorem 12) and the refuted alternatives (§5.1--5.2) as
+the evidence that they do that job.
 
 #emph[Typed holes and live programming.] Hazelnut
 @omar2017hazelnut@omar2019live gives a semantics to programs with holes
-and edits. An unresolved declaration is not a hole position in a term
-but a declaration whose realization is absent, referred to by identity
-and typed by its interface; the refinement order plays the role of the
-edit action calculus, restricted to the operations under which clients
-are stable.
+and to the edit actions that fill them. An unrealized declaration is not
+a hole position in a term; it is a declaration whose realization is
+absent, referred to by identity and typed by its interface, and the
+refinement order plays the role of the edit-action calculus restricted
+to the operations under which clients are stable. The two are
+complementary: a hole is where a term is incomplete, an unrealized
+declaration is where a design is deliberately open.
 
-#emph[Effects.] The single-driver discipline is not an effect system
-@plotkin2013handlers\; §9 records that effect rows and action values, in
-the toy forms tried, add no rejection the drive edge lacks. Statecharts
-@harel1987statecharts and model-based design tools supply modes and
-hierarchy that the calculus encodes as ordinary declarations.
+#emph[Design and modeling languages.] Block-diagram environments,
+model-based design and systems-modeling languages @harel1987statecharts
+also let a designer connect named quantities before every block is
+defined, and we do not claim that they lack relationships. What
+$lambda_(upright(B D L))$ adds is a small mechanized calculus for the
+progressive-relationship model with explicit metatheory: what a client
+may depend on, what a realization may construct, when a value belongs to
+the design, and how reuse is derived --- each as a theorem, and each
+rejected alternative as a counterexample.
 
-#emph[Expressiveness.] The negative results of §7.5 and §8 are
-statements about what a construct can and cannot express relative to the
-kernel --- in Felleisen's sense @felleisen1990expressive of whether a
-construct is definable by a local translation --- with the difference
-that each is a mechanized theorem about a specific candidate rather than
-a general expressiveness result.
+#emph[Effects and expressiveness.] The single-driver discipline is not
+an effect system @plotkin2013handlers\; §8 records that effect rows and
+action values, in the toy forms tried, add no rejection the drive edge
+lacks. The negative results of §7 are statements about whether a
+construct is definable from the kernel by a local translation, in the
+spirit of Felleisen's expressiveness @felleisen1990expressive, as
+mechanized theorems about specific candidates.
 
-= Limitations and open problems
-<limitations-and-open-problems>
-The paper's claims are bounded by the following, each recorded in the
-development.
+= Discussion and limits
+<discussion-and-limits>
+#emph[What "first-class" means here.] A relationship is first-class as a
+#emph[design object]: it has a stable identity, it may be declared,
+depended upon, refined, clocked, driven and instantiated, and every
+judgment of the calculus is stated over it. It is not a first-class
+#emph[value]. Terms refer to declarations by identity and never pass a
+declaration as an argument or return one; there is no type of
+relationships, no higher-order manipulation of declarations, and the
+paper claims none. What is higher-order in the calculus is ordinary:
+functions over data, and the one recursor.
+
+#emph[Design versus program.] A program describes one computation. A
+design in $lambda_(upright(B D L))$ may contain decisions at different
+levels of commitment --- a relationship with a signature only, one with
+commitments, one with a realization, one with a clock and an output ---
+and the calculus preserves that partially committed structure rather
+than requiring it to be resolved before anything is checked. This is not
+a claim that conventional programs are fully specified, nor that their
+signatures lack meaning; it is that the #emph[progression] from less to
+more committed is explicit here and has a metatheory.
+
+#emph[One direction of commitment.] The refinement order formalizes
+narrowing: more commitments, a realization, stronger verified
+commitments. It does not formalize the family of behaviors a design
+leaves open, and the calculus has no denotation of a set of possible
+products. Edits --- changing a signature, dropping a commitment,
+replacing a realization --- are outside the order, and the calculus
+promises nothing about them (Table 2).
+
+The paper's formal claims are further bounded by the following, each
+recorded in the development.
 
 - #emph[Causality is conservative for lambda-guarded cycles.]
   `A := λx. A x` is rejected by $upright("Causal")$ although `declRef A`
-  evaluates to a closure; Theorem 11 covers strict cycles only. A finer
-  criterion that admits productive higher-order cycles has not been
-  formulated.
-- #emph[Modular semantics is proved for a fragment.] Theorem 26 holds
-  for single-domain wiring designs with direct or constant bindings.
-  Transported bindings under $upright("MEv")$ need a domain-indexed
-  modular input; higher-order bodies need a relation between closures
-  across the two evaluations. Both are open.
+  evaluates to a closure; Proposition 10 covers strict cycles only.
+- #emph[Modular semantics is proved for a fragment.] Theorem 20 holds
+  for single-domain wiring designs with direct or constant bindings;
+  transported bindings under $upright("MEv")$ and higher-order
+  realizations are open.
 - #emph[Evidence is abstract.] The kernel imposes monotonicity,
   equivariance and port-soundness on the validation layer's evidence and
-  proves nothing about a concrete discharge mechanism; a compositional
-  evidence model that discharges these once is future work.
+  proves nothing about a concrete discharge mechanism.
 - #emph[No sums.] Enumerations with payloads are encoded; a kernel sum
   would be one eliminator term former, and its absence is a decision to
   stop where the executed cases stopped.
 - #emph[Magnitudes are naturals.] The executable kernel's quantities are
-  natural numbers, so its unit registry is exact only for integer
-  scales; the unit laws are proved over an abstract scalar domain
-  instantiated symbolically, and floating-point implementations are held
-  to toleranced versions above the kernel.
+  natural numbers; the unit laws are proved over an abstract scalar
+  domain and instantiated symbolically, and floating-point
+  implementations are held to toleranced versions above the kernel.
 - #emph[No minimality theorem.] "Minimal" means minimal among the
-  formalized candidates; several alternatives (flow-sensitive semantic
-  analyses, structural typing with a separate role judgment) were argued
-  against rather than refuted.
-- #emph[Nothing about designers.] The calculus was shaped by
-  requirements from a design workflow; whether it serves designers is an
-  empirical question no theorem addresses.
+  formalized candidates.
+- #emph[Nothing about designers.] The calculus was shaped by a design
+  workflow's requirements; whether it serves designers is an empirical
+  question no theorem addresses, and no claim about cognitive load,
+  productivity or ease is made.
 
 = Conclusion
 <conclusion>
-$lambda_(upright(B D L))$ is a small calculus whose content is in its
-environments and the disciplines they impose rather than in its terms: a
-declaration environment read by typing through the type view and by
-evaluation through the realization view, with a refinement order under
-which clients are stable; a concept environment read through write-once
-bindings, with a grant derived from the signature under which
-construction is authorized; a clock environment read by a judgment that
-typing never sees; and an output environment read by a drive discipline
-with a single driver. One temporal primitive gives memory and transport,
-and a tick-indexed logical relation gives totality on causal designs in
-one domain and in many. The negative results --- a scheduler made
-observable by same-tick visibility, an evidence relation destroyed by a
-valid realization, a hidden concept crossing admitted by unrestricted
-construction, three physical outputs from one design under hidden
-arbitration, a lossy summary for every bounded buffer --- are mechanized
-alongside the positive ones and are, we think, as much a part of the
-calculus's specification as the rules.
+$lambda_(upright(B D L))$ is not interesting because it makes every
+implementation detail first-class. It is interesting because a typed
+semantic relationship can be declared, connected to concepts, depended
+upon by other parts of a product, placed in time and bound to a physical
+output while its computation is still undecided --- and can then acquire
+that computation without disturbing anything built on it. The
+intermediate state is a design state, not a broken program state, and
+the calculus gives it a semantics in which it is typable, referenceable,
+composable, refinable, stable for clients and eventually realizable.
+
+The results are the constraints on that one object, each with its
+theorem. Refinement preserves earlier reasoning: a client typed against
+a relationship's promise survives its realization unconditionally, and a
+client's discharged commitment survives it whenever evidence is positive
+in the environment, a condition that cannot be dropped (Theorems 3--5).
+Grants preserve semantic integrity: a realization may construct exactly
+the concept its signature announces, representation is not meaning, and
+no tag is manufactured by evaluation, memory or transport (Theorems 7,
+12). Clocks preserve temporal meaning: a relationship's value belongs to
+an authored domain, evaluation is deterministic and total on causal
+designs, and no scheduler order is observable (Theorems 9, 11, 14, 15).
+Outputs make physical effect explicit and single (Theorem 17). Renaming
+preserves relational structure under reuse, and composition adds no
+machinery (Theorems 19, 20). The mechanized counterexamples --- a
+scheduler made visible, an evidence relation destroyed by a valid
+realization, a hidden crossing between concepts, three physical outputs
+from one design, a lossy summary for every bounded buffer --- record why
+each constraint takes the form it does. That these constraints are all
+statements about a relationship, and that they have been proved to
+compose, is the conceptual unity of the calculus.
 
 #heading(level: 1, numbering: none)[Appendix A --- Theorem index]
 <appendix-a-theorem-index>
@@ -1857,38 +2005,35 @@ given per group, and names are unqualified where the namespace is `BDL`.
   columns: (0.55fr, 2.6fr, 1.75fr), align: left, inset: (x: 3pt, y: 2.6pt),
   stroke: (x: none, y: 0.3pt),
   table.header([*paper*], [*Lean name*], [*file*]),
-  [Thm 1], [`infer_sound`, `infer_complete`, `HasType.unique`], [`Core/Typing`],
-  [Thm 2], [`HasType.mono_env`, `HasType.mono_concept`, `HasType.mono_grant`], [`Core/Typing`],
+  [Prop 1], [`infer_sound`, `infer_complete`, `HasType.unique`], [`Core/Typing`],
+  [§3.4], [`HasType.mono_env`, `HasType.mono_concept`, `HasType.mono_grant`, `HasType.weaken_append`], [`Core/Typing`],
   [§4.1], [`InterfaceRefines_iff_semantic`, `naive_breaks_wellformedness`], [`Core/Satisfaction`, `Experiments/DeclCounterexamples`],
-  [Thm 3], [`DeclRefinesStar_iff`, `EnvRefines_update`], [`Core/Satisfaction`, `Core/Decl`],
-  [Thm 4], [`local_refinement_preserves_global_typing`], [`Core/Env`],
-  [Thm 5], [`local_refinement_preserves_global_wf`, `local_lifecycle_preserves_global_wf`], [`Core/Env`],
-  [Prop 6], [`badEv_not_mono`, `probe6_breaks`], [`Experiments/DeclCounterexamples`],
-  [Thm 7], [`Unfolds.det`, `Unfolds.exists_of_acyclic`, `Unfolds.not_of_cyclic`, `Unfolds.refFree_of_fullyRealized`], [`Core/Dependency`],
-  [Thm 8], [`HasType.constructs_granted`, `hidden_crossing_rejected_under_grant`], [`Core/Typing`, `Experiments/RepresentationBindingAlternatives`],
-  [Thm 9], [`HasType.erase`, `erase_not_injective`, `baseline_is_erased_modelA`], [`Experiments/SemanticTypeAlternatives`],
+  [Prop 2], [`DeclRefinesStar_iff`, `EnvRefines_update`], [`Core/Satisfaction`, `Core/Decl`],
+  [Thm 3], [`local_refinement_preserves_global_typing`], [`Core/Env`],
+  [Thm 4], [`local_refinement_preserves_global_wf`, `local_lifecycle_preserves_global_wf`], [`Core/Env`],
+  [Thm 5], [`badEv_not_mono`, `probe6_breaks`], [`Experiments/DeclCounterexamples`],
+  [Prop 6], [`Unfolds.det`, `Unfolds.exists_of_acyclic`, `Unfolds.not_of_cyclic`, `Unfolds.refFree_of_fullyRealized`], [`Core/Dependency`],
+  [Thm 7], [`HasType.constructs_granted`, `hidden_crossing_rejected_under_grant`], [`Core/Typing`, `Experiments/RepresentationBindingAlternatives`],
+  [Prop 8], [`HasType.erase`, `erase_not_injective`, `baseline_is_erased_modelA`], [`Experiments/SemanticTypeAlternatives`],
   [§5.3], [`dimension_mismatch_rejected`, `counterexampleB_baseline_accepts_length_plus_time`, `same_dimension_does_not_imply_same_semantic_identity`], [`Experiments/DimensionAlternatives`],
-  [Thm 10], [`Ev.det`, `evalF_sound`], [`Core/Reactive`],
-  [Thm 11], [`Ev.not_of_strictCyclic`, `Causal_iff_acyclic_of_delayFree`], [`Core/Reactive`, `Core/Dependency`],
-  [Thm 12], [`fundamental`, `Red_data`, `Red_prim`], [`Core/Reactive`],
-  [Thm 13], [`reactive_total`, `Ev.red`], [`Core/Reactive`],
+  [Thm 9], [`Ev.det`, `evalF_sound`], [`Core/Reactive`],
+  [Prop 10], [`Ev.not_of_strictCyclic`, `Causal_iff_acyclic_of_delayFree`], [`Core/Reactive`, `Core/Dependency`],
+  [Thm 11], [`fundamental`, `reactive_total`, `Ev.red`, `Red_data`, `Red_prim`], [`Core/Reactive`],
   [§6.4], [`arrow_not_delayable`, `delay_not_under_binder`, `sync_not_under_binder`, `first_tick_undefined_without_init`], [`Experiments/PolyAlternatives`, `Surface/UnitDomain`, `Experiments/ReactiveAlternatives`],
-  [Thm 14], [`Ev.tag_provenance`, `temporal_state_preserves_semantic_identity`], [`Core/Reactive`],
-  [Thm 15], [`unfolds_preserves_eval`, `Ev.pure`, `Ev.env_irrelevant`], [`Core/Reactive`],
-  [Thm 16], [`delay_is_sync_own`, `clocked_delay_iff_sync_own`], [`Core/Clock`],
-  [Thm 17], [`single_domain_embedding`], [`Core/Clock`],
-  [Thm 18], [`MEv.det`, `mevalF_sound`], [`Core/Clock`],
-  [Thm 19], [`mfundamental`, `multi_domain_total`, `MEv.tag_provenance`], [`Core/Clock`],
-  [Thm 20], [`scheduling_order_observable`, `equal_rate_not_same_domain`, `clocked_type_forces_polymorphism`], [`Experiments/ClockAlternatives`],
-  [Thm 21], [`buffer_window_correspondence`, `buffer_from_log_and_cursor`, `bounded_summary_not_lossless`, `lossless_iff_injective`], [`Surface/Buffer`, `Core/Clock`, `Experiments/BufferAlternatives`],
-  [Thm 22], [`fold_total`, `mfold_total`, `fold_spec`], [`Core/Reactive`, `Core/Clock`, `Surface/Stdlib`],
-  [§8.2–8.3], [`church_fst_rank`, `church_pair_prenex_one_projection`, `Value.beq_iff`, `Cap.eq_iff_data`, `lt_only_on_quantities`], [`Experiments/PolyAlternatives`, `Surface/Generic`, `Surface/Poly`, `Experiments/EquationExamples`],
-  [§8.4–8.5], [`matchTy_sound`, `matchTy_complete`, `Scheme.instantiate_sound`, `generic_preserves_identity`, `lib_expansion`], [`Surface/Poly`, `Surface/Generic`, `Surface/Stdlib`],
-  [Thm 23], [`single_driver_output_deterministic`, `multiple_direct_drivers_rejected`, `hidden_arbitration_observable`, `first_output_binding_is_monotone`], [`Core/Output`, `Experiments/OutputAlternatives`],
-  [§9], [`driver_is_unit_domain`, `unit_codomain_collapse`, `consumers_indistinguishable`, `eval_independent_of_drives`], [`Surface/UnitDomain`],
-  [Thm 24], [`HasType.rename`, `Satisfies.rename`, `Clocked.rename`], [`Behavior/Rename`],
-  [Thm 25], [`inst_decl_disjoint`, `binding_satisfies`, `flatten_WF`, `flatten_causal`, `flatten_wellClocked`, `flatten_singleDriver`, `open_port_stays_open`], [`Behavior/Instantiate`, `Behavior/Preservation`],
-  [Thm 26], [`eval_flat_to_inst`, `eval_inst_to_flat`, `modular_iff_flat`, `substitute_composeWF`], [`Behavior/Semantics`, `Behavior/Substitution`],
-  [§10.3], [`group_is_identity_on_design`, `socket_no_fanout`, `restrict_realizes`, `system_composeWF`, `flat_WF`, `flat_causal`, `private_unobservable`, `orig_iff_flat`], [`Behavior/Group`, `Behavior/Boundary`, `Behavior/Extract`, `Behavior/ExtractPreservation`],
+  [Thm 12], [`Ev.tag_provenance`, `temporal_state_preserves_semantic_identity`], [`Core/Reactive`],
+  [§6.5], [`unfolds_preserves_eval`, `Ev.pure`, `Ev.env_irrelevant`, `Ev.noClo`], [`Core/Reactive`],
+  [Prop 13], [`delay_is_sync_own`, `clocked_delay_iff_sync_own`, `single_domain_embedding`], [`Core/Clock`],
+  [Thm 14], [`MEv.det`, `mfundamental`, `multi_domain_total`, `mevalF_sound`, `MEv.tag_provenance`], [`Core/Clock`],
+  [Thm 15], [`scheduling_order_observable`, `equal_rate_not_same_domain`, `clocked_type_forces_polymorphism`], [`Experiments/ClockAlternatives`],
+  [Thm 16], [`buffer_window_correspondence`, `buffer_from_log_and_cursor`, `bounded_summary_not_lossless`, `lossless_iff_injective`], [`Surface/Buffer`, `Core/Clock`, `Experiments/BufferAlternatives`],
+  [§7.1], [`fold_total`, `mfold_total`, `fold_spec`], [`Core/Reactive`, `Core/Clock`, `Surface/Stdlib`],
+  [§7.1], [`church_fst_rank`, `church_pair_prenex_one_projection`, `Value.beq_iff`, `Cap.eq_iff_data`, `lt_only_on_quantities`], [`Experiments/PolyAlternatives`, `Surface/Generic`, `Surface/Poly`, `Experiments/EquationExamples`],
+  [§7.2], [`matchTy_sound`, `matchTy_complete`, `Scheme.instantiate_sound`, `generic_preserves_identity`, `lib_expansion`], [`Surface/Poly`, `Surface/Generic`, `Surface/Stdlib`],
+  [Thm 17], [`single_driver_output_deterministic`, `multiple_direct_drivers_rejected`, `hidden_arbitration_observable`, `first_output_binding_is_monotone`], [`Core/Output`, `Experiments/OutputAlternatives`],
+  [§8], [`driver_is_unit_domain`, `unit_codomain_collapse`, `consumers_indistinguishable`, `eval_independent_of_drives`], [`Surface/UnitDomain`],
+  [Prop 18], [`HasType.rename`, `Satisfies.rename`, `Clocked.rename`], [`Behavior/Rename`],
+  [Thm 19], [`inst_decl_disjoint`, `binding_satisfies`, `flatten_WF`, `flatten_causal`, `flatten_wellClocked`, `flatten_singleDriver`, `open_port_stays_open`], [`Behavior/Instantiate`, `Behavior/Preservation`],
+  [Thm 20], [`eval_flat_to_inst`, `eval_inst_to_flat`, `modular_iff_flat`, `substitute_composeWF`], [`Behavior/Semantics`, `Behavior/Substitution`],
+  [§9.3], [`group_is_identity_on_design`, `socket_no_fanout`, `restrict_realizes`, `system_composeWF`, `flat_WF`, `flat_causal`, `private_unobservable`, `orig_iff_flat`], [`Behavior/Group`, `Behavior/Boundary`, `Behavior/Extract`, `Behavior/ExtractPreservation`],
 )
 ]

@@ -70,7 +70,7 @@
   ]
   #v(4pt)
   #text(size: 12.5pt)[
-    Persistent Declarations, Nominal Concepts, and One Temporal Primitive
+    Typed Semantic Relationships Before Their Realization
   ]
   #v(12pt)
   #text(size: 11pt)[ZHU ZHEHAO]
