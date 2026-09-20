@@ -26,12 +26,12 @@ merges them into one batch commits to an explicit deterministic policy —
 
 ## Alternatives rejected
 
-An implicit total order across sources (no physical fact supplies one); a
-merge left unspecified.
+An implicit total order across sources (no physical fact supplies one); a merge
+left unspecified.
 
 ## Reason
 
 `mergeBySource_interleaving`, `perSource_of_interleaving`: source order is an
-interleaving, and any two interleavings agree on every source's subsequence —
-a design that reads per source cannot tell the policies apart; only a design
-that reads the merged order depends on it. Executed `exC_merge`.
+interleaving, and any two interleavings agree on every source's subsequence — a
+design that reads per source cannot tell the policies apart; only a design that
+reads the merged order depends on it. Executed `exC_merge`.

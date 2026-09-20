@@ -19,14 +19,14 @@ Accepted in Phase 17.
 
 ## Decision
 
-For a device that must receive every command of an output whose clock is
-faster than the device's, the lowering is `lowerWindowΔ/Ω/β/Κ`: Phase 14's
-encoder declaration `e` in the output's clock is the source of Phase 9a's five
-declarations, transported by `sync` into the device domain `dc`, and the
-machine sink accepts `list raw` in `dc` and is driven by `window`. Which
-lowering a device takes — `lowerSync` (latest value) or `lowerWindow` (every
-value) — is the sink's type, the device's consumption contract; the logical
-output is one value stream in both and carries no flag. The batch's bound is
+For a device that must receive every command of an output whose clock is faster
+than the device's, the lowering is `lowerWindowΔ/Ω/β/Κ`: Phase 14's encoder
+declaration `e` in the output's clock is the source of Phase 9a's five
+declarations, transported by `sync` into the device domain `dc`, and the machine
+sink accepts `list raw` in `dc` and is driven by `window`. Which lowering a
+device takes — `lowerSync` (latest value) or `lowerWindow` (every value) — is
+the sink's type, the device's consumption contract; the logical output is one
+value stream in both and carries no flag. The batch's bound is
 `CapacitySufficient` on the crossing `spec.clock → dc`, a deployment judgment.
 
 ## Alternatives rejected

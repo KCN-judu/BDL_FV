@@ -19,13 +19,12 @@ Accepted in Phase 17.
 
 ## Decision
 
-A device that receives a `list raw` in one activation performs `batchOps P ws`
-— each item read by the policy, in the batch's order, a `List Op` — and the
-line after the batch is `lineAfterBatch P start ws`, the last accepted item or
-the line before. Two window realizations of one output carry batches that are
-pointwise the two transfers of one value (`paired_batches_of_one_window`);
-the prepare/prepare/commit of a paired axis is the backend's order within one
-batch.
+A device that receives a `list raw` in one activation performs `batchOps P ws` —
+each item read by the policy, in the batch's order, a `List Op` — and the line
+after the batch is `lineAfterBatch P start ws`, the last accepted item or the
+line before. Two window realizations of one output carry batches that are
+pointwise the two transfers of one value (`paired_batches_of_one_window`); the
+prepare/prepare/commit of a paired axis is the backend's order within one batch.
 
 ## Alternatives rejected
 

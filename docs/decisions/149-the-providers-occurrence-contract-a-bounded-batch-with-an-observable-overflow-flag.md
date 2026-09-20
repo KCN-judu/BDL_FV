@@ -25,14 +25,14 @@ transport identity was not delivered before, in arrival order, and the flag
 `cap < #fresh`. The Source reads `(list raw, bool)` through Phase 13's shared
 raw reading with two channels (`batchProvision`: the items and the flag). A
 scalar Source is the batch sampled — the last item or the held value
-(`Batch.latest`, `chLatest`). Which `cap` suffices is a deployment assumption
-on the physical arrival rate, decided as Phase 9a decides capacity.
+(`Batch.latest`, `chLatest`). Which `cap` suffices is a deployment assumption on
+the physical arrival rate, decided as Phase 9a decides capacity.
 
 ## Alternatives rejected
 
 A silent drop at the bound (only refusal preserves semantics, FVD-0086, and a
-provider cannot refuse the world — it can say so); a second input semantics
-for batches; an unbounded batch.
+provider cannot refuse the world — it can say so); a second input semantics for
+batches; an unbounded batch.
 
 ## Reason
 

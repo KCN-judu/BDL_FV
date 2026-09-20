@@ -20,16 +20,16 @@ Accepted in Phase 17.
 ## Decision
 
 The provider keeps the transport identities it has delivered (`Seen`, adapter
-state) and drops a delivery whose identity it has seen (`dedup`). Two
-deliveries with distinct identities and equal payloads are two semantic
-occurrences. The design never sees an identity.
+state) and drops a delivery whose identity it has seen (`dedup`). Two deliveries
+with distinct identities and equal payloads are two semantic occurrences. The
+design never sees an identity.
 
 ## Alternatives rejected
 
-Deduplication by payload (`Move(+10); Move(+10)` is two commands); the
-transport identity in the Source's type (FVD-0144); deduplication in the
-design by semantic id as the *only* mechanism (it remains the design's option
-for semantic identity, Phase 16 `exF_identity`, and is not the transport's).
+Deduplication by payload (`Move(+10); Move(+10)` is two commands); the transport
+identity in the Source's type (FVD-0144); deduplication in the design by
+semantic id as the _only_ mechanism (it remains the design's option for semantic
+identity, Phase 16 `exF_identity`, and is not the transport's).
 
 ## Reason
 
