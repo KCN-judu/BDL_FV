@@ -189,6 +189,14 @@ theorem mev_zero {S : Sched} {Δ : DeclEnv} {I : Input} {c : ClockId} {t : Nat} 
 
 /-! ## M — the correspondence theorem -/
 
+/-- The environment realizes the five declarations — whatever `src` is. -/
+structure RealizedFrom (Δ : DeclEnv) : Prop where
+  log : Δ.realizationOf ids.log = some (logBody τ ids)
+  logD : Δ.realizationOf ids.logD = some (logDBody τ cs ids)
+  seen : Δ.realizationOf ids.seen = some (seenBody τ ids)
+  cursor : Δ.realizationOf ids.cursor = some (cursorBody ids)
+  window : Δ.realizationOf ids.window = some (windowBody τ ids)
+
 /-- The environment realizes the five declarations and leaves `src` an input. -/
 structure Realized (Δ : DeclEnv) : Prop where
   src : Δ.realizationOf ids.src = none
@@ -200,17 +208,28 @@ structure Realized (Δ : DeclEnv) : Prop where
 
 variable {τ cs ids}
 
+theorem Realized.toFrom {Δ : DeclEnv} (R : Realized τ cs ids Δ) : RealizedFrom τ cs ids Δ :=
+  ⟨R.log, R.logD, R.seen, R.cursor, R.window⟩
+
+/-! The evaluation lemmas are stated for any source whose value in the
+    source domain is a known function `f` of the tick (Phase 16 reads the
+    log from a *realized* encoder declaration); an input source is the
+    instance `f u = I ids.src u`. -/
+
+section From
+variable {S : Sched} {Δ : DeclEnv} {I : Input} {f : Nat → Value}
+
 /-- The source log at tick `u`, read in the source domain: the source's
     value now, then its values at every earlier source activation, newest
     first. -/
-theorem log_at {S : Sched} {Δ : DeclEnv} {I : Input} (R : Realized τ cs ids Δ) :
-    ∀ u, MEv S Δ I cs u [] (.declRef ids.log) (.list ((u :: (logTicks S cs u).reverse).map (I ids.src))) := by
+theorem log_at_from (R : RealizedFrom τ cs ids Δ) (hsrc : ∀ u, MEv S Δ I cs u [] (.declRef ids.src) (f u)) :
+    ∀ u, MEv S Δ I cs u [] (.declRef ids.log) (.list ((u :: (logTicks S cs u).reverse).map f)) := by
   intro u
   induction u using Nat.strongRecOn with
   | ind u ih =>
     refine .refRealized R.log ?_
     unfold logBody
-    refine mev_cons τ (.refInput R.src) ?_
+    refine mev_cons τ (hsrc u) ?_
     cases hp : prevAct S cs u with
     | none =>
       rw [logTicks_of_prevAct_none S cs u hp]
@@ -227,8 +246,9 @@ theorem log_at {S : Sched} {Δ : DeclEnv} {I : Input} (R : Realized τ cs ids Δ
 /-- The transported log at tick `t`, read in the destination domain: the
     source's values at all source activations strictly before `t`, newest
     first. -/
-theorem logD_at {S : Sched} {Δ : DeclEnv} {I : Input} (R : Realized τ cs ids Δ) (cd : ClockId) (t : Nat) :
-    MEv S Δ I cd t [] (.declRef ids.logD) (.list ((logTicks S cs t).reverse.map (I ids.src))) := by
+theorem logD_at_from (R : RealizedFrom τ cs ids Δ) (hsrc : ∀ u, MEv S Δ I cs u [] (.declRef ids.src) (f u))
+    (cd : ClockId) (t : Nat) :
+    MEv S Δ I cd t [] (.declRef ids.logD) (.list ((logTicks S cs t).reverse.map f)) := by
   refine .refRealized R.logD ?_
   unfold logDBody
   cases hp : prevAct S cs t with
@@ -238,22 +258,42 @@ theorem logD_at {S : Sched} {Δ : DeclEnv} {I : Input} (R : Realized τ cs ids �
   | some u =>
     rw [logTicks_of_prevAct_some S cs t u hp]
     simp only [List.reverse_append, List.reverse_cons, List.reverse_nil, List.nil_append, List.singleton_append]
-    exact .syncSome hp (log_at R u)
+    exact .syncSome hp (log_at_from R hsrc u)
 
-theorem seen_at {S : Sched} {Δ : DeclEnv} {I : Input} (R : Realized τ cs ids Δ) (cd : ClockId) (t : Nat) :
+theorem seen_at_from (R : RealizedFrom τ cs ids Δ) (hsrc : ∀ u, MEv S Δ I cs u [] (.declRef ids.src) (f u))
+    (cd : ClockId) (t : Nat) :
     MEv S Δ I cd t [] (.declRef ids.seen) (.nat (logTicks S cs t).length) := by
   refine .refRealized R.seen ?_
   unfold seenBody
-  have := mev_len τ (logD_at (S := S) (I := I) R cd t)
+  have := mev_len τ (logD_at_from R hsrc cd t)
   simpa using this
 
-theorem cursor_at {S : Sched} {Δ : DeclEnv} {I : Input} (R : Realized τ cs ids Δ) (cd : ClockId) (t : Nat) :
+theorem cursor_at_from (R : RealizedFrom τ cs ids Δ) (hsrc : ∀ u, MEv S Δ I cs u [] (.declRef ids.src) (f u))
+    (cd : ClockId) (t : Nat) :
     MEv S Δ I cd t [] (.declRef ids.cursor) (.nat (logTicks S cs ((prevAct S cd t).getD 0)).length) := by
   refine .refRealized R.cursor ?_
   unfold cursorBody
   cases hp : prevAct S cd t with
   | none => exact .delayNone hp mev_zero
-  | some t₀ => exact .delaySome hp (seen_at R cd t₀)
+  | some t₀ => exact .delaySome hp (seen_at_from R hsrc cd t₀)
+
+end From
+
+theorem log_at {S : Sched} {Δ : DeclEnv} {I : Input} (R : Realized τ cs ids Δ) :
+    ∀ u, MEv S Δ I cs u [] (.declRef ids.log) (.list ((u :: (logTicks S cs u).reverse).map (I ids.src))) :=
+  log_at_from R.toFrom (fun _ => .refInput R.src)
+
+theorem logD_at {S : Sched} {Δ : DeclEnv} {I : Input} (R : Realized τ cs ids Δ) (cd : ClockId) (t : Nat) :
+    MEv S Δ I cd t [] (.declRef ids.logD) (.list ((logTicks S cs t).reverse.map (I ids.src))) :=
+  logD_at_from R.toFrom (fun _ => .refInput R.src) cd t
+
+theorem seen_at {S : Sched} {Δ : DeclEnv} {I : Input} (R : Realized τ cs ids Δ) (cd : ClockId) (t : Nat) :
+    MEv S Δ I cd t [] (.declRef ids.seen) (.nat (logTicks S cs t).length) :=
+  seen_at_from R.toFrom (fun _ => .refInput R.src) cd t
+
+theorem cursor_at {S : Sched} {Δ : DeclEnv} {I : Input} (R : Realized τ cs ids Δ) (cd : ClockId) (t : Nat) :
+    MEv S Δ I cd t [] (.declRef ids.cursor) (.nat (logTicks S cs ((prevAct S cd t).getD 0)).length) :=
+  cursor_at_from R.toFrom (fun _ => .refInput R.src) cd t
 
 /-- The list identity behind the window: the newest `|l| − m` entries of
     a newest-first log, put back in order, are the entries after the first `m`. -/
@@ -264,6 +304,32 @@ theorem take_reverse_drop {α : Type} (l : List α) (m : Nat) (hm : m ≤ l.leng
 theorem take_reverse_map_drop {α β : Type} (f : α → β) (l : List α) (m : Nat) (hm : m ≤ l.length) :
     ((l.reverse.map f).take (l.length - m)).reverse = (l.drop m).map f := by
   rw [List.map_reverse, ← List.map_reverse, ← List.map_take, ← List.map_reverse, take_reverse_drop l m hm, List.map_drop]
+
+/-- **Theorem M, for any source** (`buffer_window_correspondence_from`):
+    at every tick `t`, in the destination domain, `window` is the list of
+    the source's values `f` at the Phase-5 window ticks
+    `windowTicks S src dst t`, in order and with multiplicity — for any
+    source whose value in the source domain is `f`. -/
+theorem buffer_window_correspondence_from {S : Sched} {Δ : DeclEnv} {I : Input} {f : Nat → Value}
+    (R : RealizedFrom τ cs ids Δ) (hsrc : ∀ u, MEv S Δ I cs u [] (.declRef ids.src) (f u))
+    (cd : ClockId) (t : Nat) :
+    MEv S Δ I cd t [] (.declRef ids.window) (.list ((windowTicks S cs cd t).map f)) := by
+  refine .refRealized R.window ?_
+  unfold windowBody
+  have hlogD := logD_at_from R hsrc cd t
+  have hseen := seen_at_from R hsrc cd t
+  have hcursor := cursor_at_from R hsrc cd t
+  have hwin := mev_rev τ (mev_take τ (mev_sub hseen hcursor) hlogD)
+  -- t₀ ≤ t, so the cursor is a prefix length of the log
+  have ht₀ : (prevAct S cd t).getD 0 ≤ t := by
+    cases hp : prevAct S cd t with
+    | none => exact Nat.zero_le _
+    | some t₀ => exact Nat.le_of_lt (prevAct_lt hp)
+  have hle := logTicks_length_mono S cs ht₀
+  rw [take_reverse_map_drop _ _ _ hle] at hwin
+  unfold windowTicks
+  rw [buffer_from_log_and_cursor S cs _ t ht₀]
+  exact hwin
 
 /-- **Theorem M — `buffer_window_correspondence`.**  At every tick `t`, in
     the destination domain, `window` is the list of the source's values at
@@ -276,23 +342,8 @@ theorem take_reverse_map_drop {α β : Type} (f : α → β) (l : List α) (m : 
     the statement holds at activation and non-activation ticks alike. -/
 theorem buffer_window_correspondence {S : Sched} {Δ : DeclEnv} {I : Input} (R : Realized τ cs ids Δ)
     (cd : ClockId) (t : Nat) :
-    MEv S Δ I cd t [] (.declRef ids.window) (.list ((windowTicks S cs cd t).map (I ids.src))) := by
-  refine .refRealized R.window ?_
-  unfold windowBody
-  have hlogD := logD_at (S := S) (I := I) R cd t
-  have hseen := seen_at (S := S) (I := I) R cd t
-  have hcursor := cursor_at (S := S) (I := I) R cd t
-  have hwin := mev_rev τ (mev_take τ (mev_sub hseen hcursor) hlogD)
-  -- t₀ ≤ t, so the cursor is a prefix length of the log
-  have ht₀ : (prevAct S cd t).getD 0 ≤ t := by
-    cases hp : prevAct S cd t with
-    | none => exact Nat.zero_le _
-    | some t₀ => exact Nat.le_of_lt (prevAct_lt hp)
-  have hle := logTicks_length_mono S cs ht₀
-  rw [take_reverse_map_drop _ _ _ hle] at hwin
-  unfold windowTicks
-  rw [buffer_from_log_and_cursor S cs _ t ht₀]
-  exact hwin
+    MEv S Δ I cd t [] (.declRef ids.window) (.list ((windowTicks S cs cd t).map (I ids.src))) :=
+  buffer_window_correspondence_from R.toFrom (fun _ => .refInput R.src) cd t
 
 /-! ## N — losslessness -/
 
