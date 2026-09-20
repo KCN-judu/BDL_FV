@@ -33,6 +33,17 @@ adapter's carrier is configuration, FVD-0138).
 A production device that consumes at its own rate (ISS-0017); then a deployment
 spelling for the device domain and the initial representation.
 
+## Amendment (2026-09-20, Phase 16)
+
+One more remainder, found by attacking the state-only thesis (Phase 16 §16.2):
+`lowerSync` samples the last command, so two commands specified between two
+device activations reach a slower device as one. An occurrence-preserving
+crossing is a construction over existing primitives — the Phase-9a window
+mirrored into the lowering: a log in the output's clock, transported by `sync`,
+a cursor in the device domain, a `list raw` sink whose batch the backend commits
+in order — and it is not built. Not a primitive gap; a lowering to write and
+prove when a device that must not miss a command exists.
+
 ## Resolution
 
 Open.

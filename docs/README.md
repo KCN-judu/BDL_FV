@@ -43,7 +43,7 @@ One folder per kind of record; every page carries a header that
 
 | Page                                  | What it fixes                                                                                                 |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [kernel.md](kernel/kernel.md)         | the cumulative kernel after Phase 15: objects, judgments, primitives, the refinement/edit split               |
+| [kernel.md](kernel/kernel.md)         | the cumulative kernel after Phase 16: objects, judgments, primitives, the refinement/edit split               |
 | [layout.md](kernel/layout.md)         | every Lean file and the definitions and theorems it holds                                                     |
 | [minimality.md](kernel/minimality.md) | every construct ever proposed with its verdict: kernel · surface · library · validation · UI · defer · remove |
 
@@ -68,29 +68,36 @@ One folder per kind of record; every page carries a header that
   natural binders, the unit domain, Source provision, output realization, the
   adapter boundary and the device clock — is a construction over designs proved
   to preserve the kernel's judgments.
-- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15 complete; 142
-  decisions; 28 items: 8 open, 9 deferred, 11 resolved. Build clean on Lean
+- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15, 16 complete; 148
+  decisions; 29 items: 9 open, 9 deferred, 11 resolved. Build clean on Lean
   4.33.1, no `sorry`, `propext`/`Quot.sound` only.
 - **Not started:** Phase 8c (surface elaboration of the remaining
   designer-facing forms, executable semantics); the final minimality audit.
-- **Recently changed:** the audit of every open item against Phases 8a–14 and
-  production `6be778b` (eleven resolved, deferred or merged; FVI-0022 split into
-  FVI-0023 … FVI-0027; FVI-0011 narrowed, FVI-0028 split off) and Phase 15 — the
-  adapter boundary (policy, operation, line; `adapter_of_sink`) and the explicit
-  device clock (`lowerSync_correspondence`); no stateful realization primitive
-  (`exE_slew`); Phase 14 — output realization by device encoders, the
-  output-side dual of Source provision: a logical output is semantic intent, the
-  mechanism (PWM / GPIO / I²C / UART) is a deployment lowering that adds a pure
-  encoder and a machine sink and changes nothing the behaviour observes; the
-  machine boundary is the `RawCommand` relation, never an `R -> ()` term;
-  correspondence is directional and admits quantization; Phase 13 — Source
-  provision by device transducers, the audit of production's PRP-0001 (four of
-  seven claims corrected: purity is the profile condition, the transfer function
-  is carried on values, commitments are obligations on the profile, trace
-  equality needs a joint section); Phase 12 — the canonical type `() -> B` as an
-  interface normalization above the kernel, the source role as a realization
-  state, `A -> ()` unable to name a consumer (consumed by production's ADR-0029
-  and ADR-0032); the records reorganised into this tree (2026-09-20).
+- **Recently changed:** Phase 16 — communication as state: the auto_typer stress
+  case (queue, cancellation, freshness, faults, acknowledgement, cross-clock
+  delivery, a paired axis) encoded and executed on the unchanged kernel, no
+  message/event/queue/transaction primitive; Source-side non-interference
+  (`two_providers_same_behavior`) completing the replacement-invariance
+  criterion; catalogue profiles with an unread origin and the deployment-only
+  `assign`; contract separate from feasibility; the audit of every open item
+  against Phases 8a–14 and production `6be778b` (eleven resolved, deferred or
+  merged; FVI-0022 split into FVI-0023 … FVI-0027; FVI-0011 narrowed, FVI-0028
+  split off) and Phase 15 — the adapter boundary (policy, operation, line;
+  `adapter_of_sink`) and the explicit device clock (`lowerSync_correspondence`);
+  no stateful realization primitive (`exE_slew`); Phase 14 — output realization
+  by device encoders, the output-side dual of Source provision: a logical output
+  is semantic intent, the mechanism (PWM / GPIO / I²C / UART) is a deployment
+  lowering that adds a pure encoder and a machine sink and changes nothing the
+  behaviour observes; the machine boundary is the `RawCommand` relation, never
+  an `R -> ()` term; correspondence is directional and admits quantization;
+  Phase 13 — Source provision by device transducers, the audit of production's
+  PRP-0001 (four of seven claims corrected: purity is the profile condition, the
+  transfer function is carried on values, commitments are obligations on the
+  profile, trace equality needs a joint section); Phase 12 — the canonical type
+  `() -> B` as an interface normalization above the kernel, the source role as a
+  realization state, `A -> ()` unable to name a consumer (consumed by
+  production's ADR-0029 and ADR-0032); the records reorganised into this tree
+  (2026-09-20).
 
 ## Rules in one paragraph
 

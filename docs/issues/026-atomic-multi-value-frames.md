@@ -33,6 +33,14 @@ Phase 14 report §14.2; FVD-0136 and its amendment; Phase 15 report §15.2.
 A device whose frame cannot be assembled by per-tick batching and whose values
 the design does not want as one concept.
 
+## Amendment (2026-09-20, Phase 16)
+
+The paired axis (`YPosition` on two motors with prepare/prepare/commit) is not
+an instance of this item: the design means one output, and the pair command or
+two agreeing realizations carry it (FVD-0148, `paired_commands_of_one_value`).
+The criterion — several independently meaningful outputs in one indivisible
+frame — still has no witness.
+
 ## Resolution
 
 Open.

@@ -29,6 +29,16 @@ production evidence Phase 13 was: no device provides a Source yet. Phase 15's
 explicit device clock for outputs (`lowerSync`) is the shape the Source-side
 device clock would take in reverse.
 
+## Amendment (2026-09-20, Phase 16)
+
+Freshness is not a Source-side question: it is behaviour state — the design
+counts ticks without a sample and says what stale means (`age`, `fresh`,
+`timedOut`; `exG_freshness`), and no transducer could. Bounded buffered input is
+narrowed to the provider's occurrence contract, FVI-0029 (a `list raw` reading
+per tick, bounded, in arrival order). What remains here: stateful transducers, a
+device clock on the Source side (the reverse of `lowerSync`), commitment
+discharge, `computes` checked or trusted, out-of-type readings.
+
 ## Resolution
 
 Open. The **output provision** part is answered by Phase 14

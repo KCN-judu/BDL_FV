@@ -34,6 +34,13 @@ state upstream plus a pure encoder plus backend state — none is known.
 A concrete device protocol whose state is neither product-observable nor below
 the tick.
 
+## Amendment (2026-09-20, Phase 16)
+
+The auto_typer stress case added no witness: acknowledgement handshakes are
+behaviour state (`exJ_ack`), a fault latch is behaviour state
+(`exI_fault_latch`), a paired-axis commit is the backend's per-tick order
+(FVD-0148). The classification stands.
+
 ## Resolution
 
 Open.
