@@ -80,14 +80,15 @@ that consumes those commands (production-tested, never formally proved),
 and a Flutter authoring environment, Studio, whose every semantic
 verdict is a projection from the compiler.
 
-#strong[Formal scope.] Phases 0 through 14 --- twenty phase reports,
-counting the sub-phases and the post-Phase-1 migration --- in 57 Lean
-modules (11 `Core`, 12 `Behavior`, 13 `Surface`, 2 `Validation`, 19
-`Experiments`), about 1 250 theorem and lemma declarations, 139 decision
-records (one superseded) and 22 open items (18 open); no `sorry`,
-propositional extensionality and quotient soundness as the only axioms,
-no classical choice. Every theorem is about the #emph[model]\; none is
-about the Rust or Dart code, and none is about a board.
+#strong[Formal scope.] Phases 0 through 15 --- twenty-one phase reports,
+counting the sub-phases and the post-Phase-1 migration --- in 60 Lean
+modules (11 `Core`, 12 `Behavior`, 15 `Surface`, 2 `Validation`, 20
+`Experiments`), about 1 300 theorem and lemma declarations, 142 decision
+records (one superseded) and 28 open items (8 open, 9 deferred, 11
+resolved after the audit of 2026-09-20); no `sorry`, propositional
+extensionality and quotient soundness as the only axioms, no classical
+choice. Every theorem is about the #emph[model]\; none is about the Rust
+or Dart code, and none is about a board.
 
 #strong[Production scope.] Production is described #strong[as of commit
 `6be778b07f07bebaba26f580f2b4af74a13ce9df` of `KCN-judu/BDL`,
@@ -1089,9 +1090,9 @@ The development builds with Lean 4.33.1 with no `sorry`. The axioms used
 by every theorem are propositional extensionality and quotient
 soundness, the latter only through function extensionality and the
 choice-free rational quotient of Part VI; classical choice is absent,
-and each phase re-audited the whole development for it. As of Phase 14
-the sources are 57 modules: 11 in `Core`, 12 in `Behavior`, 13 in
-`Surface`, 2 in `Validation`, and 19 experiment modules holding
+and each phase re-audited the whole development for it. As of Phase 15
+the sources are 60 modules: 11 in `Core`, 12 in `Behavior`, 15 in
+`Surface`, 2 in `Validation`, and 20 experiment modules holding
 alternatives, counterexamples and executed examples. Every trace,
 assignment, unsatisfiability result and executed example reported here
 was obtained by running a proved-sound interpreter or solver inside the
@@ -3796,6 +3797,111 @@ Pi Pico and is production-tested through recording sinks and a
 cross-build, and nothing formal is claimed for it --- that arrow is the
 boundary FVI-0022 leaves open.
 
+== The adapter boundary and the device clock (Phase 15)
+<the-adapter-boundary-and-the-device-clock-phase-15>
+Phase 14 stops at the raw command; production's first embedded adapter
+(ADR-0037) starts there --- `Tick.commands` → `adapter::apply` → an
+operation on a peripheral --- with an explicit #emph[boundary policy] (a
+finite duty in `0 ..= 255` rounds half up and is applied, anything else
+is refused and the line holds its last value, a driver that is not due
+leaves the line) and a host-recorded operation trace. Phase 15 asked the
+narrow question the adapter made answerable: what is the smallest honest
+formal boundary beyond `RawCommand`? The answer is one step and no more
+(#strong[formally proved], `Surface/Adapter.lean`).
+
+#strong[Policy, operation, line.] A `Policy` is the adapter's reading of
+a command --- `accept : Value → Option Value`, partial by design;
+`duty8` is production's policy on the kernel's naturals, `clamp8` the
+alternative production refused, `total` applies as is. An `Op` is
+`set m`, `refused` or `held` --- production's `AdapterOp` as data; no
+term, no evaluation rule, nothing in `Core`.
+`AdapterOp S Δ I Ω β R spec P t op` is the operation on the
+realization's sink at global tick `t`, over the #emph[unchanged] design
+and gated by the output's clock: `held` when the clock is not active,
+`set (P w)` when the specified command `w` is accepted, `refused`
+otherwise. The line is a fold over the operations: the start value until
+a command is accepted, the last accepted value thereafter; a refusal or
+an inactive tick changes nothing. Reject-and-hold is therefore a
+property of the fold --- the only state at the boundary, and it lives in
+the adapter, below the realization, outside the behavior (FVD-0140).
+
+#strong[What is proved.] The operation is a function of the tick
+(`AdapterOp.det`); it is determined by what the lowered design's machine
+sink carries --- `lower_correspondence` carried one step further, in
+both directions (`adapter_of_sink`, `sink_of_adapter`); the raw command
+does not mention the policy, so no policy and no refusal reaches the
+behavior or the command (`adapter_downstream`,
+`two_policies_same_commands`); the line is a function of the tick, holds
+on refusal and on an inactive tick, carries an accepted command, and
+never carries a refused one (`Line.det`, `line_holds_on_refusal`,
+`line_holds_when_inactive`, `line_last_accepted`,
+`line_value_accepted`). Executed: duty 102 set and the line at 102; a
+dial at 120 % encodes to duty 306, refused under `duty8` with the line
+holding 0, set to 255 under `clamp8`, 306 under `total` --- one command
+trace, three operation traces (`exA`, `exB`); an inactive tick holds
+(`exC`). Below the operation nothing is modelled --- production's `f64`
+rounding, the HAL, the register, the electrical world (FVI-0023); the
+generated Rust's agreement with `AdapterOp` is
+#strong[production-tested]
+(`host_adapter_operations_correspond_to_the_commands`), never proved.
+
+#strong[The explicit device clock.] Phase 14 refused an implicit
+crossing; Phase 15 builds the explicit one (`Surface/DeviceClock.lean`):
+the encoder declaration lives in a device domain `dc` and reads the
+driver's representation through Phase 5's transport,
+
+$ e := upright(e n c o d e) thin\(upright(s y n c) med c med italic(i n i t R e p) med\(upright(r e p) med d\)\)\,#h(2em) e\,p upright(" in ") d c\, $
+
+with `c` the output's clock and `initRep` a pure closed representation
+value for the ticks before `c`'s first activation. What must be explicit
+in the lowering is exactly `dc` and `initRep`\; both are deployment's
+choices, and the design still says nothing about a device; the carrier
+frequency stays configuration (FVD-0141). Every preservation theorem
+survives --- the behavior is literally unchanged off `e`, the lowering
+is a refinement, well formed, well clocked with the transported operand
+in the output's clock, single-driver --- and causality survives with
+#emph[no new instantaneous edge at all], because the transport is never
+instantaneous (`lowerSync_causal`). The correspondence samples strictly
+before: at a device tick `t` the sink carries `transfer` of the command
+the output specified at the last activation of `c` before `t`, or of
+`initRep` if there was none (`lowerSync_correspondence`). Executed: the
+device domain on odd ticks and the output's clock on even, the sink
+carrying 102 at tick 1 and 107 at tick 3 with `prevAct` naming 0 and 2;
+the initial representation before the first activation (`exD_*`).
+
+#strong[Stateful adapters, classified before generalized.] No
+`StatefulEncoder` was added, because no case needed one. Slew-rate
+limiting is product-observable and is an ordinary declaration upstream
+of the logical output ---
+`limited := if delay 0 limited + 10 < dial then delay 0 limited + 10 else dial`
+ramps `10, 20, 30, 40` in the design, visible to the designer and the
+simulation, and the same pure encoder produces the ramped raw trace
+`25, 51, 76, 102` (`exE_slew`); servo smoothing and hysteresis are of
+the same kind; debouncing is Source-side (FVI-0020); PWM dithering
+modulates below the tick, where the model has no time, and is backend
+implementation; protocol batching is the backend's per-tick commit. A
+stateful primitive between the logical output and the raw command needs
+a value none of these can represent; none is known (FVD-0142, FVI-0025).
+Atomic multi-value frames likewise remain a stated criterion without a
+witness (FVI-0026).
+
+#strong[The audit behind the phase.] Phase 15 began by auditing every
+active open item against Phases 8a--14 and production `6be778b`, because
+an open item is not a research backlog merely by having a number. Eleven
+were resolved, deferred or merged --- the device-component library
+(FVI-0012) had its premise rejected by Phases 13/14, folding the clock
+into the interface (FVI-0013) was already decided against by FVD-0046,
+grant delegation (FVI-0018) is unnecessary under `constructs_granted`,
+the display-name table (FVI-0019) duplicates FVD-0014, the general
+`elim` (FVI-0021) is rejected by the canonical-interface design,
+interface-level references and evidence invalidation (FVI-0001,
+FVI-0015) are one blocked question until production authors a
+commitment; FVI-0022 was split into five questions with different
+answers (FVI-0023 … FVI-0027), and FVI-0011 was narrowed to the
+now-concrete shared-configuration feasibility (RP2040 slices sharing a
+carrier) with its explanation half split off (FVI-0028). The triage
+table is in the formal repository's `docs/issues/README.md`.
+
 == The physical boundary as one whole
 <the-physical-boundary-as-one-whole>
 Read end to end, one value's path from the world back to the world is
@@ -3854,13 +3960,22 @@ physical world ─▶ raw reading r : () -> R ─▶ pure transducer tr ─▶ l
     admissibility, `SinkPlan`, `Tick.commands`\; tested], [the
     plan-level lowering is not the model's fresh declarations
     (observably the same, unproved as such)],
-    [raw command → peripheral operation], [the platform adapter applies
-    the command], [#strong[not modelled]: `RawCommand` is where the
-    semantics stops (FVD-0134)], [#strong[not proved]
-    (FVI-0022)], [ADR-0037: `apply(tick, sinks…)` on the RP2040,
+    [abstract sink operation → peripheral operation], [the HAL call, the
+    register], [#strong[not modelled]: the operation is where the
+    semantics stops (FVD-0140)], [#strong[not proved]
+    (FVI-0023)], [ADR-0037: `apply(tick, sinks…)` on the RP2040,
     recording sinks on the host, a cross-build in CI; tested], [stateful
     adapters, a device clock, atomic frames, the numeric policy at the
     boundary],
+    [raw command → abstract sink operation], [the adapter's policy reads
+    the command; the line holds the last accepted value], [Phase 15
+    `Policy`, `AdapterOp`, `Line` (below the raw command, over the
+    unchanged design)], [`AdapterOp.det`, `adapter_of_sink`,
+    `line_value_accepted`, `line_holds_on_refusal`], [ADR-0037 `duty8`,
+    `AdapterOp`, `TickTrace.adapter`\; production-tested
+    (`host_adapter_operations_correspond_to_the_commands`)], [the `f64`
+    rounding before the range check; anything below the operation
+    (FVI-0023)],
     [peripheral operation → physical world], [a register write becomes
     light or motion], [not modelled], [not proved, and not testable by
     this project's means], [the firmware runs; no bench measurement is
@@ -6025,24 +6140,30 @@ none covers a board.
 <open-formal-questions>
 Each names what exists and what would resolve it.
 
-+ #strong[A general edit/invalidation relation] (FVI-0015). Refinement
-  is a preorder with proved client stability; an arbitrary edit is
-  outside it and forces a recheck of dependents. Production classifies
-  edits into seven invalidation categories (ADR-0009). Missing: a formal
-  relation that says, per edit kind, exactly which established facts
-  survive --- the theory behind incremental re-analysis. Would resolve:
-  a proved per-category preservation theorem.
-+ #strong[Commitments that depend on interface references] (FVI-0001;
-  ISS-0003). A commitment is a property id discharged by evidence over
-  the realization; a commitment mentioning #emph[another declaration]
-  has no model, so interface-level cycles are invisible. Would resolve:
-  an interface-level dependency relation and its interaction with
-  refinement --- and, before it, any production authoring of commitments
-  at all.
-+ #strong[Lambda-guarded causality precision] (FVI-0003). `Causal`
-  counts a reference under a lambda as instantaneous. Would resolve: a
-  causality judgment with application sites and its totality theorem.
-+ #strong[Higher-order closure equivalence] (FVI-0004).
++ #strong[A general edit/invalidation relation] (FVI-0015, deferred and
+  merged into FVI-0001 --- blocked until production authors a
+  commitment). Refinement is a preorder with proved client stability; an
+  arbitrary edit is outside it and forces a recheck of dependents.
+  Production classifies edits into seven invalidation categories
+  (ADR-0009). Missing: a formal relation that says, per edit kind,
+  exactly which established facts survive --- the theory behind
+  incremental re-analysis. Would resolve: a proved per-category
+  preservation theorem.
++ #strong[Commitments that depend on interface references] (FVI-0001,
+  deferred; ISS-0003). A commitment is a property id discharged by
+  evidence over the realization; a commitment mentioning #emph[another
+  declaration] has no model, so interface-level cycles are invisible.
+  Would resolve: an interface-level dependency relation and its
+  interaction with refinement --- and, before it, any production
+  authoring of commitments at all.
++ #strong[Lambda-guarded causality precision] (FVI-0003, deferred:
+  closures cannot outlive a tick, so the conservative count loses only
+  data-dependent dead closures, which the language does not want).
+  `Causal` counts a reference under a lambda as instantaneous. Would
+  resolve: a causality judgment with application sites and its totality
+  theorem.
++ #strong[Higher-order closure equivalence] (FVI-0004, deferred as
+  churn: unfolding is not the executable definition).
   `unfolds_preserves_eval` holds for wiring designs. Would resolve: an
   equivalence of closures across unfolding, or a first-order
   normalization of higher-order realizations before unfolding.
@@ -6051,25 +6172,29 @@ Each names what exists and what would resolve it.
   consistent modular input and a proof of its existence. Production
   supports the case; the theorem does not.
 + #strong[Nested and stateful component elaboration limits] (FVI-0007,
-  FVI-0009; ISS-0007, ISS-0010). `toComponent`'s side condition is
-  decidable and unproved; packaging inside a component body is not
-  modelled; contexts with handler-scoped clocks and independently
-  clocked nesting were not examined, and production offers neither
-  temporal modifiers nor contexts. Would resolve: an elaboration with a
-  preservation theorem, or a counterexample forcing a kernel construct.
-+ #strong[Affine physical arithmetic validation] (FVI-0017; ISS-0004).
+  ready with FVI-0006; FVI-0009 deferred until the surface has contexts;
+  ISS-0007, ISS-0010). `toComponent`'s side condition is decidable and
+  unproved; packaging inside a component body is not modelled; contexts
+  with handler-scoped clocks and independently clocked nesting were not
+  examined, and production offers neither temporal modifiers nor
+  contexts. Would resolve: an elaboration with a preservation theorem,
+  or a counterexample forcing a kernel construct.
++ #strong[Affine physical arithmetic validation] (FVI-0017, deferred:
+  coordinate semantics is solved, the validation is optional; ISS-0004).
   The point/difference sort as an operation-level validation, its rules
   (`affAdd`, `affSub`) at the surface, and the Composer offering only
   difference units for a delta slot. Would resolve: the validation and a
   decision to offer °C in formulas, or a decision not to need it.
-+ #strong[Hardware: minimal unsatisfiable cores] (FVI-0011). `diagnose`
-  reports a first dead end. Would resolve: a minimal core with a proof
-  of minimality, or a decision that the first dead end is the better
-  explanation.
-+ #strong[Numeric electrical, thermal and timing constraints]
-  (FVI-0011). Out of the solver's scope; a design can be allocated and
-  still exceed a current budget. Would resolve: a numeric constraint
-  layer beside the finite solver, with its own soundness.
++ #strong[Hardware: minimal unsatisfiable cores] (FVI-0028, deferred ---
+  explanation, not correctness). `diagnose` reports a first dead end.
+  Would resolve: a minimal core with a proof of minimality, or a
+  decision that the first dead end is the better explanation.
++ #strong[Numeric and shared-configuration hardware feasibility]
+  (FVI-0011, narrowed and now concrete: RP2040 PWM slices share `top`
+  and divider, masked today by one fixed carrier). Out of the solver's
+  scope; a design can be allocated and still exceed a current budget.
+  Would resolve: a numeric constraint layer beside the finite solver,
+  with its own soundness.
 + #strong[A generated-code refinement proof.] The core is held to the
   reference evaluator by differential tests, and its raw commands to the
   encoder over the evaluator's outputs. Would resolve: a proof that
@@ -6077,28 +6202,34 @@ Each names what exists and what would resolve it.
   generated `Commands` are `RawCommand` --- or a verified evaluator ---
   closing the largest deviation of Part XIII. A proved static bound
   analysis is the same gap on the capacity side.
-+ #strong[The output boundary beyond a pure encoder] (FVI-0022;
-  ISS-0017). What Phase 14 leaves open, and the first platform adapter
-  does not close --- it applies each command independently and
-  untouched: #emph[stateful output adapters] (slew-rate limiting, PWM
-  dithering, protocol batching, servo smoothing, hysteresis), and
-  whether each belongs to the behavior as an ordinary declaration with
-  `delay`, to a stateful lowering with a stream-level correspondence
-  theorem, or to the backend; #emph[a device clock different from the
-  output clock] --- the explicit-`sync` variant of the lowering
-  (FVD-0138) and the line between an activation clock and a carrier
-  frequency, which is configuration; #emph[atomic multi-value frames]
-  --- whether a device that must receive several logical outputs in one
-  indivisible frame (a display controller taking a `Mode` and a `Level`
-  the behavior drives as two outputs, refusing a frame with one) ever
-  forces a `lowerMany` beyond per-tick batching or upstream combination,
-  which FVD-0136 decides for the singleton without settling; #emph[the
-  codegen and adapter correspondence] --- abstract trace → raw command
-  trace is proved, raw command trace → generated command → adapter
-  operation → physical effect is not, and the last arrow is not even a
-  testable statement inside this project; and #emph[commitments on
-  outputs], which production does not author and whose discharge by an
-  encoder's declared transfer would be the output analogue of FVD-0128.
++ #strong[The output boundary beyond a pure encoder] (FVI-0022 split
+  into FVI-0023 … FVI-0027; ISS-0017). Phase 15 answered the first two
+  up to the abstract sink operation and the explicit device clock; open:
+  below the operation (FVI-0023), a device that acknowledges and the
+  initial representation (FVI-0024), a stateful witness (FVI-0025), the
+  atomic-frame criterion (FVI-0026); deferred: output commitments
+  (FVI-0027). Originally: What Phase 14 leaves open, and the first
+  platform adapter does not close --- it applies each command
+  independently and untouched: #emph[stateful output adapters]
+  (slew-rate limiting, PWM dithering, protocol batching, servo
+  smoothing, hysteresis), and whether each belongs to the behavior as an
+  ordinary declaration with `delay`, to a stateful lowering with a
+  stream-level correspondence theorem, or to the backend; #emph[a device
+  clock different from the output clock] --- the explicit-`sync` variant
+  of the lowering (FVD-0138) and the line between an activation clock
+  and a carrier frequency, which is configuration; #emph[atomic
+  multi-value frames] --- whether a device that must receive several
+  logical outputs in one indivisible frame (a display controller taking
+  a `Mode` and a `Level` the behavior drives as two outputs, refusing a
+  frame with one) ever forces a `lowerMany` beyond per-tick batching or
+  upstream combination, which FVD-0136 decides for the singleton without
+  settling; #emph[the codegen and adapter correspondence] --- abstract
+  trace → raw command trace is proved, raw command trace → generated
+  command → adapter operation → physical effect is not, and the last
+  arrow is not even a testable statement inside this project; and
+  #emph[commitments on outputs], which production does not author and
+  whose discharge by an encoder's declared transfer would be the output
+  analogue of FVD-0128.
 + #strong[The input boundary beyond a pure transducer] (FVI-0020;
   PRP-0001, ISS-0016). Stateful transducers and a stream-level
   transparency theorem; a device clock with a deployment `sync`\; how a
@@ -6110,15 +6241,19 @@ Each names what exists and what would resolve it.
   `match` exhaustiveness beyond the encoding, and then one eliminator
   term former like `fold`\; or a decision that the encoding is the
   language.
-+ #strong[A surface form for occurrence windows] (FVI-0012 in part;
-  ISS-0001), so a bounded refinement can be recognized and a ring
-  representation offered without a hidden transformation.
-+ #strong[Several candidate definitions with one active] (FVI-0014;
-  ISS-0002): whether this is a surface convenience over a write-once
-  kernel realization.
-+ #strong[Grant delegation] (FVI-0018): whether a realization may
-  delegate its grant to a higher-order argument; the display-name table
-  and the preferred display unit as presentation objects (FVI-0019).
++ #strong[A surface form for occurrence windows] (ISS-0001; FVI-0012
+  resolved --- a device is a deployment profile, not a component), so a
+  bounded refinement can be recognized and a ring representation offered
+  without a hidden transformation.
++ #strong[Several candidate definitions with one active] (FVI-0014,
+  deferred; ISS-0002): whether this is a surface convenience over a
+  write-once kernel realization.
++ #strike[#strong[Grant delegation] (FVI-0018)] --- resolved:
+  unnecessary under `constructs_granted` and `lib_expansion`\;
+  #strike[the display-name table (FVI-0019)] --- resolved by FVD-0014;
+  the general `elim` (FVI-0021) resolved by the canonical-interface
+  design; folding the clock into the interface (FVI-0013) rejected by
+  FVD-0046.
 + #strong[A mathematical specification backend and a verification
   backend.] The kernel is a specification; a backend rendering a design
   as a mathematical document for engineering hand-off does not exist;
@@ -7185,6 +7320,45 @@ Parts III--X.
   , kind: table
   )
 
+== The adapter boundary and the device clock (`Surface/Adapter`, `Surface/DeviceClock`, `Experiments/AdapterExamples`)
+<the-adapter-boundary-and-the-device-clock-surfaceadapter-surfacedeviceclock-experimentsadapterexamples>
+#figure(
+  align(center)[#table(
+    columns: (25%, 25%, 25%, 25%),
+    align: (auto,auto,auto,auto,),
+    table.header([name], [kind], [states], [scope],),
+    table.hline(),
+    [`AdapterOp.det`, `adapter_downstream`,
+    `two_policies_same_commands`], [T], [the operation is a function of
+    the tick; policies do not reach the command], [`SingleDriver`],
+    [`adapter_of_sink`, `sink_of_adapter`], [T], [the operation is the
+    policy's reading of the lowered sink's value], [Phase 14's
+    hypotheses; the tick active],
+    [`Line.det`, `line_holds_on_refusal`, `line_holds_when_inactive`,
+    `line_last_accepted`, `line_value_accepted`], [T], [reject-and-hold
+    as a fold; the line never carries a refused
+    command], [`SingleDriver`],
+    [`lowerSync_transparent`, `lowerSync_envRefines`,
+    `lowerSync_singleDriver`, `lowerSync_driveWF`, `syncBody_typed`,
+    `lowerSync_wf`, `lowerSync_causal`,
+    `lowerSync_wellClocked`], [T], [the device-clocked lowering
+    preserves everything; no new instantaneous edge], [`WF`,
+    `InitRep.WF`, `NoMention`],
+    [`lowerSync_correspondence`], [T], [the sink carries the command
+    sampled strictly before, or the initial representation's
+    transfer], [Phase 14's hypotheses + `TyVal rep i.value`],
+    [`exA_policies`, `exA_set`, `exB_refusal`, `exC_held`], [X], [one
+    command, three policies; hold on refusal and on an inactive
+    tick], [---],
+    [`exD_device_clock`, `exD_initial`, `exD_structure`], [X], [sampling
+    at `prevAct`\; the initial representation; the structural
+    theorems], [---],
+    [`exE_slew`], [X], [slew-rate limiting as behaviour state upstream
+    with the same pure encoder], [---],
+  )]
+  , kind: table
+  )
+
 == Hardware validation (`Validation/Hardware`, `Experiments/HardwareAlternatives`)
 <hardware-validation-validationhardware-experimentshardwarealternatives>
 #figure(
@@ -7797,6 +7971,21 @@ generalisation.
     not admissibility], [accepted (supersedes FVD-0137)], [Part
     IX], [Phase 14 hardening], [ADR-0015 (supports), ADR-0036
     (supports)],
+    [the open-item audit and Phase 15], [every active item re-classified
+    against Phases 8a--14 and production `6be778b` (eleven resolved,
+    deferred or merged; FVI-0022 split); the adapter boundary as policy,
+    operation and line; the explicit device clock through `sync`\; no
+    stateful realization primitive], [], [], [], [],
+    [FVD-0140], [The adapter boundary is a policy, an abstract sink
+    operation and a line, below the raw command and outside the
+    behaviour], [accepted], [Part IX], [Phase 15:
+    `Surface/Adapter`], [ADR-0037 (supports)],
+    [FVD-0141], [A device clock is an explicit `sync` lowering into the
+    device domain; the carrier stays configuration], [accepted], [Part
+    IX], [Phase 15: `Surface/DeviceClock`], [ADR-0037 (supports)],
+    [FVD-0142], [No stateful realization primitive without a
+    non-encodability witness], [accepted], [Part IX], [Phase 15:
+    `Experiments/AdapterExamples`], [ISS-0017 (bears-on)],
   )]
   , kind: table
   )
@@ -8339,6 +8528,17 @@ table resolves each. The canonical copy is
     [---], [FVI-0022], [Output realization: stateful adapters, a device
     clock, atomic multi-value frames, codegen correspondence, output
     commitments], [ISS-0016],
+    [---], [FVI-0023], [Raw command → adapter operation, and what lies
+    below the register], [ISS-0017, ADR-0037],
+    [---], [FVI-0024], [Explicit device clock for a realized output:
+    what remains after the `sync` lowering], [ISS-0017],
+    [---], [FVI-0025], [Stateful output adapters: the classification and
+    the missing non-encodability witness], [ISS-0017],
+    [---], [FVI-0026], [Atomic multi-value frames], [ISS-0017],
+    [---], [FVI-0027], [Output commitments and what an encoder must
+    discharge (deferred)], [ISS-0017],
+    [---], [FVI-0028], [Minimal unsatisfiable cores for hardware
+    diagnosis (deferred)], [FV-only],
     [OI-21], [FVI-0021], [Unit-domain normalization: `elim` beyond
     canonical types; the `Input` narrowing], [ADR-0029],
   )]
@@ -8576,6 +8776,9 @@ added each report.
     the same day, the hardening pass (FVD-0139 supersedes
     FVD-0137)], [Part
     IX], [`docs/reports/phase-14-output-realization-by-device-encoders.md`],
+    [15], [2026-09-20], [The adapter boundary and the explicit device
+    clock --- after the audit of every open item], [Part
+    IX], [`docs/reports/phase-15-the-adapter-boundary-and-the-explicit-device-clock.md`],
   )]
   , kind: table
   )
