@@ -20,12 +20,11 @@ Accepted in Phase 18.
 ## Decision
 
 The Phase-13 obligation stays a proof. `Channel.ofTerm` defines the transfer
-function as the term's evaluation and derives `computes` from the
-interpreter's totality on typed inputs; `computesBool` decides the coherence
-of a supplied function at `bool` (`computes_of_bool`, over
-`Value.beq_sound`). At an infinite raw type a supplied function is a claim
-to test; production compiles the term, so nothing beyond the compiler is
-trusted.
+function as the term's evaluation and derives `computes` from the interpreter's
+totality on typed inputs; `computesBool` decides the coherence of a supplied
+function at `bool` (`computes_of_bool`, over `Value.beq_sound`). At an infinite
+raw type a supplied function is a claim to test; production compiles the term,
+so nothing beyond the compiler is trusted.
 
 ## Alternatives rejected
 
@@ -33,5 +32,5 @@ A boolean "trusted" field; a proof language for transfer functions.
 
 ## Reason
 
-`Channel.ofTerm`, `Machine.ofTerm`, `computesBool`, `computes_of_bool`;
-executed `exD_ofTerm`, `exD_bool`.
+`Channel.ofTerm`, `Machine.ofTerm`, `computesBool`, `computes_of_bool`; executed
+`exD_ofTerm`, `exD_bool`.

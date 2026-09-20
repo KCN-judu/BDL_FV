@@ -22,10 +22,10 @@ Accepted in Phase 18.
 A Source device that samples in its own domain `pc` is provisioned by
 `provisionSync`: the raw reading unresolved in `pc`, the Source realized as
 `tr (sync pc init r)` in its own domain; an occurrence-like Source by
-`provisionWindow`: Phase 9a's five declarations over the raw reading, the
-Source realized over `window`. The initial value is an explicit `InitRep`
-under one of two policies — `supplied` (a profile-given raw value) or
-`unavailable` (`none` at an optional raw type, read by the design as absence).
+`provisionWindow`: Phase 9a's five declarations over the raw reading, the Source
+realized over `window`. The initial value is an explicit `InitRep` under one of
+two policies — `supplied` (a profile-given raw value) or `unavailable` (`none`
+at an optional raw type, read by the design as absence).
 
 ## Alternatives rejected
 
@@ -41,6 +41,6 @@ first sample (a schedule does not read an input); a second occurrence crossing.
 
 ## Consequences
 
-The explicit initial value is the one principle both boundaries share
-(`InitRep` in `lowerSync`, `syncBody` and `provisionSync`); FVI-0024's
-remaining "initial representation" is that object's choice on the output side.
+The explicit initial value is the one principle both boundaries share (`InitRep`
+in `lowerSync`, `syncBody` and `provisionSync`); FVI-0024's remaining "initial
+representation" is that object's choice on the output side.

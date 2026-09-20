@@ -23,9 +23,9 @@ Accepted in Phase 18.
 an assumption `A` on the raw reading; `discharge_under` discharges the
 provisioned target's commitment when the transfer of every reading satisfying
 `A` has the property. Static: `A` is typing, established by the transducer.
-Checked: `A` is the provider's validation, established by construction.
-Trusted: `A` is a declared device range, an assumption the theorem carries. A
-profile declaration is not evidence by itself.
+Checked: `A` is the provider's validation, established by construction. Trusted:
+`A` is a declared device range, an assumption the theorem carries. A profile
+declaration is not evidence by itself.
 
 ## Alternatives rejected
 
@@ -34,6 +34,6 @@ verdict; semantic evidence quantified over untyped inputs.
 
 ## Reason
 
-`discharge_under`, `discharge_static`, `discharge_checked`,
-`discharge_trusted`, `realizeAt_only_transfers`; executed `exC_static`,
-`exC_trusted`, `exC_checked`, `exC_provider_checks`.
+`discharge_under`, `discharge_static`, `discharge_checked`, `discharge_trusted`,
+`realizeAt_only_transfers`; executed `exC_static`, `exC_trusted`, `exC_checked`,
+`exC_provider_checks`.

@@ -19,8 +19,8 @@ Accepted in Phase 18.
 
 ## Decision
 
-`checkedProvide` validates every delivery before deduplication and the bound
-and flags refusals; delivered items satisfy the validation and are typed by
+`checkedProvide` validates every delivery before deduplication and the bound and
+flags refusals; delivered items satisfy the validation and are typed by
 construction. A malformed frame, a NaN, an invalid code, an out-of-range count
 are provider refusals; a raw type that does not fit is deployment invalidity;
 what the design must react to is `opt` or a flag.
