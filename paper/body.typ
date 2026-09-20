@@ -21,10 +21,10 @@ renaming it would break history; reader-facing text says
 
 Two repositories are described. The formal model is `KCN-judu/BDL_FV`, a
 Lean 4 development with no external libraries; it is described as of the
-working tree of this revision, through Phase 15. The production system
+working tree of this revision, through Phase 16. The production system
 is `KCN-judu/BDL`, a Rust toolchain and a Flutter authoring environment;
 it is described as of one audited commit,
-`081296df606d577eece7e269ed250b255547d497` (2026-09-20, protocol 0.24),
+`aa6e7f4ee249556ca7561c854b43607f45f229fe` (2026-09-20, protocol 0.24),
 and every sentence about production is a sentence about that commit. The
 volatile details of that snapshot are in Appendix F so that the argument
 does not go stale with the next milestone.
@@ -76,7 +76,7 @@ chronology, the revision log, the record conventions, and the map from
 the previous revision's sections to this one.
 
 #strong[Provenance.] The formal development was done in phases (Phase 0
-… Phase 15), and the phase numbers appear throughout as provenance ---
+… Phase 16), and the phase numbers appear throughout as provenance ---
 the place to find the experiment behind a claim --- never as the
 structure of the exposition. The order in which the constructs are
 explained here is their conceptual dependency; it is not the order in
@@ -656,6 +656,14 @@ way in and realization on the way out are pure constructions added
 the platform adapter that follows interprets nothing (Part IV, the
 physical boundary).
 
+#strong[BDL models the evolution of product meaning, not the transport
+of bits.] A message, a frame, a packet or a byte has no place in a
+design; what a communication #emph[does to the product] --- a job
+queued, a position reported, a fault latched, an acknowledgement
+received --- is state, written with the ordinary constructs, and the
+carrier stays below the physical boundary, where replacing it under the
+same semantic trace changes nothing (Part IV, communication as state).
+
 #strong[The compiler owns semantic truth.] One semantic model, one
 analysis, one evaluator; every other component consumes their verdicts
 (Part V).
@@ -745,7 +753,7 @@ Evidence that is not meant to survive refinement --- the existence of a
 pin assignment on a particular board --- is re-established after every
 change and is never merged with the first kind.
 
-@fig:arch shows the layers as they stand at Phase 15; the kernel band
+@fig:arch shows the layers as they stand at Phase 16; the kernel band
 also holds list and product data with one recursor (§IV.3) and the
 behavior-component constructs (§IV.6), the surface band holds the
 deployment construction of §IV.7, and the validation band holds
@@ -822,15 +830,15 @@ choice. Every theorem is about the #emph[model]\; none is about the Rust
 or Dart code, and none is about a board.
 
 #strong[Production scope.] Production is described #strong[as of commit
-`081296df606d577eece7e269ed250b255547d497` of `KCN-judu/BDL`,
+`aa6e7f4ee249556ca7561c854b43607f45f229fe` of `KCN-judu/BDL`,
 2026-09-20] --- the head of `main` after the platform adapters for two
 target families (ADR-0037, amended: the RP2040 over Embassy and the
 Arduino Nano over `avr-hal`), output realization (ADR-0036), the Source
 sheet, the Code view as an IDE surface and the `drive … by …` spelling;
 protocol 0.24. The formal development is described as of the working
 tree that contains this revision of the document; the last commit before
-it is `dce5ac4` (Phase 15 in the monograph), and the canonical copy of
-the production hash in the formal repository is the `snapshot` field of
+it is `e032b5f` (the Phase 16 records), and the canonical copy of the
+production hash in the formal repository is the `snapshot` field of
 `docs/project/production-correspondence.md`. Every sentence about
 production is a sentence about that commit; volatile details are
 gathered in the production snapshot (§VII.1 and Appendix F) so that the
@@ -1566,9 +1574,9 @@ The development builds with Lean 4.33.1 with no `sorry`. The axioms used
 by every theorem are propositional extensionality and quotient
 soundness, the latter only through function extensionality and the
 choice-free rational quotient of §IV.4; classical choice is absent, and
-each phase re-audited the whole development for it. As of Phase 15 the
-sources are 60 modules: 11 in `Core`, 12 in `Behavior`, 15 in `Surface`,
-2 in `Validation`, and 20 experiment modules holding alternatives,
+each phase re-audited the whole development for it. As of Phase 16 the
+sources are 62 modules: 11 in `Core`, 12 in `Behavior`, 16 in `Surface`,
+2 in `Validation`, and 21 experiment modules holding alternatives,
 counterexamples and executed examples. Every trace, assignment,
 unsatisfiability result and executed example reported here was obtained
 by running a proved-sound interpreter or solver inside the proof
@@ -4287,6 +4295,134 @@ now-concrete shared-configuration feasibility (RP2040 slices sharing a
 carrier) with its explanation half split off (FVI-0028). The triage
 table is in the formal repository's `docs/issues/README.md`.
 
+=== Communication as state, catalogue profiles and `assign`
+<communication-as-state-catalogue-profiles-and-assign>
+A realistic product --- a host submitting motion work over TCP, motors
+reporting position, velocity and faults over CAN, jobs queued and
+cancelled, telemetry returned --- looks, from the outside, like a system
+of messages, and the natural draft of a language for it has a `Message`
+or `Event` type, a queue, a transaction. Phase 16 tested the opposite
+hypothesis: that the behavior language needs #emph[semantic state and
+its evolution] and nothing else, communication appearing only at the two
+boundaries of this section --- provision on the way in, realization and
+the adapter on the way out. The hypothesis was attacked rather than
+assumed: every case was first encoded with the existing kernel and
+executed, and a primitive would have been admitted only against a
+concrete case the encoding could not represent without changing
+observable behavior. The kernel had already refused an event type three
+times on proofs about multiplicity (FVD-0036, FVD-0048, FVD-0085); this
+was the product-scale test.
+
+#strong[The stress case, as state.] Two designs of ordinary
+declarations, composed into one controller
+(`Experiments/CommunicationExamples.lean`): a #emph[work queue] ---
+`submit : list Job` (the jobs that arrived this tick, oldest first; a
+job is the pair `(JobId, delta)`), `cancel : opt JobId`, `done : bool`\;
+state `queue : list Job` (FIFO, bounded by `take cap`),
+`desired : Position` advanced by a job's delta when the head's identity
+changes, `overflow : bool` --- and a #emph[motion state] ---
+`fb : opt (pos × vel × fault)`, a sample or none; `age` (ticks since the
+last sample), `fresh := age < 3`, `timedOut := age ≥ 6`, held
+`lastPos`/`lastVel`, `settled` (consecutive fresh in-tolerance samples),
+`doneM := settled ≥ 2`, a `fault` latched until `reset`, an `acked` held
+until the target changes. The composed design is proved globally well
+formed, causal (`done := delay false doneM` reads the previous tick, so
+there is no cycle) and well clocked. Then, by `decide` on the
+proved-sound interpreter: `Move(+10); Move(+10)` and `Move(+10)` are
+queues of two and one and desired positions of 20 and 10 after the first
+completes (#strong[multiplicity], `exA_multiplicity`); `A; B` and `B; A`
+reach the same final target through different desired trajectories
+(#strong[ordering], `exB_ordering`); `[A, B]`, `[B, A]` and `[A]`
+arriving in one tick are three queues --- the batch is a list and
+nothing is lost (#strong[same-tick multiplicity], `exC_same_tick`); a
+queued job, the active job and an unknown id cancel as they should
+(`exD_cancellation`); the third job into a queue of two is refused and
+the refusal is a boolean the product observes (`exE_bounded`); a retried
+submission with the same `JobId` is one job under a design that
+deduplicates by id and two under one that does not --- the design
+decides, because the identity is in the state (`exF_identity`);
+freshness, timeout, settling over repeated samples, the fault latch and
+the acknowledgement are counters and booleans under `delay`
+(`exG_freshness`, `exH_settling`, `exI_fault_latch`, `exJ_ack`); the
+composed controller completes job 1 after two settled samples and starts
+job 2 (`exQM_composed`); host submissions in a fast domain reach the
+controller's slow domain through the Phase-9a window, flattened, in
+order (`exK_cross_clock`); and a paired axis --- one `YPosition` on two
+motors with a prepare/prepare/commit protocol --- is one logical output
+whose raw command is the pair `(p, p)` (`exN_pair`), or two realizations
+of the one output whose commands are the two transfers of one value
+(`paired_commands_of_one_value`), the frame order being the backend's
+per-tick commit below the adapter operation (FVD-0148). No case needed a
+message, a queue primitive or a transaction (FVD-0143).
+
+#strong[Three kinds of identity.] A #emph[transport] identity --- a TCP
+sequence number, a CAN arbitration id used for routing, a retry token
+--- is discarded by the provider's channel, and a theorem says that
+nothing downstream can tell: two providers of one design whose raw
+inputs induce the same semantic Source trace evaluate every term that
+mentions neither raw declaration alike (`two_providers_same_behavior`,
+and `two_providers_same_outputs` at every logical output). "Same trace"
+is `SameTrace`: agreement of the induced inputs at every declaration
+other than the two raw ones, at every global tick; the raw types need
+not be related, and the executed instance frames the same submissions as
+`(sequence number, batch)` and as per-job `(frame id, job)`
+(`exL_theorem`, `exL_executed`). A #emph[device] identity --- a motor's
+node id, a pin --- is the machine sink and the raw declaration:
+deployment data. A #emph[semantic] identity --- the `JobId` a
+cancellation names --- is in the state, because product behavior depends
+on it. The #strong[replacement-invariance criterion] --- a carrier
+replaced under the same semantic trace changes no behavior: TCP to USB
+CDC, CAN to another transport, polling to interrupts --- is therefore
+three theorems, one per boundary: `two_providers_same_behavior` on the
+way in, `two_realizations_same_behavior` (Phase 14) at the output,
+`two_policies_same_commands` (Phase 15) at the adapter (FVD-0144).
+
+#strong[Catalogue profiles and `assign`.] If the profiles of §IV.7 are
+supplied by packages, what does a package contribute? In the model
+(`Surface/Assignment.lean`) a catalogue entry is a profile --- Phase
+13's `DeviceProfile` for an input, Phase 14's `DeviceOutputProfile` for
+an output --- with an `Origin` (`builtin | package`), and the origin is
+a field no judgment reads: two entries with one profile give one lowered
+design, one raw command relation and one adapter operation relation
+(`assign_indistinguishable`, `assignSource_origin_irrelevant`\;
+executed, `exP_origin`). The contract an entry must satisfy is the one
+the phases already state ---
+`InputContract Θ τ ch := ch.WF Θ ∧ Fits Θ τ ch`, exactly what
+`Provision.WF` asks per target, and
+`OutputContract Θ accepts P := P.E.WF Θ ∧ EFits Θ accepts P.E` --- and a
+larger catalogue realizes and provisions more and nothing else
+(`realizable_mono`, `provisionable_mono`): a package extends the
+realizable world, not the language (FVD-0145). A deployment
+`assign MotorOutput using emm_v5.position_control` #emph[is] Phase 14's
+lowering with the entry's encoder
+(`assignOutput Δ en … := lowerΔ Δ (en.realization …)`), and
+`assign MotorPosition using emm_v5.position_feedback` #emph[is] Phase
+13's provision with the entry's channel: the design is literally
+unchanged off the fresh identities, every pre-existing term evaluates
+alike, and the assigned design is accepted by the unchanged judgments
+(`assignOutput_behavior_unchanged`, `assignOutput_transparent`,
+`assignOutput_checked`, `assignSource_transparent`\; FVD-0146). Semantic
+admissibility and deployment feasibility stay separate:
+`Admissible ↔ OutputContract ∧ Feasible` (`admissible_iff`), and the
+executed pair profile satisfies the contract for `DesiredPos` on the
+Nano and on a one-pin board alike, being feasible on one only
+(`exQ_contract_not_feasible`\; FVD-0147). Package resolution, versions,
+registries and signatures are engineering and are not modelled.
+
+#strong[Where the attack found work, not a primitive.] The output-side
+lowering into a device domain (`lowerSync`, Phase 15) samples the last
+command, so two commands specified between two activations of a
+#emph[slower] device reach it as one; the occurrence-preserving crossing
+is the Phase-9a window mirrored into the lowering --- a construction
+over existing primitives, not built (FVI-0024, amended). And every
+encoding rests on what a raw reading #emph[means]: that a `list raw`
+reading delivers the occurrences since the previous tick in arrival
+order, that a transport retry is delivered once, that two raw sources
+are merged into one order, that the batch is bounded --- the provider's
+occurrence contract, which is what a Source device profile has to
+promise and which no record states (FVI-0029). Both are deployment work;
+neither is a language question.
+
 === The physical boundary as one whole
 <the-physical-boundary-as-one-whole>
 Read end to end, one value's path from the world back to the world is
@@ -6544,7 +6680,7 @@ identifiers.
 
 === The snapshot
 <the-snapshot>
-What is implemented, partial and planned at `081296d`, with the protocol
+What is implemented, partial and planned at `aa6e7f4`, with the protocol
 history and the milestones of the last week, is Appendix F, so that this
 chapter's classification survives the next milestone and the snapshot is
 updated in one place.
@@ -6931,6 +7067,34 @@ and would be tempted to add it.
     peripheral moving], [hides that the design commanded what the
     profile did not promise (ADR-0037)], [REMOVE (production policy,
     revisitable) --- reject and hold],
+    [`Message τ` / `Event τ` / `Packet τ` / `Stream τ` / `Channel τ` for
+    a product-scale communication case], [the auto\_typer system looks
+    like messages], [every case --- multiplicity, ordering, same-tick
+    batches, cancellation, a bounded queue, freshness, faults, acks,
+    cross-clock delivery --- is state over the existing kernel
+    (`CommunicationExamples.lean`)], [REMOVE (FVD-0143, the fourth
+    rejection)],
+    [a queue primitive], [pending
+    work], [`take cap (filter … (append (drop-on-done prev) arrivals))`
+    --- library applications over one `delay`], [REMOVE (FVD-0143)],
+    [a transaction / atomic-frame primitive for
+    prepare--prepare--commit], [a paired axis on two motors], [one
+    output with a pair command (`exN_pair`); two realizations agree tick
+    by tick (`paired_commands_of_one_value`); the frame order is the
+    backend's per-tick commit], [REMOVE (FVD-0148)],
+    [transport identity in a Source's type], [correlation and
+    retries], [discarded by the channel; `two_providers_same_behavior`,
+    `exL_theorem`: unobservable; identity the product observes is
+    semantic and lives in the state (`exF_identity`)], [REMOVE
+    (FVD-0144)],
+    [a `Package` object with versions, names or registries inside a
+    judgment], [package-provided profiles], [the judgments take a
+    profile; the origin is unread (`assign_indistinguishable`)], [REMOVE
+    (FVD-0145)],
+    [one admissibility verdict mixing contract and board], [package
+    compatibility], [`admissible_iff`\; `exQ_contract_not_feasible`: the
+    same contract on two boards, feasible on one], [KEEP SEPARATE
+    (FVD-0147)],
   )]
   , kind: table
   )
@@ -7177,9 +7341,12 @@ Each names what exists and what would resolve it.
   analysis is the same gap on the capacity side.
 + #strong[The output boundary beyond a pure encoder] (FVI-0022 split
   into FVI-0023 … FVI-0027; ISS-0017). Phase 15 answered the first two
-  up to the abstract sink operation and the explicit device clock; open:
-  below the operation (FVI-0023), a device that acknowledges and the
-  initial representation (FVI-0024), a stateful witness (FVI-0025), the
+  up to the abstract sink operation and the explicit device clock; Phase
+  16 added that the paired axis is not an atomic-frame case (FVD-0148)
+  and that the occurrence-preserving crossing to a slower device is an
+  unbuilt construction (FVI-0024, amended); open: below the operation
+  (FVI-0023), a device that acknowledges, the initial representation and
+  the mirrored window (FVI-0024), a stateful witness (FVI-0025), the
   atomic-frame criterion (FVI-0026); deferred: output commitments
   (FVI-0027). Originally: What Phase 14 leaves open, and the first
   platform adapter does not close --- it applies each command
@@ -7203,12 +7370,18 @@ Each names what exists and what would resolve it.
   #emph[commitments on outputs], which production does not author and
   whose discharge by an encoder's declared transfer would be the output
   analogue of FVD-0128.
-+ #strong[The input boundary beyond a pure transducer] (FVI-0020;
-  PRP-0001, ISS-0016). Stateful transducers and a stream-level
-  transparency theorem; a device clock with a deployment `sync`\; how a
-  profile's declared range discharges a Source's commitments; whether
-  `computes` is checked or trusted at the catalogue; out-of-type raw
-  readings as validation.
++ #strong[The input boundary beyond a pure transducer] (FVI-0020,
+  narrowed by Phase 16; PRP-0001, ISS-0016). Stateful transducers and a
+  stream-level transparency theorem; a device clock with a deployment
+  `sync`\; how a profile's declared range discharges a Source's
+  commitments; whether `computes` is checked or trusted at the
+  catalogue; out-of-type raw readings as validation. Freshness is no
+  longer here: it is behavior state (`age`, `exG_freshness`). And, new:
+  #strong[the provider's occurrence contract] (FVI-0029) --- that a
+  `list raw` reading delivers the occurrences since the previous tick in
+  arrival order, once per transport occurrence, merged across raw
+  sources and bounded --- is what the state encodings of §IV.7 rest on
+  and what a Source device profile has to promise; no record states it.
 + #strong[Enums and sums] (ISS-0005). Encoded as tag × optional payload;
   production keeps user enums open. Would resolve: a case that needs
   `match` exhaustiveness beyond the encoding, and then one eliminator
@@ -8387,6 +8560,55 @@ Part IV.
   , kind: table
   )
 
+== Communication as state, catalogue profiles and `assign` (`Surface/Assignment`, `Experiments/CommunicationExamples`)
+<communication-as-state-catalogue-profiles-and-assign-surfaceassignment-experimentscommunicationexamples>
+#figure(
+  align(center)[#table(
+    columns: (25%, 25%, 25%, 25%),
+    align: (auto,auto,auto,auto,),
+    table.header([name], [kind], [states], [scope],),
+    table.hline(),
+    [`admissible_iff`, `WF.contract`,
+    `WF.one_of_contract`], [T], [admissibility is the contract and
+    feasibility; `Provision.WF` asks the input contract per
+    target], [---],
+    [`OutputEntry.realization_of_profile`, `assign_indistinguishable`,
+    `assignSource_origin_irrelevant`], [T], [the origin of a profile is
+    unread: one profile, one lowered design, one command relation, one
+    operation relation], [`en₁.profile = en₂.profile`],
+    [`assignOutput_behavior_unchanged`, `assignOutput_transparent`,
+    `assignOutput_checked`, `assignSource_transparent`], [T], [`assign`
+    is the lowering / the provision and edits no behavior; the assigned
+    design is accepted by the unchanged judgments], [Phase 14's / Phase
+    13's hypotheses],
+    [`realizable_mono`, `provisionable_mono`], [T], [a larger catalogue
+    realizes and provisions more], [entry inclusion],
+    [`induced_avoids`, `induced_congr`, `two_providers_same_behavior`,
+    `two_providers_same_outputs`], [T], [Source-side non-interference:
+    same semantic trace (`SameTrace`), same evaluation and same
+    outputs], [`Provision.WF` ×2, `NoMention` ×2, `RawInput` ×2],
+    [`paired_commands_of_one_value`], [T], [two realizations of one
+    output specify two transfers of one value], [`SingleDriver`,
+    `R₁.o = R₂.o`],
+    [`exA_multiplicity`, `exB_ordering`, `exC_same_tick`,
+    `exD_cancellation`, `exE_bounded`, `exF_identity`], [X], [the work
+    queue: multiplicity, order, same-tick batches, cancellation by
+    semantic id, the bounded queue, dedup by id], [---],
+    [`exG_freshness`, `exH_settling`, `exI_fault_latch`, `exJ_ack`,
+    `exQM_composed`], [X], [the motion state: age, freshness, timeout,
+    settling, the fault latch, the acknowledgement; the composed
+    controller], [---],
+    [`exK_cross_clock`, `exL_theorem`, `exL_executed`], [X], [host
+    submissions through the window, flattened; two providers, one Source
+    trace], [---],
+    [`exN_pair`, `exN_two_motors`, `exP_origin`,
+    `exQ_contract_not_feasible`], [X], [the paired axis as one pair
+    command; builtin vs packaged; the same contract on two
+    boards], [---],
+  )]
+  , kind: table
+  )
+
 == Hardware validation (`Validation/Hardware`, `Experiments/HardwareAlternatives`)
 <hardware-validation-validationhardware-experimentshardwarealternatives>
 #figure(
@@ -9014,6 +9236,35 @@ generalisation.
     [FVD-0142], [No stateful realization primitive without a
     non-encodability witness], [accepted], [§IV.7], [Phase 15:
     `Experiments/AdapterExamples`], [ISS-0017 (bears-on)],
+    [Phase 16], [communication as state: the auto\_typer stress case
+    encoded and executed on the unchanged kernel; catalogue profiles
+    with an unread origin; `assign` as the lowering / the provision;
+    contract separate from feasibility; the paired axis without a
+    transaction primitive], [], [§IV.7], [Phase 16], [],
+    [FVD-0143], [Communication artifacts are outside BDL semantics;
+    communication history is state over the existing
+    kernel], [accepted], [§IV.7], [Phase 16:
+    `Experiments/CommunicationExamples`], [ISS-0001, ISS-0016, ISS-0017
+    (bears-on)],
+    [FVD-0144], [Replacement invariance is three non-interference
+    theorems, one per boundary; the input side is
+    `two_providers_same_behavior`], [accepted], [§IV.7], [Phase 16:
+    `Surface/Assignment`], [ADR-0032, ADR-0036, ADR-0037 (supports)],
+    [FVD-0145], [A catalogue profile is a value satisfying the existing
+    contract; its origin is unread; packages extend realizability, not
+    the kernel], [accepted], [§IV.7], [Phase 16:
+    `Surface/Assignment`], [ISS-0016, ISS-0017 (bears-on)],
+    [FVD-0146], [`assign` is deployment-only: it is the lowering or the
+    provision with a catalogue entry], [accepted], [§IV.7], [Phase 16:
+    `Surface/Assignment`], [ISS-0016, ISS-0017 (bears-on)],
+    [FVD-0147], [Semantic admissibility and deployment feasibility are
+    separate judgments; `Admissible` is their
+    conjunction], [accepted], [§IV.7], [Phase 16:
+    `Surface/Assignment`], [ADR-0036 (supports), ISS-0017 (bears-on)],
+    [FVD-0148], [A paired axis is one logical output with a pair
+    command, or two realizations that agree tick by tick; commit order
+    is below the operation], [accepted], [§IV.7], [Phase 16:
+    `Surface/Assignment`], [ISS-0017 (bears-on)],
   )]
   , kind: table
   )
@@ -9568,6 +9819,9 @@ table resolves each. The canonical copy is
     discharge (deferred)], [ISS-0017],
     [---], [FVI-0028], [Minimal unsatisfiable cores for hardware
     diagnosis (deferred)], [FV-only],
+    [---], [FVI-0029], [The provider's occurrence contract: batch
+    delivery, deduplication of transport retries, merged order across
+    raw sources, a per-tick bound], [ISS-0016, ISS-0001],
     [OI-21], [FVI-0021], [Unit-domain normalization: `elim` beyond
     canonical types; the `Input` narrowing], [ADR-0029],
   )]
@@ -9577,14 +9831,16 @@ table resolves each. The canonical copy is
 = Appendix F --- Production snapshot
 <appendix-f-production-snapshot>
 #strong[Production snapshot as of 2026-09-20, commit
-`081296df606d577eece7e269ed250b255547d497` of `KCN-judu/BDL`]
-("chore(repo): remove stray empty root file e", the head of `main` after
-the second platform adapter family and the vocabulary crate's rename,
-the first embedded platform adapter, output realization, the Source
-sheet, the Code view as an IDE surface and the `drive … by …` spelling;
-protocol 0.24). What was checked: `docs/README.md`'s current snapshot,
-`docs/project/status.md`, `docs/project/roadmap.md`,
-`docs/project/formal-correspondence.md`,
+`aa6e7f4ee249556ca7561c854b43607f45f229fe` of `KCN-judu/BDL`]
+("test(studio): toggle-click with the host's primary modifier in the
+gestures test", the head of `main` after six Studio interaction commits
+--- one pointer state machine, CAD selection, the type scale --- that
+touch no boundary this monograph records, after the second platform
+adapter family and the vocabulary crate's rename, the first embedded
+platform adapter, output realization, the Source sheet, the Code view as
+an IDE surface and the `drive … by …` spelling; protocol 0.24). What was
+checked: `docs/README.md`'s current snapshot, `docs/project/status.md`,
+`docs/project/roadmap.md`, `docs/project/formal-correspondence.md`,
 `docs/architecture/{overview,relationship-roles,output-realization,embedded-adapter,syntax-highlighting,ide-service}.md`,
 `docs/spec/{protocol,textual-syntax,concept-library,hardware-model}.md`,
 ADR-0032 with its amendments, ADR-0034 … ADR-0037, PRP-0001, ISS-0016,
@@ -9606,6 +9862,12 @@ title page repeat it.
     align: (auto,auto,auto,),
     table.header([milestone], [what it changed], [records],),
     table.hline(),
+    [Studio interaction (six commits)], [one pointer state machine for
+    the canvas, CAD-style selection, Concept → Output creation from the
+    context menu, the type scale in `MacType`, status-line clusters,
+    recaptured user-guide screenshots; no compiler, boundary or protocol
+    change], [Studio interaction record (`docs/decisions`),
+    `docs/user-guide/studio`],
     [the Arduino Nano over
     `avr-hal`], [`bdld compile --target arduino_nano`: the second target
     family, one `targets::Entry` per family; a blocking tick loop with
@@ -9813,6 +10075,9 @@ added each report.
     [15], [2026-09-20], [The adapter boundary and the explicit device
     clock --- after the audit of every open
     item], [§IV.7], [`docs/reports/phase-15-the-adapter-boundary-and-the-explicit-device-clock.md`],
+    [16], [2026-09-20], [Communication as state, catalogue profiles and
+    the deployment-only `assign` --- the auto\_typer stress
+    case], [§IV.7], [`docs/reports/phase-16-communication-as-state-catalogue-profiles-and-the-deployment-only-assign.md`],
   )]
   , kind: table
   )
@@ -9917,6 +10182,16 @@ consumes the boundary Phase 14 defined and nothing formal beyond it.
     and Appendix J (this section map); production re-pinned at `081296d`
     --- the Arduino Nano over `avr-hal` as the second adapter family,
     `bdl-runtime-adapter`\; the formal development at Phase 15],
+    [2026-09-20 --- Phase 16], [communication as state: the auto\_typer
+    stress case encoded and executed on the unchanged kernel, the fourth
+    and product-scale rejection of a message/event type; the three kinds
+    of identity and the replacement-invariance criterion as three
+    theorems (`two_providers_same_behavior` new); catalogue profiles
+    with an unread origin, `assign` as the lowering / the provision,
+    contract separate from feasibility, the paired axis without a
+    transaction primitive (§IV.7, the architectural principle in Part
+    II, §VII.2, §VII.4); FVI-0029; production re-pinned at `aa6e7f4`
+    (six Studio interaction commits, no boundary change)],
   )]
   , kind: table
   )
