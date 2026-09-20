@@ -21,7 +21,7 @@ renaming it would break history; reader-facing text says
 
 Two repositories are described. The formal model is `KCN-judu/BDL_FV`, a
 Lean 4 development with no external libraries; it is described as of the
-working tree of this revision, through Phase 17. The production system
+working tree of this revision, through Phase 18. The production system
 is `KCN-judu/BDL`, a Rust toolchain and a Flutter authoring environment;
 it is described as of one audited commit,
 `aa6e7f4ee249556ca7561c854b43607f45f229fe` (2026-09-20, protocol 0.24),
@@ -76,7 +76,7 @@ chronology, the revision log, the record conventions, and the map from
 the previous revision's sections to this one.
 
 #strong[Provenance.] The formal development was done in phases (Phase 0
-… Phase 17), and the phase numbers appear throughout as provenance ---
+… Phase 18), and the phase numbers appear throughout as provenance ---
 the place to find the experiment behind a claim --- never as the
 structure of the exposition. The order in which the constructs are
 explained here is their conceptual dependency; it is not the order in
@@ -753,7 +753,7 @@ Evidence that is not meant to survive refinement --- the existence of a
 pin assignment on a particular board --- is re-established after every
 change and is never merged with the first kind.
 
-@fig:arch shows the layers as they stand at Phase 17; the kernel band
+@fig:arch shows the layers as they stand at Phase 18; the kernel band
 also holds list and product data with one recursor (§IV.3) and the
 behavior-component constructs (§IV.6), the surface band holds the
 deployment construction of §IV.7, and the validation band holds
@@ -837,7 +837,7 @@ Arduino Nano over `avr-hal`), output realization (ADR-0036), the Source
 sheet, the Code view as an IDE surface and the `drive … by …` spelling;
 protocol 0.24. The formal development is described as of the working
 tree that contains this revision of the document; the last commit before
-it is `5dec160` (the Phase 17 records), and the canonical copy of the
+it is `f2b81c0` (the Phase 18 records), and the canonical copy of the
 production hash in the formal repository is the `snapshot` field of
 `docs/project/production-correspondence.md`. Every sentence about
 production is a sentence about that commit; volatile details are
@@ -1574,9 +1574,9 @@ The development builds with Lean 4.33.1 with no `sorry`. The axioms used
 by every theorem are propositional extensionality and quotient
 soundness, the latter only through function extensionality and the
 choice-free rational quotient of §IV.4; classical choice is absent, and
-each phase re-audited the whole development for it. As of Phase 17 the
-sources are 66 modules: 11 in `Core`, 12 in `Behavior`, 18 in `Surface`,
-2 in `Validation`, and 23 experiment modules holding alternatives,
+each phase re-audited the whole development for it. As of Phase 18 the
+sources are 68 modules: 11 in `Core`, 12 in `Behavior`, 19 in `Surface`,
+2 in `Validation`, and 24 experiment modules holding alternatives,
 counterexamples and executed examples. Every trace, assignment,
 unsatisfiability result and executed example reported here was obtained
 by running a proved-sound interpreter or solver inside the proof
@@ -4513,6 +4513,104 @@ carry batches that are pointwise the two transfers of one value
 (`paired_batches_of_one_window`), so the prepare/prepare/commit of a
 paired axis is the backend's order within one batch.
 
+=== The Source side completed: provider state, the device clock, initialization, commitments, readings
+<the-source-side-completed-provider-state-the-device-clock-initialization-commitments-readings>
+What the input boundary still left open after the provider's contract
+--- a transducer that needs memory, a device that samples in its own
+domain, a Source read before its first value, a range a profile is asked
+to guarantee, the `computes` obligation, a reading that is not a value
+of the raw type --- Phase 18 closed with one lemma and six constructions
+(`Surface/SourceBoundary.lean`). The lemma is `MEv.congr_at`: two
+designs that keep every realization but one declaration's, read every
+other input alike, and give that declaration the same value at every
+tick in every domain, evaluate every term alike. The behavior sees a
+Source through its value trace and through nothing else; every answer
+below is that lemma with two traces computed.
+
+#strong[Provider state is movable, so placement is visibility.] A
+stateful transducer --- a debouncer, a quadrature decoder, a low-pass
+filter --- is a Mealy machine whose step is a pure BDL term over data
+(`Machine`). Run below the raw reading, its output is what the provider
+delivers; placed above it, it is one declaration with `delay` over the
+physical reading, and the Source is realized from its output. The
+Source's trace is the same either way, and every evaluation of the
+provisioned design holds in the upstream one (`provider_state_movable`,
+executed on the filter: `exA_filter`). The placement is therefore not a
+semantic question but one of #emph[visibility], and the criterion is
+stated with two formal facts behind it: a provider cannot read the
+design --- its state is a function of the raw stream alone
+(`Machine.run_congr`), and a channel term mentions no declaration, so
+the fault latch that reads `reset` or the settling count that reads
+`target` cannot be a provider's (`exA_latch_reads_design`); and a
+parameter that changes the semantic trace on one physical stream --- the
+debounce threshold, a hysteresis band, a filter constant --- is the
+product's whenever the product's specification fixes it
+(`exA_debounce_param`, `exA_hysteresis_param`). Decoding an edge from
+two consecutive phase readings is the provider's; accumulating and
+homing a position, which reads `reset`, is the design's
+(`exA_quadrature`). Two providers running different machines with one
+output stream give one behavior (`stateful_providers_same_trace`).
+Nothing can be hidden #emph[by] the placement, because the trace is what
+the behavior reads (FVD-0154).
+
+#strong[The Source-side device clock and the first value.] A device that
+samples in its own domain `pc` is provisioned by an explicit `sync` of
+the raw reading into the Source's domain, with an explicit initial value
+--- the input dual of the output side's device clock (`provisionSync`):
+the Source carries the transfer of the reading at the last activation of
+`pc` strictly before, or of the initial value (`provisionSync_target`);
+the abstract design is unchanged (`provisionSync_transparent`); no new
+instantaneous edge, well clocked with the reading in `pc`, a refinement,
+globally well formed (`provisionSync_wf`). An occurrence-like Source ---
+encoder edges, queued commands --- crosses by Phase 9a's window over the
+raw reading (`provisionWindow_target`), the same five declarations and
+the same theorem, nothing lost (`exB_window_edges`). The initial value
+is an explicit `InitRep` under one of two policies a profile declares: a
+#emph[supplied] raw value the Source reads until the first sample, or
+#emph[unavailable] --- `none` at an optional raw type, which the design
+reads as the sensor not having spoken (`exB_sampled`,
+`exB_unavailable`). A reading is never fabricated; activation gated on
+the first sample is not a construction, because a schedule does not read
+an input, and is the optional form (FVD-0155). The explicit initial
+value is the one principle both boundaries share.
+
+#strong[Commitments at three evidence levels.] A Source's commitment ---
+a temperature at most 450 --- is discharged by the provisioned
+realization when every value it takes, under readings satisfying an
+assumption `A`, has the property (`RangeSoundUnder`, `discharge_under`).
+The three levels are three assumptions and three ways of establishing
+them: #emph[static], `A` is typing and the transducer alone guarantees
+the property (a saturating ADC, `discharge_static`); #emph[checked], `A`
+is a validation the provider applies to every delivery, established by
+construction (`discharge_checked`); #emph[trusted], `A` is a range the
+profile asserts of the device, which nobody establishes here and the
+theorem carries as a visible hypothesis (`discharge_trusted`). A profile
+declaration is not evidence by itself: at the trusted level it is
+exactly the assumption named (FVD-0156). The `computes` obligation ---
+that a profile's transfer function is what its term computes --- stays a
+proof: derived when the function #emph[is] the term's evaluation
+(`Channel.ofTerm`), decided at a finite raw type (`computesBool`,
+`computes_of_bool`); a separately supplied function at an infinite type
+is a claim to test, and production compiles the term (FVD-0157).
+
+#strong[Readings that are not values.] A malformed frame, a NaN, an
+invalid code, a count outside the declared range never become a semantic
+value: the checking provider refuses the delivery before the contract's
+deduplication and bound (`checkedProvide`), every delivered item is
+typed by construction (`checked_typed`), and the refusal crosses as
+`none` at an optional Source or as a flag beside it --- semantic state
+if the product must react (`available`), a backend diagnostic if it must
+not (`exE_checked`). No exception semantics (FVD-0158). The richer
+profile a package may supply --- transducer, machine, initial policy,
+delivery contract, assumed range, requirements --- leaves the assignment
+reading Phase 13's profile and nothing else
+(`assignSource_profile_only`), so `assign` stays deployment-only; and
+the motion controller of the previous section, fed by a batch provider
+sampled through `chLatest` and by a scalar provider through the identity
+channel, has one `fb` trace and one `doneM` trace (`exF_two_providers`).
+With this, FVI-0020 --- the Source side's open item since Phase 13 ---
+is closed remainder by remainder.
+
 === The physical boundary as one whole
 <the-physical-boundary-as-one-whole>
 Read end to end, one value's path from the world back to the world is
@@ -4553,6 +4651,15 @@ physical world ─▶ raw reading r : () -> R ─▶ pure transducer tr ─▶ l
     snapshot: no device provides a Source's value (ISS-0016; a slice was
     in flight, uncommitted)], [which bound a physical arrival rate needs
     (a deployment assumption); the device catalogue for inputs],
+    [raw reading → logical Source, with a device that keeps state,
+    samples in its own domain, promises a range, or delivers a malformed
+    value], [provider state as a machine; the Source-side device clock;
+    commitment discharge at three evidence levels; the checking
+    provider], [Phase 18 `Machine`, `provisionSync`, `provisionWindow`,
+    `RangeSoundUnder`, `checkedProvide`], [`provider_state_movable`,
+    `provisionSync_transparent`, `provisionSync_wf`, `discharge_static`
+    \/ `_checked` / `_trusted`, `checked_typed`], [not built], [the
+    device's own bound or range (a deployment assumption)],
     [raw reading → logical Source (`s := mk c (tr r)`)], [provision by a
     pure transducer], [Phase 13 `Provision`], [`provision_envRefines`,
     `provision_wf`, `provision_transparent`, `provision_abstracts`\;
@@ -7216,6 +7323,26 @@ and would be tempted to add it.
     [a batch or transaction primitive at the adapter], [a slower device
     receiving several commands], [`batchOps : List Op`, `lineAfterBatch`
     a fold; `paired_batches_of_one_window`], [REMOVE (FVD-0153)],
+    [memory in the transducer term; a stateful provider
+    primitive], [debouncing, decoding, filtering], [a machine below the
+    reading is movable upstream with one trace
+    (`provider_state_movable`); placement is visibility; a state that
+    reads the design is the design's], [REMOVE (FVD-0154)],
+    [a hidden provider clock; a fabricated initial reading; activation
+    gated on the first sample], [a device that samples in its own
+    domain], [an explicit `sync` with an explicit `InitRep`
+    (`provisionSync_target`); supplied or unavailable; a schedule does
+    not read an input], [REMOVE (FVD-0155)],
+    [a profile range as evidence by declaration], [vendor
+    ranges], [three evidence levels; the trusted one is a named
+    assumption (`discharge_trusted`)], [REMOVE (FVD-0156)],
+    [a "trusted" flag on `computes`\; a proof language for transfer
+    functions], [package profiles], [the field is a proof, derived from
+    the term (`Channel.ofTerm`), decided at `bool`
+    (`computes_of_bool`)], [REMOVE (FVD-0157)],
+    [exception semantics for malformed readings], [NaN, bad
+    frames], [the checking provider refuses; `none` or a flag above the
+    boundary (`checked_typed`, `exE_checked`)], [REMOVE (FVD-0158)],
   )]
   , kind: table
   )
@@ -7491,18 +7618,18 @@ Each names what exists and what would resolve it.
   #emph[commitments on outputs], which production does not author and
   whose discharge by an encoder's declared transfer would be the output
   analogue of FVD-0128.
-+ #strong[The input boundary beyond a pure transducer] (FVI-0020,
-  narrowed by Phase 16; PRP-0001, ISS-0016). Stateful transducers and a
-  stream-level transparency theorem; a device clock with a deployment
-  `sync`\; how a profile's declared range discharges a Source's
-  commitments; whether `computes` is checked or trusted at the
-  catalogue; out-of-type raw readings as validation. Freshness is no
-  longer here: it is behavior state (`age`, `exG_freshness`). The
-  provider's occurrence contract (FVI-0029) is resolved by Phase 17:
-  stated and proved (`Provider.lean`, FVD-0149 … FVD-0151); what a
-  Source device profile has to promise is now a record. Bounded buffered
-  input is answered by it; what remains here is the input side's device
-  clock and stateful transducers.
++ #strike[#strong[The input boundary beyond a pure transducer]
+  (FVI-0020; PRP-0001, ISS-0016)] --- resolved by Phase 18, remainder by
+  remainder: stateful transducers are machines movable upstream with one
+  trace (FVD-0154); the Source-side device clock is an explicit `sync`
+  or window with an explicit initial value (FVD-0155); commitment
+  discharge has three evidence levels (FVD-0156); `computes` is derived
+  from the term and decided at a finite type (FVD-0157); out-of-type
+  readings are refused and cross as `none` or a flag (FVD-0158).
+  Freshness was behavior state since Phase 16 and the occurrence
+  contract Phase 17's (FVI-0029). What stays outside the development:
+  the bound or range a physical device needs --- a deployment assumption
+  --- and the production slice (ISS-0016).
 + #strong[Enums and sums] (ISS-0005). Encoded as tag × optional payload;
   production keeps user enums open. Would resolve: a case that needs
   `match` exhaustiveness beyond the encoding, and then one eliminator
@@ -8789,6 +8916,64 @@ Part IV.
   , kind: table
   )
 
+== The Source-side boundary (`Surface/SourceBoundary`, `Experiments/SourceBoundaryExamples`)
+<the-source-side-boundary-surfacesourceboundary-experimentssourceboundaryexamples>
+#figure(
+  align(center)[#table(
+    columns: (25%, 25%, 25%, 25%),
+    align: (auto,auto,auto,auto,),
+    table.header([name], [kind], [states], [scope],),
+    table.hline(),
+    [`MEv.congr_at`, `MEv.declRef_env`,
+    `MEv.declRef_nil`], [T], [designs agreeing off one declaration whose
+    value trace agrees evaluate every term alike], [---],
+    [`machine_upstream`, `Machine.run_typed`,
+    `Machine.run_congr`], [T], [the upstream declaration computes the
+    machine's run; the run is a function of the stream alone], [single
+    domain],
+    [`below_source_trace`, `upstream_source_trace`,
+    `provider_state_movable`,
+    `stateful_providers_same_trace`], [T], [the same Source trace below
+    or above the reading; every evaluation transfers; equal output
+    streams, one trace], [`Provision.WF`, typed streams],
+    [`provisionSync_target`, `sampled_mev`, `provisionSync_transparent`,
+    `provisionSync_causal`, `provisionSync_wellClocked`,
+    `syncRealizeAt_typed`, `provisionSync_envRefines`,
+    `provisionSync_wf`], [T], [the sampled Source-side device clock with
+    an explicit initial value: correspondence, transparency,
+    structure], [the Source in a domain; typed reading and initial
+    value],
+    [`provisionWindow_target`], [T], [the occurrence-like Source over
+    Phase 9a's window of the raw reading], [`Realized`, typed reading],
+    [`realizeAt_only_transfers`, `discharge_under`, `discharge_static`,
+    `discharge_checked`, `discharge_trusted`], [T], [commitment
+    discharge at three evidence levels], [`RangeSoundUnder`],
+    [`checked_items_ok`, `checked_typed`, `checked_refused_iff`,
+    `filter_length_lt_iff`], [T], [the checking provider: delivered
+    items validated and typed; the flag exact], [`ok` implying typing],
+    [`Value.beq_sound`, `Value.beqList_sound`,
+    `computes_of_bool`], [T], [structural equality is sound; a passed
+    check at `bool` is `computes`], [---],
+    [`assignSource_profile_only`], [T], [the richer profile does not
+    change the assignment], [equal Phase-13 profiles],
+    [`exA_filter`, `exA_filter_run`, `exA_filter_theorem`,
+    `exA_debounce_param`, `exA_quadrature`, `exA_hysteresis_param`,
+    `exA_latch_reads_design`], [X], [provider state below or above; the
+    parameters in the trace; the latch that reads the design], [---],
+    [`exB_sampled`, `exB_structure`, `exB_unavailable`,
+    `exB_window_edges`], [X], [the sampled and the unavailable initial
+    value; edges windowed without loss], [---],
+    [`exC_static`, `exC_trusted`, `exC_checked`,
+    `exC_provider_checks`], [X], [one property at three evidence
+    levels], [---],
+    [`exD_ofTerm`, `exD_bool`, `exD_bool_computes`, `exE_checked`,
+    `exF_two_providers`], [X], [`computes` from the term and decided;
+    refused readings into an optional Source; the motion state under two
+    providers], [---],
+  )]
+  , kind: table
+  )
+
 == Hardware validation (`Validation/Hardware`, `Experiments/HardwareAlternatives`)
 <hardware-validation-validationhardware-experimentshardwarealternatives>
 #figure(
@@ -9471,6 +9656,31 @@ generalisation.
     and the line after it a fold; no batch or transaction
     primitive], [accepted], [§IV.7], [Phase 17:
     `Surface/OutputWindow`], [ISS-0017 (bears-on), ADR-0037 (supports)],
+    [Phase 18], [the Source-side boundary: provider state as a machine
+    below or above the reading; the Source-side device clock with an
+    explicit initial value; commitment discharge at three evidence
+    levels; `computes` derived and decided; out-of-type readings
+    refused; FVI-0020 resolved], [], [§IV.7], [Phase 18], [],
+    [FVD-0154], [Provider state is a Mealy machine below the raw
+    reading, movable upstream with the same Source trace; placement is
+    decided by visibility], [accepted], [§IV.7], [Phase 18:
+    `Surface/SourceBoundary`], [ISS-0016 (bears-on), PRP-0001 (audits)],
+    [FVD-0155], [The Source-side device clock is an explicit `sync` (or
+    window) of the raw reading with an explicit initial value ---
+    supplied or unavailable], [accepted], [§IV.7], [Phase 18:
+    `Surface/SourceBoundary`], [ISS-0016 (bears-on)],
+    [FVD-0156], [A provider discharges a commitment as evidence under an
+    assumption; static, checked and trusted levels differ in who
+    establishes it], [accepted], [§IV.7], [Phase 18:
+    `Surface/SourceBoundary`], [ISS-0016 (bears-on), PRP-0001 (audits)],
+    [FVD-0157], [`computes` is proof-carrying: derived from the term,
+    decided at a finite raw type; a supplied transfer function is a
+    claim], [accepted], [§IV.7], [Phase 18:
+    `Surface/SourceBoundary`], [PRP-0001 (audits)],
+    [FVD-0158], [An out-of-type reading is refused by the checking
+    provider and crosses as `none` or a flag; no exception
+    semantics], [accepted], [§IV.7], [Phase 18:
+    `Surface/SourceBoundary`], [ISS-0016 (bears-on)],
   )]
   , kind: table
   )
@@ -10009,8 +10219,8 @@ table resolves each. The canonical copy is
     mappings], [FV-only],
     [OI-19], [FVI-0019], [Display-name table for concepts], [FV-only],
     [OI-20], [FVI-0020], [Source provision: stateful transducers, a
-    device clock, commitment discharge, output provision], [PRP-0001,
-    ISS-0016],
+    device clock, commitment discharge, output provision (resolved by
+    Phase 18)], [PRP-0001, ISS-0016],
     [---], [FVI-0022], [Output realization: stateful adapters, a device
     clock, atomic multi-value frames, codegen correspondence, output
     commitments], [ISS-0016],
@@ -10288,6 +10498,9 @@ added each report.
     [17], [2026-09-20], [The provider's occurrence contract and the
     occurrence-preserving output
     window], [§IV.7], [`docs/reports/phase-17-the-provider-occurrence-contract-and-the-output-window.md`],
+    [18], [2026-09-20], [The Source-side boundary: provider state, the
+    device clock, initialization, commitments, `computes`, out-of-type
+    readings], [§IV.7], [`docs/reports/phase-18-the-source-side-boundary-provider-state-device-clock-commitments-and-readings.md`],
   )]
   , kind: table
   )
@@ -10412,6 +10625,16 @@ consumes the boundary Phase 14 defined and nothing formal beyond it.
     component on two axes (§IV.7, §VII.2, §VII.4, Appendices B, C, F,
     G); FVI-0029 resolved; the production tree's in-flight uncommitted
     Source slice noted, not cited],
+    [2026-09-20 --- Phase 18], [the Source side completed: the
+    value-congruence lemma; provider state as a Mealy machine below or
+    above the reading with one trace and the visibility criterion; the
+    Source-side device clock as an explicit `sync` or window with an
+    explicit initial value, supplied or unavailable; commitment
+    discharge at three evidence levels with the trusted assumption
+    visible; `computes` derived from the term and decided at a finite
+    type; out-of-type readings refused into `none` or a flag; the motion
+    state under two providers (§IV.7, §VII.2, §VII.4, Appendices B, C,
+    F, G); FVI-0020 resolved],
   )]
   , kind: table
   )
