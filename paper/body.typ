@@ -21,7 +21,7 @@ renaming it would break history; reader-facing text says
 
 Two repositories are described. The formal model is `KCN-judu/BDL_FV`, a
 Lean 4 development with no external libraries; it is described as of the
-working tree of this revision, through Phase 16. The production system
+working tree of this revision, through Phase 17. The production system
 is `KCN-judu/BDL`, a Rust toolchain and a Flutter authoring environment;
 it is described as of one audited commit,
 `aa6e7f4ee249556ca7561c854b43607f45f229fe` (2026-09-20, protocol 0.24),
@@ -76,7 +76,7 @@ chronology, the revision log, the record conventions, and the map from
 the previous revision's sections to this one.
 
 #strong[Provenance.] The formal development was done in phases (Phase 0
-… Phase 16), and the phase numbers appear throughout as provenance ---
+… Phase 17), and the phase numbers appear throughout as provenance ---
 the place to find the experiment behind a claim --- never as the
 structure of the exposition. The order in which the constructs are
 explained here is their conceptual dependency; it is not the order in
@@ -753,7 +753,7 @@ Evidence that is not meant to survive refinement --- the existence of a
 pin assignment on a particular board --- is re-established after every
 change and is never merged with the first kind.
 
-@fig:arch shows the layers as they stand at Phase 16; the kernel band
+@fig:arch shows the layers as they stand at Phase 17; the kernel band
 also holds list and product data with one recursor (§IV.3) and the
 behavior-component constructs (§IV.6), the surface band holds the
 deployment construction of §IV.7, and the validation band holds
@@ -837,7 +837,7 @@ Arduino Nano over `avr-hal`), output realization (ADR-0036), the Source
 sheet, the Code view as an IDE surface and the `drive … by …` spelling;
 protocol 0.24. The formal development is described as of the working
 tree that contains this revision of the document; the last commit before
-it is `e032b5f` (the Phase 16 records), and the canonical copy of the
+it is `5dec160` (the Phase 17 records), and the canonical copy of the
 production hash in the formal repository is the `snapshot` field of
 `docs/project/production-correspondence.md`. Every sentence about
 production is a sentence about that commit; volatile details are
@@ -1574,9 +1574,9 @@ The development builds with Lean 4.33.1 with no `sorry`. The axioms used
 by every theorem are propositional extensionality and quotient
 soundness, the latter only through function extensionality and the
 choice-free rational quotient of §IV.4; classical choice is absent, and
-each phase re-audited the whole development for it. As of Phase 16 the
-sources are 62 modules: 11 in `Core`, 12 in `Behavior`, 16 in `Surface`,
-2 in `Validation`, and 21 experiment modules holding alternatives,
+each phase re-audited the whole development for it. As of Phase 17 the
+sources are 66 modules: 11 in `Core`, 12 in `Behavior`, 18 in `Surface`,
+2 in `Validation`, and 23 experiment modules holding alternatives,
 counterexamples and executed examples. Every trace, assignment,
 unsatisfiability result and executed example reported here was obtained
 by running a proved-sound interpreter or solver inside the proof
@@ -4423,6 +4423,96 @@ occurrence contract, which is what a Source device profile has to
 promise and which no record states (FVI-0029). Both are deployment work;
 neither is a language question.
 
+=== The provider's contract and the occurrence-preserving window
+<the-providers-contract-and-the-occurrence-preserving-window>
+Two boundaries were left below the state encodings of the previous
+section. The first is what a raw reading #emph[means] when the transport
+carried several things since the previous tick --- several commands, a
+retransmission, deliveries from two devices. The second is how an output
+whose every value matters reaches a device that activates more slowly
+than the output's clock: the device-clock lowering of §IV.7 samples, so
+two commands specified between two device activations reach the device
+as one. Phase 17 closed both with the existing kernel
+(`Surface/Provider.lean`, `Surface/OutputWindow.lean`); neither needed a
+message, a queue or a transaction.
+
+#strong[The provider's occurrence contract.] Below the raw reading sits
+the #emph[provider], the adapter's function from deliveries to the one
+value the Source reads. A delivery is a payload with a #emph[transport
+identity] --- a sequence number, a frame id, a retry token --- that the
+transport owns and the design never sees. The provider keeps the
+identities it has delivered (adapter state, like the line of the adapter
+boundary) and delivers, per tick, the first `cap` payloads whose
+identity is fresh, in arrival order, together with a flag saying whether
+more were fresh (`provide`). That is the contract, in five clauses: one
+semantic occurrence per fresh identity --- never per payload, so
+`Move(+10); Move(+10)` with two identities is two commands
+(`dedup_of_fresh`) and a retransmission is nothing; arrival order within
+a raw source (`dedup_sublist`); retransmissions erased by identity below
+the boundary --- a retransmission inserted anywhere in the delivery
+stream changes no batch at any tick and no behavior (`run_retry`,
+`retry_invisible`); a per-tick bound whose cut is a value the design
+reads (`overflow`), never a silent drop, the bound itself being a
+deployment assumption on the physical arrival rate decided as capacity
+is decided; and several raw sources as several raw readings, one
+provision each, with any merge an explicit deterministic policy
+(`mergeBySource`) that a design reading per source cannot tell from
+another (`perSource_of_interleaving`) --- no physical total order is
+assumed. The reading is `(list raw, bool)`, Phase 13's shared raw
+reading with two channels (`batchProvision`), so every provision theorem
+applies and equal batch streams are the same semantic trace
+(`sameBatches_sameTrace`); a scalar Source --- a level, a sample --- is
+the batch sampled (`Batch.latest`). Executed on the auto\_typer designs:
+the host's submissions through the provider give the queue design the
+same queue and desired position under a stream with a retransmission as
+without (`exE_ingress`, `exE_theorem`); three jobs in one tick under
+`cap = 2` queue two and raise the flag in the design (`exE_overflow`);
+two motors' feedback from two raw readings, sampled, gives the motion
+state its `fb : opt Sample` with a retransmitted sample as `none`
+(`exF_feedback`); and the motion state, unchanged, is a behavior
+component instantiated on two axes in one system (`exG_two_axes`) ---
+deployment adds no product behavior, the behavior layer already holds
+the controller.
+
+#strong[The occurrence-preserving window.] For a device that must
+receive every command, the crossing is Phase 9a's five declarations with
+Phase 14's encoder declaration as their source:
+
+```
+e      @c  := encode (rep d)
+log    @c  := cons e (delay nil log)
+logD   @dc := sync c nil log
+seen   @dc := length logD
+cursor @dc := delay 0 seen
+window @dc := reverse (take (seen − cursor) logD)  →  p : list raw @dc
+```
+
+The behavior is literally unchanged off the six fresh identities
+(`lowerWindow_transparent`, six applications of one generic step,
+`update_transparent`); at every tick, in the device domain, the sink
+carries exactly the raw commands specified at the output-clock
+activations since the device's previous activation, in order and with
+multiplicity (`lowerWindow_correspondence` --- Theorem M read through
+Phase 14's correspondence, for which the Phase-9a lemmas were
+generalized in place over any source value function); the batch is
+bounded by the Phase-9a capacity obligation on the crossing
+(`lowerWindow_bounded`); and the lowered design refines the abstract one
+and is well formed, causal, well clocked, drive-well-formed and
+single-driver. With the device on even ticks, the sampled lowering
+carries `104` at tick 2 where the window carries `[102, 104]`
+(`exA_window_vs_sample`); a repeated value appears twice (`exB`); a
+period-3 device with `cap = 2` is refused as a deployment infeasibility
+(`exC_capacity`). #strong[State versus occurrence is the sink's type]
+--- the device's consumption contract: a device that consumes `raw` is
+lowered by `lowerSync`, one that consumes `list raw` by `lowerWindow`\;
+the logical output is one value stream in both and carries no flag
+(FVD-0152). The adapter's batch is a list of the adapter boundary's
+operations and the line after it the last accepted item (`batchOps`,
+`lineAfterBatch`\; FVD-0153); two window realizations of one output
+carry batches that are pointwise the two transfers of one value
+(`paired_batches_of_one_window`), so the prepare/prepare/commit of a
+paired axis is the backend's order within one batch.
+
 === The physical boundary as one whole
 <the-physical-boundary-as-one-whole>
 Read end to end, one value's path from the world back to the world is
@@ -4453,11 +4543,16 @@ physical world ─▶ raw reading r : () -> R ─▶ pure transducer tr ─▶ l
     table.header([arrow], [what it is], [formally modelled], [formally
       proved], [production], [still open],),
     table.hline(),
-    [physical world → raw reading `r`], [the environment provides a
-    value at the raw type], [as the kernel input `I(r, t)`, typed
-    (`RawInput`)], [--- (an input is an assumption)], [not built: no
-    device provides a Source's value (ISS-0016)], [the device catalogue
-    for inputs],
+    [physical world → raw reading `r`], [the provider delivers what the
+    transport carried since the previous tick: the fresh occurrences in
+    arrival order, bounded, with an overflow flag], [Phase 17
+    `Provider`: `dedup`, `provide`, the reading `(list raw, bool)` as a
+    two-channel provision (`batchProvision`); a scalar reading is the
+    batch sampled], [`dedup_of_fresh`, `run_retry`, `retry_invisible`,
+    `provide_overflow_iff`, `sameBatches_sameTrace`], [not built at the
+    snapshot: no device provides a Source's value (ISS-0016; a slice was
+    in flight, uncommitted)], [which bound a physical arrival rate needs
+    (a deployment assumption); the device catalogue for inputs],
     [raw reading → logical Source (`s := mk c (tr r)`)], [provision by a
     pure transducer], [Phase 13 `Provision`], [`provision_envRefines`,
     `provision_wf`, `provision_transparent`, `provision_abstracts`\;
@@ -4481,6 +4576,13 @@ physical world ─▶ raw reading r : () -> R ─▶ pure transducer tr ─▶ l
     admissibility, `SinkPlan`, `Tick.commands`\; tested], [the
     plan-level lowering is not the model's fresh declarations
     (observably the same, unproved as such)],
+    [logical Output → raw command batch (a slower device)], [the
+    occurrence-preserving crossing: Phase 9a's window over the encoder
+    into the device domain, a `list raw` sink], [Phase 17
+    `lowerWindow`], [`lowerWindow_transparent`,
+    `lowerWindow_correspondence`, `lowerWindow_bounded`, the structural
+    theorems], [not built], [a device that acknowledges; the initial
+    representation (FVI-0024)],
     [abstract sink operation → peripheral operation], [the HAL call, the
     register], [#strong[not modelled]: the operation is where the
     semantics stops (FVD-0140)], [#strong[not proved]
@@ -7095,6 +7197,25 @@ and would be tempted to add it.
     compatibility], [`admissible_iff`\; `exQ_contract_not_feasible`: the
     same contract on two boards, feasible on one], [KEEP SEPARATE
     (FVD-0147)],
+    [deduplication by payload at the provider], ["the same command
+    twice"], [`Move(+10); Move(+10)` with two transport identities is
+    two commands (`dedup_of_fresh`, `exA_occurrences`); only the
+    transport can say what is a retry], [REMOVE (FVD-0150)],
+    [an implicit total order across raw sources], [one merged
+    batch], [no physical fact supplies one; source order is one explicit
+    policy and a per-source reading is insensitive to it
+    (`perSource_of_interleaving`)], [REMOVE (FVD-0151)],
+    [a silent drop at the provider's bound], [bounded memory], [the flag
+    is a value the design reads (`provide_overflow_iff`,
+    `exE_overflow`)], [REMOVE (FVD-0149)],
+    [an "event mode" flag on the logical output; an `Event`/`Stream`
+    type for the output crossing], [occurrence outputs], [the window
+    over the encoder into the device domain
+    (`lowerWindow_correspondence`); the sink's type selects the lowering
+    (`exA_window_vs_sample`)], [REMOVE (FVD-0152)],
+    [a batch or transaction primitive at the adapter], [a slower device
+    receiving several commands], [`batchOps : List Op`, `lineAfterBatch`
+    a fold; `paired_batches_of_one_window`], [REMOVE (FVD-0153)],
   )]
   , kind: table
   )
@@ -7342,14 +7463,14 @@ Each names what exists and what would resolve it.
 + #strong[The output boundary beyond a pure encoder] (FVI-0022 split
   into FVI-0023 … FVI-0027; ISS-0017). Phase 15 answered the first two
   up to the abstract sink operation and the explicit device clock; Phase
-  16 added that the paired axis is not an atomic-frame case (FVD-0148)
-  and that the occurrence-preserving crossing to a slower device is an
-  unbuilt construction (FVI-0024, amended); open: below the operation
-  (FVI-0023), a device that acknowledges, the initial representation and
-  the mirrored window (FVI-0024), a stateful witness (FVI-0025), the
-  atomic-frame criterion (FVI-0026); deferred: output commitments
-  (FVI-0027). Originally: What Phase 14 leaves open, and the first
-  platform adapter does not close --- it applies each command
+  16 added that the paired axis is not an atomic-frame case (FVD-0148);
+  Phase 17 built the occurrence-preserving crossing to a slower device
+  (`lowerWindow`, FVD-0152) and the adapter's batch (FVD-0153); open:
+  below the operation (FVI-0023), a device that acknowledges and the
+  initial representation (FVI-0024, narrowed), a stateful witness
+  (FVI-0025), the atomic-frame criterion (FVI-0026); deferred: output
+  commitments (FVI-0027). Originally: What Phase 14 leaves open, and the
+  first platform adapter does not close --- it applies each command
   independently and untouched: #emph[stateful output adapters]
   (slew-rate limiting, PWM dithering, protocol batching, servo
   smoothing, hysteresis), and whether each belongs to the behavior as an
@@ -7376,12 +7497,12 @@ Each names what exists and what would resolve it.
   `sync`\; how a profile's declared range discharges a Source's
   commitments; whether `computes` is checked or trusted at the
   catalogue; out-of-type raw readings as validation. Freshness is no
-  longer here: it is behavior state (`age`, `exG_freshness`). And, new:
-  #strong[the provider's occurrence contract] (FVI-0029) --- that a
-  `list raw` reading delivers the occurrences since the previous tick in
-  arrival order, once per transport occurrence, merged across raw
-  sources and bounded --- is what the state encodings of §IV.7 rest on
-  and what a Source device profile has to promise; no record states it.
+  longer here: it is behavior state (`age`, `exG_freshness`). The
+  provider's occurrence contract (FVI-0029) is resolved by Phase 17:
+  stated and proved (`Provider.lean`, FVD-0149 … FVD-0151); what a
+  Source device profile has to promise is now a record. Bounded buffered
+  input is answered by it; what remains here is the input side's device
+  clock and stateful transducers.
 + #strong[Enums and sums] (ISS-0005). Encoded as tag × optional payload;
   production keeps user enums open. Would resolve: a case that needs
   `match` exhaustiveness beyond the encoding, and then one eliminator
@@ -8609,6 +8730,65 @@ Part IV.
   , kind: table
   )
 
+== The provider's contract and the output window (`Surface/Provider`, `Surface/OutputWindow`, `Experiments/ProviderExamples`, `Experiments/OutputWindowExamples`)
+<the-providers-contract-and-the-output-window-surfaceprovider-surfaceoutputwindow-experimentsproviderexamples-experimentsoutputwindowexamples>
+#figure(
+  align(center)[#table(
+    columns: (25%, 25%, 25%, 25%),
+    align: (auto,auto,auto,auto,),
+    table.header([name], [kind], [states], [scope],),
+    table.hline(),
+    [`dedup_sublist`, `provide_items_sublist`,
+    `dedup_of_fresh`], [T], [what is kept keeps the transport's order
+    and multiplicity; distinct identities are all delivered], [---],
+    [`mem_dedup_seen`, `mem_seenAfter`, `dedup_retry`, `run_retry`,
+    `batch_retry`], [T], [the remembered identities; a retransmission
+    changes nothing at any tick], [`Retry`],
+    [`provide_length_le`, `batch_length_le`, `provide_overflow_iff`,
+    `provide_items_of_no_overflow`], [T], [the bound, the exact flag,
+    nothing dropped without it], [---],
+    [`mergeBySource_interleaving`,
+    `perSource_of_interleaving`], [T], [source order is an interleaving;
+    per-source reading is merge-insensitive], [sources tagged by index],
+    [`batch_value_tyVal`, `rawInput_rawInput`, `sameBatches_sameTrace`,
+    `retry_invisible`], [T], [the provider's reading is a Phase-13 raw
+    input; equal batches are the same trace; a retransmission is
+    invisible], [typed payloads],
+    [`update_transparent`, `NoMention.update`], [T], [one fresh realized
+    declaration is invisible to terms avoiding it], [`NoMention`],
+    [`lowerWindow_transparent`, `lowerWindow_decl_transparent`,
+    `lowerWindow_encoder_at`], [T], [the window design evaluates the
+    abstract design unchanged; the encoder carries the trace's
+    transfer], [`Fresh`, `WF`, `NoMention` ×6],
+    [`lowerWindow_correspondence`, `lowerWindow_batch_rawCommands`,
+    `lowerWindow_batch_unique`, `lowerWindow_order_multiplicity`,
+    `lowerWindow_bounded`], [T], [the sink carries the raw commands of
+    the window, in order, with multiplicity, bounded by
+    capacity], [`RepTrace`, `SingleDriver`, `CapacitySufficient`],
+    [`lowerWindow_envRefines`, `lowerWindow_singleDriver`,
+    `lowerWindow_driveWF`, `lowerWindow_wellClocked`,
+    `lowerWindow_causal`, `lowerWindow_wf`], [T], [the window design is
+    a well-formed, causal, well-clocked, single-driver
+    refinement], [Phase 14's hypotheses],
+    [`batchOps_length`, `lineAfterBatch_accepted`,
+    `lineAfterBatch_refused`, `paired_batches_of_one_window`], [T], [the
+    adapter's batch; the paired axis batched], [`SingleDriver`, one
+    output],
+    [`exA_occurrences`, `exB_order`, `exB_all_ticks`, `exC_merge`,
+    `exD_bound`], [X], [occurrences, retries, order, two raw sources,
+    the bound], [---],
+    [`exE_ingress`, `exE_theorem`, `exE_overflow`, `exF_feedback`,
+    `exG_two_axes`], [X], [host ingress into the queue design through
+    the provider; feedback from two raw readings; the motion state on
+    two axes], [---],
+    [`exA_window_vs_sample`, `exB_multiplicity_order`, `exC_capacity`,
+    `exD_batch`, `exE_paired`, `exF_correspondence`, `exF_structure`,
+    `exF_transparent`], [X], [window vs sample; capacity decided; the
+    adapter batch; the paired axis; the theorems instantiated], [---],
+  )]
+  , kind: table
+  )
+
 == Hardware validation (`Validation/Hardware`, `Experiments/HardwareAlternatives`)
 <hardware-validation-validationhardware-experimentshardwarealternatives>
 #figure(
@@ -9265,6 +9445,32 @@ generalisation.
     command, or two realizations that agree tick by tick; commit order
     is below the operation], [accepted], [§IV.7], [Phase 16:
     `Surface/Assignment`], [ISS-0017 (bears-on)],
+    [Phase 17], [the provider's occurrence contract stated and proved;
+    the occurrence-preserving output window over the encoder; the
+    adapter's batch as a list of operations; FVI-0029
+    resolved], [], [§IV.7], [Phase 17], [],
+    [FVD-0149], [The provider's occurrence contract: one occurrence per
+    fresh transport identity, arrival order, a bounded batch with an
+    observable overflow flag; the raw reading is
+    `(list raw, bool)`], [accepted], [§IV.7], [Phase 17:
+    `Surface/Provider`], [ISS-0016, ISS-0001 (bears-on)],
+    [FVD-0150], [Deduplication is by transport identity below the
+    boundary, never by payload; a retransmission is erased and a
+    repeated command is not], [accepted], [§IV.7], [Phase 17:
+    `Surface/Provider`], [ISS-0016 (bears-on)],
+    [FVD-0151], [Several raw sources are several provisions; a merged
+    batch is an explicit deterministic policy; no physical total order
+    is assumed], [accepted], [§IV.7], [Phase 17:
+    `Surface/Provider`], [ISS-0016 (bears-on)],
+    [FVD-0152], [Occurrence-preserving realization is Phase 9a's window
+    over the encoder declaration into the device domain with a
+    `list raw` sink; the sink's type selects
+    it], [accepted], [§IV.7], [Phase 17:
+    `Surface/OutputWindow`], [ISS-0017 (bears-on)],
+    [FVD-0153], [The adapter's batch is a list of Phase 15's operations
+    and the line after it a fold; no batch or transaction
+    primitive], [accepted], [§IV.7], [Phase 17:
+    `Surface/OutputWindow`], [ISS-0017 (bears-on), ADR-0037 (supports)],
   )]
   , kind: table
   )
@@ -9821,7 +10027,8 @@ table resolves each. The canonical copy is
     diagnosis (deferred)], [FV-only],
     [---], [FVI-0029], [The provider's occurrence contract: batch
     delivery, deduplication of transport retries, merged order across
-    raw sources, a per-tick bound], [ISS-0016, ISS-0001],
+    raw sources, a per-tick bound (resolved by Phase 17)], [ISS-0016,
+    ISS-0001],
     [OI-21], [FVI-0021], [Unit-domain normalization: `elim` beyond
     canonical types; the `Input` narrowing], [ADR-0029],
   )]
@@ -10078,6 +10285,9 @@ added each report.
     [16], [2026-09-20], [Communication as state, catalogue profiles and
     the deployment-only `assign` --- the auto\_typer stress
     case], [§IV.7], [`docs/reports/phase-16-communication-as-state-catalogue-profiles-and-the-deployment-only-assign.md`],
+    [17], [2026-09-20], [The provider's occurrence contract and the
+    occurrence-preserving output
+    window], [§IV.7], [`docs/reports/phase-17-the-provider-occurrence-contract-and-the-output-window.md`],
   )]
   , kind: table
   )
@@ -10192,6 +10402,16 @@ consumes the boundary Phase 14 defined and nothing formal beyond it.
     transaction primitive (§IV.7, the architectural principle in Part
     II, §VII.2, §VII.4); FVI-0029; production re-pinned at `aa6e7f4`
     (six Studio interaction commits, no boundary change)],
+    [2026-09-20 --- Phase 17], [the provider's occurrence contract
+    stated and proved (one occurrence per fresh transport identity,
+    retransmissions erased, a bounded batch with an observable flag,
+    several raw sources as several provisions), composed with Phase 13;
+    the occurrence-preserving output window over the encoder into the
+    device domain with its correspondence, bound and structure; the
+    adapter's batch as a list of operations; the motion state as a
+    component on two axes (§IV.7, §VII.2, §VII.4, Appendices B, C, F,
+    G); FVI-0029 resolved; the production tree's in-flight uncommitted
+    Source slice noted, not cited],
   )]
   , kind: table
   )
