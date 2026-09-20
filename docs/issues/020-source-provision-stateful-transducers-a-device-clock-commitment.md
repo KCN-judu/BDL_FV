@@ -21,4 +21,9 @@ validation question.
 
 ## Resolution
 
-Open.
+Open. The **output provision** part is answered by Phase 14
+([report](../reports/phase-14-output-realization-by-device-encoders.md)): output
+realization is a lowering, not a provision, and its own open questions are
+FVI-0022. The Source-side questions (stateful transducers, a device clock,
+commitment discharge, `computes` checked or trusted, out-of-type readings)
+remain open here.

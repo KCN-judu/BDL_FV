@@ -43,7 +43,7 @@ One folder per kind of record; every page carries a header that
 
 | Page                                  | What it fixes                                                                                                 |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [kernel.md](kernel/kernel.md)         | the cumulative kernel after Phase 13: objects, judgments, primitives, the refinement/edit split               |
+| [kernel.md](kernel/kernel.md)         | the cumulative kernel after Phase 14: objects, judgments, primitives, the refinement/edit split               |
 | [layout.md](kernel/layout.md)         | every Lean file and the definitions and theorems it holds                                                     |
 | [minimality.md](kernel/minimality.md) | every construct ever proposed with its verdict: kernel · surface · library · validation · UI · defer · remove |
 
@@ -65,21 +65,26 @@ One folder per kind of record; every page carries a header that
   are nominal sinks with a write-once drive edge and one global single-driver
   invariant; hardware feasibility is a separate decidable validation. Everything
   else — behaviours, groups, buffers, the equation library, units, charts,
-  natural binders, the unit domain, Source provision — is a construction over
-  designs proved to preserve the kernel's judgments.
-- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13 complete; 130 decisions; 21
-  open items (16 open). Build clean on Lean 4.33.1, no `sorry`,
+  natural binders, the unit domain, Source provision, output realization — is a
+  construction over designs proved to preserve the kernel's judgments.
+- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14 complete; 138
+  decisions; 22 open items (17 open). Build clean on Lean 4.33.1, no `sorry`,
   `propext`/`Quot.sound` only.
 - **Not started:** Phase 8c (surface elaboration of the remaining
   designer-facing forms, executable semantics); the final minimality audit.
-- **Recently changed:** Phase 13 — Source provision by device transducers, the
-  audit of production's PRP-0001 (four of seven claims corrected: purity is the
-  profile condition, the transfer function is carried on values, commitments are
-  obligations on the profile, trace equality needs a joint section); Phase 12 —
-  the canonical type `() -> B` as an interface normalization above the kernel,
-  the source role as a realization state, `A -> ()` unable to name a consumer
-  (consumed by production's ADR-0029 and ADR-0032); the records reorganised into
-  this tree (2026-09-20).
+- **Recently changed:** Phase 14 — output realization by device encoders, the
+  output-side dual of Source provision: a logical output is semantic intent, the
+  mechanism (PWM / GPIO / I²C / UART) is a deployment lowering that adds a pure
+  encoder and a machine sink and changes nothing the behaviour observes; the
+  machine boundary is the `RawCommand` relation, never an `R -> ()` term;
+  correspondence is directional and admits quantization; Phase 13 — Source
+  provision by device transducers, the audit of production's PRP-0001 (four of
+  seven claims corrected: purity is the profile condition, the transfer function
+  is carried on values, commitments are obligations on the profile, trace
+  equality needs a joint section); Phase 12 — the canonical type `() -> B` as an
+  interface normalization above the kernel, the source role as a realization
+  state, `A -> ()` unable to name a consumer (consumed by production's ADR-0029
+  and ADR-0032); the records reorganised into this tree (2026-09-20).
 
 ## Rules in one paragraph
 

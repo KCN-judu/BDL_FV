@@ -34,3 +34,4 @@ file (`REPORT.md`) until 2026-09-20
 | [Phase 11](phase-11-natural-expression-surface-as-conservative-desugaring.md)           | Natural expression surface as conservative desugaring          | surface    | 2026-09-18 |
 | [Phase 12](phase-12-unit-domain-normalization-and-the-source-boundary.md)               | Unit-domain normalization and the source boundary              | surface    | 2026-09-18 |
 | [Phase 13](phase-13-source-provision-by-device-transducers-prp-0001-audit.md)           | Source provision by device transducers (PRP-0001 audit)        | surface    | 2026-09-20 |
+| [Phase 14](phase-14-output-realization-by-device-encoders.md)                           | Output realization by device encoders                          | surface    | 2026-09-20 |

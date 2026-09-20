@@ -2,7 +2,7 @@
 kind: project
 area: process
 status: current
-snapshot: de8154f5153495de2ad8a09f3ca3166c3678dc93
+snapshot: 7a800bc68412cb5bbefb663c0ae8754f9d07c628
 snapshot-date: 2026-09-20
 ---
 
@@ -113,6 +113,15 @@ Phase 11's desugaring was implemented in production
 (`2026-09-natural-expression-surface` change fragment) under ADR-0028's second
 amendment. When production writes a record for one of these, add the row here
 and nothing else.
+
+Phase 14 (output realization by device encoders) has no production consumer:
+production's `PhysicalOutput`, `DeviceBinding { kind, output, fixed_pins }`, the
+requirement generation and the allocator are the logical output and the
+requirements half of a device profile (FVD-0131, FVD-0137 support ADR-0015 and
+ADR-0005 as they stand); the encoder half, the machine sink and the lowering do
+not exist. The [note](../notes/output-realization-by-device-encoders.md) §5
+records what a consumer would need. No ISS or PRP exists for it; ISS-0016 is the
+Source side.
 
 ## What this page never says
 

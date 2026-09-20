@@ -157,10 +157,12 @@ theorem.
   _strict_ refinement of the abstract environment even when each channel is
   onto.
 - **Commitments are obligations on the profile.** `provision_wf` says so.
-- **The output side** is left as the future duality note; no shared abstraction
-  fell out that made it free (the drive edge's type equality `DriveWF` would
-  need a new realized declaration in between, as REPORT §6.5 already asked;
-  nothing here is reused for it beyond `simulate`).
+- **The output side** was left as a duality note here and is Phase 14's subject
+  ([note](output-realization-by-device-encoders.md)): a lowering, not a
+  provision. At the time of this phase no shared abstraction fell out that made
+  it free (the drive edge's type equality `DriveWF` would need a new realized
+  declaration in between, as REPORT §6.5 already asked; nothing here is reused
+  for it beyond `simulate`).
 - **Terminology**: abstract Source, provisioned Source, raw declaration,
   environment-abstract realization, device-specific provision. Not
   "monomorphised".

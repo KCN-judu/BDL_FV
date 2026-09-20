@@ -16,10 +16,10 @@ about the production repository.
 | Fact                      | Value                                                                                                                                                                                                                                                                  |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Toolchain                 | `leanprover/lean4:v4.33.1` (`lean-toolchain`); no dependencies beyond core Lean (`lakefile.toml`)                                                                                                                                                                      |
-| Build                     | `lake build` — 58 jobs, clean                                                                                                                                                                                                                                          |
+| Build                     | `lake build` — 60 jobs, clean                                                                                                                                                                                                                                          |
 | `sorry`                   | none in `BDL/`                                                                                                                                                                                                                                                         |
 | Axioms                    | `propext` and `Quot.sound` (the latter through `funext` and standard `simp` lemmas); no `Classical.choice`. Spot-checked with `#print axioms` on `local_refinement_preserves_global_typing` / `_wf` (`propext` only); each report states the base for its own theorems |
-| Theorem-like declarations | ≈1 200 `theorem`/`lemma` lines across 55 files ([layout.md](../kernel/layout.md))                                                                                                                                                                                      |
+| Theorem-like declarations | ≈1 270 `theorem`/`lemma` lines across 57 files ([layout.md](../kernel/layout.md))                                                                                                                                                                                      |
 
 ## Phases
 
@@ -44,6 +44,7 @@ about the production repository.
 | 11    | natural expression surface as conservative desugaring          | surface    | `Surface/Natural`, `Experiments/NaturalExamples`                                                                                                           | [report](../reports/phase-11-natural-expression-surface-as-conservative-desugaring.md)           | [note](../notes/natural-expression-surface.md)                                                                         | FVD-0111 … FVD-0114 |
 | 12    | unit-domain normalization and the source boundary              | surface    | `Surface/UnitDomain`, `Experiments/UnitDomainExamples`                                                                                                     | [report](../reports/phase-12-unit-domain-normalization-and-the-source-boundary.md)               | [note](../notes/unit-domain-normalization.md)                                                                          | FVD-0115 … FVD-0120 |
 | 13    | Source provision by device transducers (PRP-0001 audit)        | surface    | `Surface/Provision`, `Experiments/ProvisionExamples`                                                                                                       | [report](../reports/phase-13-source-provision-by-device-transducers-prp-0001-audit.md)           | [note](../notes/source-provision-by-device-transducers.md)                                                             | FVD-0121 … FVD-0130 |
+| 14    | output realization by device encoders                          | surface    | `Surface/OutputRealization`, `Experiments/OutputRealizationExamples`                                                                                       | [report](../reports/phase-14-output-realization-by-device-encoders.md)                           | [note](../notes/output-realization-by-device-encoders.md)                                                              | FVD-0131 … FVD-0138 |
 
 Every phase above is complete. Not started: Phase 8c (surface elaboration of the
 remaining designer-facing forms and an executable semantics) and the final
@@ -52,5 +53,5 @@ that either exists.
 
 ## Open items
 
-Sixteen open, five resolved — the tables in
+Seventeen open, five resolved — the tables in
 [issues/README.md](../issues/README.md).

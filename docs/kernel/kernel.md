@@ -6,7 +6,7 @@ status: current
 
 # The kernel in one paragraph
 
-The cumulative kernel after Phase 13, as the reports state it; the Lean sources
+The cumulative kernel after Phase 14, as the reports state it; the Lean sources
 under `BDL/` are the authority and this page is their summary. Per-phase results
 are in [`../reports/`](../reports/README.md); the construct-by-construct
 verdicts in [minimality.md](minimality.md); the file map in
@@ -35,7 +35,7 @@ realizations    are typed under Grant.of their own signature: a value of sem s i
                 declaration that announces sem s
 semantics       Ev Δ I t ρ e v (one domain) ⊂ MEv S Δ I c t ρ e v (many domains): tick-indexed evaluation;
                 unresolved declarations are inputs; Ty unchanged (no Signal, no Event); executable iff Causal
-OutputEnv Ω     maps OutputId ↦ (accepted Ty, ClockId): what each physical sink takes   (Phase 6: resource identity)
+OutputEnv Ω     maps OutputId ↦ (accepted Ty, ClockId): what each logical output carries (Phase 6: resource identity; Phase 14: realized by deployment)
 DriveEnv β      maps DeclId ↦ Option OutputId: the drive edges; write-once               (Phase 6)
 DriveWF         driver type = accepted type ∧ driver clock = sink clock; no coercion, no sync in the binding
 SingleDriver β  at most one driver per sink — global, not typing; CompleteOutputs: every required sink driven

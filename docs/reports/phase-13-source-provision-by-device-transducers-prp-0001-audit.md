@@ -90,7 +90,8 @@ term; the saturating ADC; one IMU image provisioning `pitch` and `roll` with
 word); _abstract / provisioned Source_, _raw declaration_, _environment-abstract
 realization_. No dependency on exposing °C/°F (ISS-0004): the thermistor is a
 linear chart on counts and the design keeps kelvin. Output provision stays a
-duality note.
+duality note — taken up in Phase 14 as a lowering, not a provision
+([report](phase-14-output-realization-by-device-encoders.md)).
 
 **Verdict.** KEEP IN SURFACE/DEPLOYMENT CONSTRUCTION: nothing entered `Core`;
 provision is a function on `DeclEnv`. 92 theorems on `propext`/`Quot.sound`; no

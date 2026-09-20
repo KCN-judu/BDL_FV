@@ -209,6 +209,17 @@ the kernel object is a `DesignDecl` (id × interface × optional realization);
 | singleton-only provision                                                                      | no                                                                                 | no — shared raw reading is primitive, the singleton its case                                                      | —                                                                        | **yes**                                           | Phase 13 (FVD-0125): `exF`, `no_joint_witness`                                                                                                                                                                        |
 | joint section (exact trace equality at deployment)                                            | no                                                                                 | —                                                                                                                 | optional: `JointSection` is a proof obligation, never a deployment error | —                                                 | Phase 13 (FVD-0126): `provision_exact`, `JointSection.one`; strict refinement is the normal case                                                                                                                      |
 | stateful transducer (memory in a profile term)                                                | no                                                                                 | —                                                                                                                 | —                                                                        | open                                              | open item FVI-0020: `tr.Pure` is the profile condition; a stream-level theorem would be needed                                                                                                                        |
+| logical output (`OutputId`, `OutputSpec = ⟨accepts, clock⟩`) read as semantic intent          | yes — unchanged since Phase 6                                                      | —                                                                                                                 | —                                                                        | no                                                | Phase 14: the platform-independence boundary; `lower_physicalOutput_unchanged`, `two_realizations_same_behavior` (FVD-0131)                                                                                           |
+| device kind / protocol in `OutputSpec`                                                        | no                                                                                 | no                                                                                                                | deployment data (`DeviceBinding`)                                        | yes                                               | Phase 14 `exH`: one output, two mechanisms, one behaviour trace (FVD-0131)                                                                                                                                            |
+| output realization (`lowerΔ`/`lowerΩ`/`lowerβ`/`lowerΚ`)                                      | no                                                                                 | yes — a deployment lowering over designs (`Surface/OutputRealization.lean`)                                       | —                                                                        | no                                                | Phase 14: `lower_correspondence`, `behavior_unchanged` (FVD-0132)                                                                                                                                                     |
+| output encoder (`Encoder`: pure `rep -> raw`, transfer function)                              | no                                                                                 | deployment catalogue data                                                                                         | fit (`EFits`)                                                            | no                                                | Phase 14: `encoder_constructs_nothing`, `encoder_decl_no_grant`; impure encoder tick-dependent (FVD-0133)                                                                                                             |
+| `RawCommand` — the machine boundary                                                           | no                                                                                 | no                                                                                                                | —                                                                        | no — machine/backend layer                        | Phase 14: a relation on commands, not a term (FVD-0134)                                                                                                                                                               |
+| effectful `R -> ()`, `Expr.write`, effect rows for outputs                                    | no                                                                                 | no                                                                                                                | —                                                                        | yes                                               | Phase 12 `consumers_indistinguishable`; Phase 14 needs none (FVD-0134)                                                                                                                                                |
+| retargeting `o.accepts` to the raw type (Model A)                                             | no                                                                                 | no                                                                                                                | —                                                                        | yes                                               | Phase 14 `retarget_breaks_driveWF`, `exI` (FVD-0132)                                                                                                                                                                  |
+| injectivity / round-trip of an output encoding                                                | no                                                                                 | no                                                                                                                | —                                                                        | yes                                               | Phase 14 `exB_quantized`: quantization admitted (FVD-0135)                                                                                                                                                            |
+| many-to-one output lowering                                                                   | no                                                                                 | no                                                                                                                | —                                                                        | deferred                                          | Phase 14: singleton primitive; combine upstream or batch per tick (FVD-0136; FVI-0022)                                                                                                                                |
+| hardware requirements of an output device                                                     | no                                                                                 | no                                                                                                                | yes (`Admissible`)                                                       | no                                                | Phase 14 `admissible_satisfiable` (FVD-0137)                                                                                                                                                                          |
+| device clock ≠ output clock; carrier frequency as a `ClockId`                                 | no                                                                                 | explicit `sync` (not built)                                                                                       | carrier: configuration                                                   | deferred                                          | Phase 14 `exI`; FVD-0138, FVI-0022                                                                                                                                                                                    |
 
 ## Feature entries (accepted constructs)
 
@@ -502,11 +513,13 @@ the kernel object is a `DesignDecl` (id × interface × optional realization);
 - LEAN THEOREM / COUNTEREXAMPLE: `delay_is_sync_own`, `single_domain_embedding`,
   `MEv.det`, `multi_domain_total`, `sync_preserves_semantic_identity`
 
-### FEATURE: physical sink identity (`OutputId`, `OutputEnv`)
+### FEATURE: logical output identity (`OutputId`, `OutputEnv`; "physical sink" until Phase 14)
 
-- KERNEL STATUS: keep (resource identity; accepted type + clock declared)
+- KERNEL STATUS: keep (resource identity; accepted type + clock declared; the
+  mechanism that realizes it is deployment data, Phase 14 FVD-0131)
 - SURFACE STATUS: device names
-- VALIDATION STATUS: physical limits attach here (Phase 7)
+- VALIDATION STATUS: physical limits attach here (Phase 7); the device's
+  requirements and the encoder's fit (Phase 14 `Admissible`)
 - WHY IT EXISTS: same type does not identify a sink
 - WHAT BREAKS WITHOUT IT: `type_keyed_binding_collides`
 - CAN IT BE DESUGARED: no; `SemanticId`/`DeclId` conflate concept/relationship
@@ -716,6 +729,46 @@ the kernel object is a `DesignDecl` (id × interface × optional realization);
 - CAN IT BE DESUGARED: not into `Channel`; a stream-level theorem is open
 - VALIDATION DIFFERENCE: none
 - LEAN THEOREM / COUNTEREXAMPLE: `exD`, `pure_iff_delayFree_of_wf`
+
+### FEATURE: output realization by a device encoder (Phase 14)
+
+- LAYER: deployment lowering over designs (`OutputRealization.lowerΔ` and
+  companions); the specification `RawCommand` is the machine boundary
+- WHY IT EXISTS: a logical output `o accepts C` must stay independent of PWM /
+  GPIO / I²C / UART; the mechanism is chosen at deployment and inserted at
+  lowering
+- WHAT BREAKS WITHOUT IT: nothing in the kernel; the conversion from the
+  concept's representation to the device command stays in the adapter, unchecked
+- CAN IT BE DESUGARED: it _is_ the desugaring — a fresh `e := encode (rep d)` at
+  `raw` and a fresh machine sink `p` driven by `e`; `lower_envRefines`,
+  `lower_singleDriver` (Phase 6's first binding)
+- VALIDATION DIFFERENCE: `EFits` and the device's requirements (`Admissible`),
+  two judgments; no electrical claim
+- LEAN THEOREM / COUNTEREXAMPLE: `lower_correspondence`, `behavior_unchanged`,
+  `lower_transparent`, `two_realizations_same_behavior`,
+  `retarget_breaks_driveWF`, `exH`, `exI`
+
+### FEATURE: effectful output term (`R -> ()`, `Expr.write`) (Phase 14)
+
+- LAYER: REMOVE
+- WHY IT WAS CONSIDERED: symmetry with the Source side
+- WHAT BREAKS WITH IT: nothing is gained — the boundary is the `RawCommand`
+  relation and the backend consumes it; a unit-returning term cannot name a
+  receiver (Phase 12)
+- CAN IT BE DESUGARED: n/a
+- VALIDATION DIFFERENCE: none
+- LEAN THEOREM / COUNTEREXAMPLE: `consumers_indistinguishable`,
+  `RawCommand.det`, FVD-0134
+
+### FEATURE: device kind in `OutputSpec` (Phase 14)
+
+- LAYER: REMOVE (never add)
+- WHY IT WAS CONSIDERED: the mechanism "belongs to the output"
+- WHAT BREAKS WITH IT: one logical output realized by PWM and by I²C would be
+  two designs with one behaviour trace (`exH`)
+- CAN IT BE DESUGARED: the kind is `DeviceBinding` / `DeviceOutputProfile` data
+- VALIDATION DIFFERENCE: the requirements are validation's
+- LEAN THEOREM / COUNTEREXAMPLE: `two_realizations_same_behavior`, FVD-0131
 
 ### FEATURE: unit-domain canonical type `() -> B` (Phase 12)
 
