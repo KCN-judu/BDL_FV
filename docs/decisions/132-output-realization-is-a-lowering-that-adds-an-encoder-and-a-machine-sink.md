@@ -8,7 +8,7 @@ area: surface
 supersedes: []
 superseded-by: []
 related: [FVD-0121, FVD-0131]
-production: [ADR-0015/supports]
+production: [ADR-0015/supports, ADR-0036/supports]
 ---
 
 # FVD-0132: Output realization is a lowering that adds an encoder declaration and a machine sink; the logical output is never retargeted

@@ -8,7 +8,7 @@ area: surface
 supersedes: []
 superseded-by: []
 related: [FVD-0122, FVD-0124]
-production: [ADR-0005/supports]
+production: [ADR-0005/supports, ADR-0036/supports]
 ---
 
 # FVD-0133: An encoder is pure, consumes the representation, and constructs nothing

@@ -8,7 +8,7 @@ area: surface
 supersedes: []
 superseded-by: [FVD-0139]
 related: [FVD-0057, FVD-0062]
-production: [ADR-0015/supports]
+production: [ADR-0015/supports, ADR-0036/supports]
 ---
 
 # FVD-0137: Hardware requirements are a validation judgment separate from the encoder

@@ -8,7 +8,7 @@ area: surface
 supersedes: []
 superseded-by: []
 related: [FVD-0119, FVD-0132]
-production: [ADR-0016/supports]
+production: [ADR-0016/supports, ADR-0036/supports, ADR-0037/supports]
 ---
 
 # FVD-0134: The machine boundary is the `RawCommand` relation; no effectful `R -> ()` term exists

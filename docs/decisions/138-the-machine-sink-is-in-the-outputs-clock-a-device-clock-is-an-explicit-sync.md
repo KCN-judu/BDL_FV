@@ -8,7 +8,7 @@ area: surface
 supersedes: []
 superseded-by: []
 related: [FVD-0045, FVD-0055]
-production: []
+production: [ADR-0037/supports, ISS-0017/bears-on]
 ---
 
 # FVD-0138: The machine sink is in the output's clock; a device clock is an explicit `sync`; a carrier frequency is not a `ClockId`

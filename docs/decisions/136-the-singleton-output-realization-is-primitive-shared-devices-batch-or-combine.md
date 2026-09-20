@@ -8,7 +8,7 @@ area: surface
 supersedes: []
 superseded-by: []
 related: [FVD-0125]
-production: []
+production: [ISS-0017/bears-on]
 ---
 
 # FVD-0136: The singleton output realization is primitive; a shared device batches per tick or is combined upstream

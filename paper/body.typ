@@ -23,15 +23,22 @@ says #emph[monograph] or #emph[record].
 
 == Purpose, current result, scope
 <purpose-current-result-scope>
-#strong[Purpose.] Industrial products increasingly combine physical form
-with sensing, computation and control, and their designers have no
-medium for behavior with the immediacy that CAD has for geometry. BDL
-asks whether product behavior can be a #emph[design material]: a
-language whose primary object is the typed product relationship ---
-`Tilt → Brightness` --- which may be declared before it is defined,
-checked while incomplete, simulated, and eventually realized on
-hardware, with the implementation machinery elaborated underneath rather
-than authored.
+#strong[Purpose.] Interactive physical products --- a lamp that dims
+when tilted, a cup that knows it has been lifted, a heater that must cut
+out above a temperature whatever else the product is doing --- combine
+physical form with sensing, computation, timing and physical response,
+and their designers have mature media for the form and none for the
+behavior with the immediacy that CAD has for geometry. BDL asks whether
+the behavior of such a product can itself become a #emph[design
+material]: a language whose primary object is the typed product
+relationship --- `Tilt → Brightness` --- which may be declared before it
+is defined, checked while incomplete, simulated, and eventually realized
+on a board, with the implementation machinery elaborated underneath
+rather than authored. The behavior in question crosses four things at
+once --- a person, an environment, a computation and a physical response
+--- and BDL is a medium for that crossing. It is not primarily a
+language for software interaction; software behavior can be written
+where it helps, but it is not the design problem BDL is built around.
 
 #strong[Current result.] A small kernel, derived by a mechanized
 design-space exploration in Lean 4 and stated in Parts III--IX: an
@@ -46,30 +53,56 @@ a definitional equation library with rank-1 instantiation by matching,
 units as coordinates with exact affine charts, natural binder syntax as
 conservative desugaring, behavior components and groups that flatten
 into the same kernel, the canonical interface type `() -> B` whose
-kernel value is `B`, and the provision of a Source at deployment by a
-raw reading and a pure transducer, proved transparent to the design. A
-separate validation layer decides hardware feasibility and collection
-capacity. Production implements the language as a Rust toolchain ---
-model, elaborator, checker, reference evaluator, `no_std` code
-generator, daemon, IDE service --- and a Flutter authoring environment,
-Studio, whose every semantic verdict is a projection from the compiler.
+kernel value is `B`, the provision of a Source at deployment by a raw
+reading and a pure transducer, proved transparent to the design, and ---
+its output-side counterpart --- the realization of a logical output by a
+pure encoder `Rep(C) -> Raw` and a machine sink, proved to add
+downstream structure only: the logical output stays part of the behavior
+semantics, realization is deployment structure below it, the encoder is
+typed `rep -> raw` in the empty design under no grant and is stateless,
+and the behavior's environment and every trace it produces are literally
+unchanged under the proved hypotheses; two realizations of one output
+evaluate every behavior term alike; quantizing encoders are admitted;
+the machine boundary is a relation on raw commands, not a term. A design
+is #emph[admissible] for a device only when three separate judgments
+hold --- the encoder's typing, its fit to the concept's representation
+(`EFits`), and a solvable board --- and the formal record shows that the
+first cannot be dropped: an encoder that fits and allocates but is
+ill-typed is not admissible (Phase 14 and its hardening, FVD-0139
+superseding FVD-0137). What is #emph[not] proved is the step from a raw
+command to a physical effect (FVI-0022). A separate validation layer
+decides hardware feasibility and collection capacity. Production
+implements the language as a Rust toolchain --- model, elaborator,
+checker, reference evaluator, `no_std` code generator with output
+realization and generated raw commands, deployment analysis, daemon, IDE
+service --- a first embedded platform adapter for the Raspberry Pi Pico
+that consumes those commands (production-tested, never formally proved),
+and a Flutter authoring environment, Studio, whose every semantic
+verdict is a projection from the compiler.
 
-#strong[Formal scope.] Thirteen phases, 55 Lean modules, no `sorry`,
+#strong[Formal scope.] Phases 0 through 14 --- twenty phase reports,
+counting the sub-phases and the post-Phase-1 migration --- in 57 Lean
+modules (11 `Core`, 12 `Behavior`, 13 `Surface`, 2 `Validation`, 19
+`Experiments`), about 1 250 theorem and lemma declarations, 139 decision
+records (one superseded) and 22 open items (18 open); no `sorry`,
 propositional extensionality and quotient soundness as the only axioms,
 no classical choice. Every theorem is about the #emph[model]\; none is
-about the Rust or Dart code.
+about the Rust or Dart code, and none is about a board.
 
 #strong[Production scope.] Production is described #strong[as of commit
-`de8154f5153495de2ad8a09f3ca3166c3678dc93` of `KCN-judu/BDL`,
-2026-09-20] (after the syntax-highlighting milestone; protocol 0.21).
-The formal development is described as of the working tree that contains
-this revision of the document, whose last pushed commit is `af25567`
-(Phase 13); Phase 14 (output realization) is in the same working tree.
-Every sentence about production is a sentence about that commit;
-volatile details are gathered in the production snapshot (Part XIII and
-Appendix F) so that the conceptual chapters do not go stale with the
-next milestone. Where a statement was only checked at an earlier
-snapshot, the text says so.
+`6be778b07f07bebaba26f580f2b4af74a13ce9df` of `KCN-judu/BDL`,
+2026-09-20] --- the head of `main` after the first embedded platform
+adapter (ADR-0037), output realization (ADR-0036), the Source sheet, the
+Code view as an IDE surface and the `drive … by …` spelling; protocol
+0.24. The formal development is described as of the working tree that
+contains this revision of the document; the last commit before it is
+`8e65c63` (the Phase 14 hardening), and the canonical copy of the
+production hash in the formal repository is the `snapshot` field of
+`docs/project/production-correspondence.md`. Every sentence about
+production is a sentence about that commit; volatile details are
+gathered in the production snapshot (Part XIII and Appendix F) so that
+the conceptual chapters do not go stale with the next milestone. Where a
+statement was only checked at an earlier snapshot, the text says so.
 
 #strong[How to use this document.] Read Parts I--II for the problem and
 the language as a designer meets it. Parts III--X are the formal
@@ -87,7 +120,7 @@ The appendices are the reference apparatus: notation, the theorem index
 by concept, the decision index, the evidence-strength ledger, the
 migration map from the old decision numbers, the production snapshot,
 the development chronology and the revision log. Phase numbers (Phase 0
-… Phase 13) appear throughout as #emph[provenance] --- the order in
+… Phase 14) appear throughout as #emph[provenance] --- the order in
 which hypotheses were tested --- never as the structure of the
 exposition.
 
@@ -176,15 +209,28 @@ The full log is Appendix H; the entries that changed what the record
     [2026-09-18, the monograph rewrite], [the monograph form: production
     architecture, correspondence and deviations, ledgers, the open
     agenda],
-    [2026-09-20, this revision], [the conceptual restructuring (by
-    concept, not by phase); Phase 13 integrated as the environment
-    boundary; production at `de8154f` --- Source / Rule / Value as one
-    derived role, Sources driving outputs, `applied_by` and
-    `rule.apply`, the generalized Standard Library, the unified project,
-    the Formula Composer's structured forms, semantic highlighting,
-    protocol 0.20/0.21; the `FVD` / `FVI` identifiers replacing the
-    ledger numbers; the theorem, decision and evidence indexes; the two
-    kinds of minimality; the publication-era residue removed],
+    [2026-09-20, the conceptual restructuring], [by concept, not by
+    phase; Phase 13 integrated as the environment boundary; production
+    at `de8154f` --- Source / Rule / Value as one derived role, Sources
+    driving outputs, `applied_by` and `rule.apply`, the generalized
+    Standard Library, the unified project, the Formula Composer's
+    structured forms, semantic highlighting, protocol 0.20/0.21; the
+    `FVD` / `FVI` identifiers replacing the ledger numbers; the theorem,
+    decision and evidence indexes; the two kinds of minimality; the
+    publication-era residue removed],
+    [2026-09-20, Phase 14 and its hardening], [output realization by
+    device encoders as the output half of the physical boundary;
+    admissibility hardened to require the encoder's typing (FVD-0139
+    supersedes FVD-0137); the logical-output / machine-sink vocabulary],
+    [2026-09-20, this revision], [the physical boundary as one whole,
+    from the environment to the physical world, with the strength of
+    each arrow stated; production at `6be778b` --- output realization
+    implemented (ADR-0036), the first embedded platform adapter on the
+    RP2040 (ADR-0037, production-tested only), the Source sheet, the
+    Code view as an IDE surface, `drive … by …`, protocol 0.22--0.24;
+    the physical-product and industrial-design framing made explicit;
+    the empirical agenda extended with the reverse-readability question;
+    the counts derived from the repository],
   )]
   , kind: table
   )
@@ -231,10 +277,34 @@ obstacle was not syntax. A piece of semantic information had no place to
 live.
 
 BDL draws a different boundary. The goal is not to make engineering
-representations merely easier for designers to use. The goal is to
-define a #emph[native representation of product behavior for design
-itself], while retaining enough formal structure for static checking,
-simulation, and eventual implementation.
+representations merely easier for designers to use, and the question is
+not how industrial designers might write ordinary software with less
+friction. The question is closer to this: #emph[can the behavior of an
+interactive physical product itself become a design material ---
+something sketched, compared, checked and simulated in its own terms ---
+before implementation details dominate the representation?] The goal is
+therefore to define a #emph[native representation of product behavior
+for design itself], while retaining enough formal structure for static
+checking, simulation, and eventual realization on a board. This is a
+design and research position, stated as one; whether designers work this
+way when the position is available is an empirical question this
+document does not claim to have answered (Part XV).
+
+The behavior meant here is a particular kind. It is the behavior of
+products whose value lies in the crossing of four things --- a person's
+action, an environment's state, a computation, and a physical response
+--- where a tilt becomes a brightness, a temperature becomes a cut-out,
+a button becomes a mode, and every one of those crossings has a sensing
+side, a timing, and an actuator on the other end. Sensor-driven,
+actuator-driven and embedded interactive systems are the home ground;
+the primary objects of the language --- concepts with physical value
+forms, relationships that may be declared before they are defined,
+timing domains, and outputs that reach the world through one explicit
+driver --- are shaped by that ground. Software interaction with no
+physical boundary can be written in BDL where it helps, and nothing in
+the kernel forbids it, but it is not the design problem the language is
+built around, and this document does not frame BDL as a general-purpose
+language for user-interface or software behavior.
 
 The system is #strong[BDL], a Behavior Design Language. BDL is organized
 around a working hypothesis: when a behavioral relationship is first
@@ -423,18 +493,23 @@ everything the kernel deliberately omits --- the elaborator, the
 tooling, the execution path --- without redefining the language.
 
 #strong[Out of scope, by decision.] BDL is not a general-purpose
-programming language: there is no general recursion, no user-defined
-type abstraction, no effect system, and the equation language is total
-and first-order in its data (Part V). It is not a continuous-time or
-hybrid modelling language: time is a global tick with named domains, and
-continuous dynamics are outside the model (Part VII). It is not a
-systems-engineering framework: requirements, verification of physical
-properties beyond typing and dimension, and electrical or thermal
-budgets are not modelled (Part X). It is not a runtime with scheduling
-policy: the strictly-before rule removes the scheduler from the
-semantics, and the generated core has no tasks (Part XI). It does not
-verify its own compiler: the production code is held to the model by
-tests, and the refinement proof is an open item (Part XV).
+programming language, and it is not a general software-interaction or
+user-interface language: its objects are the sensing, semantic, timing
+and physical-output relationships of a product, and a behavior with no
+physical boundary is representable only as a degenerate case. It is not
+a general-purpose programming language in the technical sense either:
+there is no general recursion, no user-defined type abstraction, no
+effect system, and the equation language is total and first-order in its
+data (Part V). It is not a continuous-time or hybrid modelling language:
+time is a global tick with named domains, and continuous dynamics are
+outside the model (Part VII). It is not a systems-engineering framework:
+requirements, verification of physical properties beyond typing and
+dimension, and electrical or thermal budgets are not modelled (Part X).
+It is not a runtime with scheduling policy: the strictly-before rule
+removes the scheduler from the semantics, and the generated core has no
+tasks (Part XI). It does not verify its own compiler: the production
+code is held to the model by tests, and the refinement proof is an open
+item (Part XV).
 
 #strong[Not claimed.] That designers think signature-first; that Studio
 is usable; that the kernel is minimal in any absolute sense; that any
@@ -625,16 +700,21 @@ forms are one-way spellings of library equations: a binder local is the
 equation's lambda parameter, a range is `inRange`, `??` is `getOrElse`,
 and nothing new is evaluated (Part V).
 
-The #strong[Formula Composer] shows the same formula as the compiler
-reads it --- reference chips with socket glyphs, literals as a
-coordinate and a unit pop-up, dashed slots, operators, calls, binders
-over an indented body, a choice as `if` with its condition over `then`
-and `else` --- with, for the selected component, the compiler's
-expectation and its reason (#emph[Expected: an angle, because an angle ÷
-an angle = a dimensionless quantity]) and the candidates of that kind.
-Every structured action is a text edit of the same formula. Richer forms
---- `let`, `match`, blocks, rules as arguments, collection literals ---
-are drawn as text inside the Composer and edited as text (Part XII).
+In the Code view the same compiler service completes at the caret, shows
+a card for the name under the pointer, jumps to a declaration and lists
+its references across files, and lays a file out canonically as one
+edit; the graph and the text are two views of one project and one
+service (Part XII). The #strong[Formula Composer] shows the same formula
+as the compiler reads it --- reference chips with socket glyphs,
+literals as a coordinate and a unit pop-up, dashed slots, operators,
+calls, binders over an indented body, a choice as `if` with its
+condition over `then` and `else` --- with, for the selected component,
+the compiler's expectation and its reason (#emph[Expected: an angle,
+because an angle ÷ an angle = a dimensionless quantity]) and the
+candidates of that kind. Every structured action is a text edit of the
+same formula. Richer forms --- `let`, `match`, blocks, rules as
+arguments, collection literals --- are drawn as text inside the Composer
+and edited as text (Part XII).
 
 == Time
 <time>
@@ -705,27 +785,40 @@ A design computes values; it does not move hardware. Physical effect
 happens only through an #strong[output] ---
 `output light : Brightness @interaction` --- and one #strong[drive]
 connecting it to exactly one relationship that produces its concept in
-its domain: a Value, or a Source (a value the environment supplies may
-be passed straight through to a light); never a Rule, whose type is an
-arrow. Where several behaviors would influence one output --- a safety
-override and an interaction --- they are combined by an ordinary
-relationship that becomes the one driver, and the combination rule
-(priority, blend, maximum, clamp) is written in the design where it can
-be read. A second drive on the same output is refused as
-#emph[contested], with the message on the output, in the product's
-words: #emph[this output already has a driver; combine the two
-brightness values before connecting it]. An output with no driver is
-reported until the design is executable.
+its domain --- `drive light by brightness`: a Value, or a Source (a
+value the environment supplies may be passed straight through to a
+light); never a Rule, whose type is an arrow. The spelling is relational
+on purpose, #emph[the light is driven by the brightness], because that
+is what the designer means; it is not natural language, and
+`drive light = brightness` is accepted as legacy syntax with a hint.
+Where several behaviors would influence one output --- a safety override
+and an interaction --- they are combined by an ordinary relationship
+that becomes the one driver, and the combination rule (priority, blend,
+maximum, clamp) is written in the design where it can be read. A second
+drive on the same output is refused as #emph[contested], with the
+message on the output, in the product's words: #emph[this output already
+has a driver; combine the two brightness values before connecting it].
+An output with no driver is reported until the design is executable.
 
-Below the output is the #strong[device] that realizes it on a board
-(`device pwmLight : pwm_channel for light`), and below that the board's
-pins; neither enters the behavior model (Part X).
+Below the output is the #strong[device] that realizes it on a board ---
+`device pwmLight : pwm_channel for light { realization pwm_duty8 }`: a
+device kind, whose requirements the board must carry, and a
+#emph[realization profile], whose encoder turns the output's value into
+the raw command that kind takes --- and below that the board's pins.
+None of it enters the behavior model: the output says `Brightness`, and
+whether the product dims a lamp by an 8-bit duty, a 4-bit duty or a
+relay level is a Deploy-page choice that changes no formula, no value
+and no simulation (Parts IX--X).
 
 #emph[Designer problem:] two behaviors reaching for one light, and a
-runtime rule chosen silently. #emph[Formal mechanism:] nominal sink
-identity, the write-once drive edge, `DriveWF`, `SingleDriver`,
-`CompleteOutputs` (Part IX). #emph[Owner:] `bdl-output`. #emph[Hidden:]
-nothing --- the point is that the arbitration is on the canvas.
+runtime rule chosen silently; a design that would have to know its PWM
+resolution before it is a design. #emph[Formal mechanism:] nominal
+output identity, the write-once drive edge, `DriveWF`, `SingleDriver`,
+`CompleteOutputs`\; realization as a lowering that adds a pure encoder
+and a machine sink below the output (Part IX). #emph[Owner:]
+`bdl-output`, `bdl-output::realization`, the Deploy page. #emph[Hidden:]
+the encoder and the machine sink --- the arbitration itself is on the
+canvas.
 
 == Behaviors, components and systems
 <behaviors-components-and-systems>
@@ -781,15 +874,21 @@ flat design.
 <the-standard-library>
 The Library is an #strong[authoring catalogue]: items that create
 ordinary objects in the design in one transaction. A #emph[Concept] item
-creates a concept with its value form; a #emph[Source] item creates a
-concept and a `() -> concept` relationship with no formula --- a Source
-by the derived rule, exactly as one made by hand. The library carries no
-role and no flag; instantiating an item is the same edit sequence a
-designer could perform, undone as one step. Item names and descriptions
-are localized by Studio; identifiers never are. The Library is not a
-device catalogue: what realizes a Source on a board is a deployment
-concern (Part IX), and the device catalogue that concern needs does not
-exist at the snapshot.
+creates a concept with its value form. A #emph[Source] item is a
+#strong[preset] for the Source sheet: a Source is never created without
+a concrete concept, so the sheet's one decision is the concept the
+Source provides --- an existing concept of the design, chosen by
+identity, or a new one created in the same transaction --- and the
+preset (#emph[Temperature Input], #emph[Tilt Input], #emph[Button
+Input], …) suggests a concept name, a value form, a unit and a Source
+name without inferring anything from them. What is created is a
+`() -> concept` relationship with no formula --- a Source by the derived
+rule, exactly as one made by hand. The library carries no role and no
+flag; instantiating an item is the same edit sequence a designer could
+perform, undone as one step. Item names and descriptions are localized
+by Studio; identifiers never are. The Library is not a device catalogue:
+what realizes a Source on a board is a deployment concern (Part IX), and
+the device catalogue that concern needs does not exist at the snapshot.
 
 == Supplied computation --- designed, not built
 <supplied-computation-designed-not-built>
@@ -872,13 +971,31 @@ designer chooses #emph[carry across, starting at released] ---
 `sync(environment, false, critical)` --- writing down what the interlock
 does before the first temperature reading.
 
-#strong[Choosing a board.] The outputs are given devices --- the light a
-PWM channel, the heater a switched load --- and the Deploy page, on
-selecting a Nano, derives what the design needs and proposes a
-placement, or reports on the requirement that could not be placed and
-names what occupies each candidate pin. Nothing on the canvas changes; a
+#strong[Choosing a board, and a realization.] The outputs are given
+devices --- the light a PWM channel, the heater a switched load --- and
+the Deploy page, on selecting a board, derives what the design needs and
+proposes a placement, or reports on the requirement that could not be
+placed and names what occupies each candidate pin. For each device the
+page also lists the realization profiles that fit the output's concept
+--- for the light, an 8-bit or a 4-bit PWM duty --- with the three
+judgments the profile must pass (its encoder is well typed, it fits
+`Brightness`, the board can carry the kind's requirements) and the
+analysis's sentence when one fails. Nothing on the canvas changes; a
 larger board places the same design; a manual pin is a constraint on
-placement, not a change to the design (Part X).
+placement, not a change to the design; a different profile changes the
+raw command the machine receives and nothing the behavior can observe
+(Parts IX--X).
+
+#strong[Running it on a product.] With the Raspberry Pi Pico chosen and
+every output placed and realized, `bdld compile --target rp2040_pico`
+writes, beside the target-independent core, the firmware that ticks the
+core, activates the timing domains on the compiled schedule and applies
+each tick's raw commands to the assigned pads. The lamp as written stops
+one step short: its Sources have no device yet --- nothing provides a
+tilt or a temperature on the board --- and the adapter refuses a design
+with a Source rather than invent a value for it (ISS-0016). The output
+side of the boundary is built; the input side is proved and not built
+(Part IX).
 
 #strong[Simulating.] The Simulate page lists the Sources --- `tilt`,
 `temperature`, `held` --- as the inputs, refuses to step until each has
@@ -2899,8 +3016,11 @@ frame or a UART packet --- chosen at deployment, inserted at lowering,
 performed only by the backend --- without the behavior being able to
 tell either.
 
-The Part is organized by the boundary, not by the phase. The reader who
-wants the chronology has Appendix G.
+The Part is organized by the boundary, not by the phase, and it ends
+with the two boundaries drawn as one picture --- from the environment to
+the physical world --- with the strength of every arrow stated, because
+the picture is the one place where a "verified pipeline" would be easy
+to claim and false. The reader who wants the chronology has Appendix G.
 
 == The canonical type of a relationship that reads nothing
 <the-canonical-type-of-a-relationship-that-reads-nothing>
@@ -3410,7 +3530,12 @@ transducer as a checked BDL formula; #emph[Fits] in deployment analysis;
 the provision transformation in the compiler's deployment pass; the raw
 input in the platform adapter; the induced input as a testing oracle.
 None of it exists at the snapshot (ISS-0016; #strong[proposal / not
-implemented]).
+implemented]): the first platform adapter #emph[refuses] a design that
+has a Source (`adapter.inputs_unbound`) rather than supply a value for
+it, and the Source sheet of the authoring surface --- which creates a
+Source over a concept the designer chooses --- is authoring, not a
+device binding. The output side of the same boundary, below, has been
+built; the asymmetry is recorded in Part XIII.
 
 #strong[What stays open] (FVI-0020): memory in a transducer (a
 debouncing or filtering channel is not a function of the raw reading,
@@ -3635,21 +3760,130 @@ half --- abstract trace → raw command trace is proved, raw command trace
 → generated backend call is not (Part XI); and commitments on outputs,
 which production does not author.
 
-#strong[Production, at the snapshot] (read at `7a800bc`, where every
-output-side crate and spec is identical to the `de8154f` snapshot).
-`PhysicalOutput { accepts: SemanticId, clock, required }` is the logical
-output; `DeviceBinding { kind, output, fixed_pins }` and
-`bdl-hardware::devices` are the requirements half of a device profile
---- the kind is already deployment data, never on the output;
-`bdl-lower` plans one output slot per validated edge at the
-#emph[driver's] type, the generated core emits
-`Outputs { output_n: Option<T> }`, and the spec says an output adapter
-commits them. The encoder half does not exist: the value reaching the
-adapter is the concept's representation, and the PWM/GPIO/I²C conversion
-would be the adapter's, unchecked --- the same gap PRP-0001 named on the
-Source side. No production record proposes the output side; the note
-(`docs/notes/output-realization-by-device-encoders.md` § 5) records what
-a consumer would need.
+#strong[Production, at the snapshot.] Phase 14 was consumed the day it
+closed (ADR-0036 (FVD-0131 … FVD-0139); #strong[production implemented
+and tested]). Realization is deployment data: a device binding names its
+profile in the device body ---
+`device pwmLight : pwm_channel for light { realization pwm_duty8 }` ---
+never on the output and never in the design graph. A profile is an
+encoder plus a requirement template:
+`OutputProfile { id, encoder, kind }` with
+`Encoder { rep, raw, encode }` a closed, pure, typed Core term whose
+purity check refuses `declRef`, `delay`, `sync` and `mk` structurally;
+quantization is admitted and no round-trip is asked. Admissibility is
+the three judgments of `Admissible`, reported separately with one
+diagnostic each, composed in `analyze_deployment`\; the requirements
+come from the profile's kind through the unchanged solver, and the
+hardening's gap is kept refused by a test. The lowering emits one
+machine sink per valid chosen profile, due when the driver is, in the
+driver's context under no grant --- at the #emph[plan] level, without
+the fresh `DeclId`s the model's `lowerΔ` literally introduces (an
+alternative ADR-0036 records: plan-level sinks are not designer-visible
+entities with ids and canvas positions, and the theorems do not
+distinguish the two, since the sink is observably the same). The
+generated core's `Tick` gains `commands` beside `values` and `outputs`\;
+`TickTrace.commands` is the downstream view; simulation stays
+behavior-level; choosing a profile changes no analysis, no sample and no
+`Values`/`Outputs`, and that is a test
+(`changing_the_realization_changes_no_behavior_and_only_the_raw_trace`).
+Five profiles exist as witnesses --- `pwm_duty8`, `pwm_duty4`,
+`i2c_level8`, `gpio_level`, `hbridge_signed` --- versioned with the
+compiler, not a device catalogue (ISS-0017). Studio chooses on the
+Deploy page only; the Design page, the inspector and the canvas know
+nothing of profiles. Below the raw command a first platform adapter now
+exists (ADR-0037, Part XI): it consumes `Tick.commands` on the Raspberry
+Pi Pico and is production-tested through recording sinks and a
+cross-build, and nothing formal is claimed for it --- that arrow is the
+boundary FVI-0022 leaves open.
+
+== The physical boundary as one whole
+<the-physical-boundary-as-one-whole>
+Read end to end, one value's path from the world back to the world is
+the following chain, and each arrow has its own strength. The point of
+drawing it is that the strengths differ; flattening them into one
+"verified pipeline" would be the most misleading sentence this document
+could contain.
+
+```
+physical world ─▶ raw reading r : () -> R ─▶ pure transducer tr ─▶ logical value  s : () -> C
+                                                                          │
+                                                       behavior: Ev / MEv, delay, sync, the equation library
+                                                                          │
+                                                                          ▼
+                       logical Output o accepts C ◀── drive edge ── driver d : C
+                                  │
+                                  ▼
+       realization: pure encoder encode : rep(C) -> R_out ─▶ machine sink p : R_out ─▶ raw command w
+                                  │
+                                  ▼
+                platform adapter: apply(tick, sinks…) ─▶ peripheral register ─▶ physical world
+```
+
+#figure(
+  align(center)[#table(
+    columns: (16.67%, 16.67%, 16.67%, 16.67%, 16.67%, 16.67%),
+    align: (auto,auto,auto,auto,auto,auto,),
+    table.header([arrow], [what it is], [formally modelled], [formally
+      proved], [production], [still open],),
+    table.hline(),
+    [physical world → raw reading `r`], [the environment provides a
+    value at the raw type], [as the kernel input `I(r, t)`, typed
+    (`RawInput`)], [--- (an input is an assumption)], [not built: no
+    device provides a Source's value (ISS-0016)], [the device catalogue
+    for inputs],
+    [raw reading → logical Source (`s := mk c (tr r)`)], [provision by a
+    pure transducer], [Phase 13 `Provision`], [`provision_envRefines`,
+    `provision_wf`, `provision_transparent`, `provision_abstracts`\;
+    equality under `JointSection`], [not built (PRP-0001 draft); the
+    adapter refuses a design with a Source], [stateful transducers, a
+    device clock, commitment discharge (FVI-0020)],
+    [logical values ↔ behavior], [`delay`, `sync`, the library,
+    components], [Parts III--VIII], [determinism, totality on causal
+    designs, the correspondences of Parts V--VIII], [reference
+    evaluator, exact transcription; generated core tested against
+    it], [closure equivalence, Theorem J beyond its fragment],
+    [driver `d` → logical Output `o`], [the drive edge], [Phase 6
+    `DriveWF`, `SingleDriver`,
+    `CompleteOutputs`], [`single_driver_output_deterministic`], [`bdl-output`\;
+    `drive light by brightness`], [commitments on outputs],
+    [logical Output → raw command `w`], [realization by a pure encoder
+    and a machine sink], [Phase 14 `lowerΔ`,
+    `RawCommand`], [`behavior_unchanged`, `lower_transparent`,
+    `lower_correspondence`, `two_realizations_same_behavior`,
+    `admissible_needs_wf`], [ADR-0036: profiles, three-judgment
+    admissibility, `SinkPlan`, `Tick.commands`\; tested], [the
+    plan-level lowering is not the model's fresh declarations
+    (observably the same, unproved as such)],
+    [raw command → peripheral operation], [the platform adapter applies
+    the command], [#strong[not modelled]: `RawCommand` is where the
+    semantics stops (FVD-0134)], [#strong[not proved]
+    (FVI-0022)], [ADR-0037: `apply(tick, sinks…)` on the RP2040,
+    recording sinks on the host, a cross-build in CI; tested], [stateful
+    adapters, a device clock, atomic frames, the numeric policy at the
+    boundary],
+    [peripheral operation → physical world], [a register write becomes
+    light or motion], [not modelled], [not proved, and not testable by
+    this project's means], [the firmware runs; no bench measurement is
+    recorded], [an empirical matter of electronics, outside BDL],
+  )]
+  , kind: table
+  )
+
+The symmetry of the two halves is real and limited. Both are
+constructions over designs that add a pure term the behavior cannot
+observe; both keep the logical object --- the Source, the logical Output
+--- as the boundary the designer sees; both refuse effects, kinds and
+device knowledge in the kernel. They are not the same abstraction.
+Provision #emph[realizes] an unresolved declaration, moves the source
+role to the raw reading, and needs an induced input and a joint section
+because abstract values must be #emph[reached] from raw ones;
+realization adds structure #emph[below] a value that already exists,
+changes no declaration's state, needs no induced anything, admits
+quantization, and only has to #emph[deliver] what the behavior produced.
+The input side is proved and not built; the output side is proved and
+built through the raw command; the last arrow of the output side is
+built and not proved. That asymmetry is the current state, and every
+chapter that touches the boundary says which arrow it is on.
 
 == Two remarks across Parts III--IX
 <two-remarks-across-parts-iiiix>
@@ -3718,11 +3952,14 @@ keeps them apart.
     drive or output change], [`CompleteOutputs`, `SingleDriver`\;
     `bdl-output`],
     [#strong[deployable]], [executable, and the target carries every
-    derived requirement, and every collection has a sufficient bound
-    under the schedule], [the design #emph[and] a target and a
-    schedule], [every design change, every board
-    change], [`analyze_deployment(snapshot, target)`\; `bdl-hardware`,
-    `bdl-reactive::capacity`, `bdl-exec-ir::bounds`],
+    derived requirement, every chosen realization is admissible (its
+    encoder well typed, fitting the output's concept, its kind's
+    requirements placed), and every collection has a sufficient bound
+    under the schedule], [the design #emph[and] a target, the chosen
+    profiles and a schedule], [every design change, every board or
+    profile change], [`analyze_deployment(snapshot, target)`\;
+    `bdl-hardware`, `bdl-output::realization`, `bdl-reactive::capacity`,
+    `bdl-exec-ir::bounds`],
   )]
   , kind: table
   )
@@ -3882,18 +4119,29 @@ conjunction of allocation and capacity.
 
 == Provision and realization as deployment architecture
 <provision-and-realization-as-deployment-architecture>
-Part IX's provision is a deployment construction: it takes the
-executable design and a device profile per Source and yields another
-design, provably an environment refinement of the first, in which every
-abstract Source is a Value computed from a raw declaration. In the
-deployment picture it sits between #emph[executable] and
-#emph[deployable]: the provisioned design is what the platform adapter's
-input slots feed and what the requirement generator sees, and
+Part IX's two constructions are deployment constructions, and they sit
+in the same place in the picture --- between #emph[executable] and
+#emph[deployable] --- with opposite implementation status. Provision
+takes the executable design and a device profile per Source and yields
+another design, provably an environment refinement of the first, in
+which every abstract Source is a Value computed from a raw declaration;
 #emph[Fits] --- the concept's representation is the channel's --- is a
-deployment check beside allocation and capacity. Nothing of this is
-built at the snapshot (PRP-0001, ISS-0016); the placement is recorded so
-that when it is built the transducer is a checked term in the deployment
-pass and not host code in the adapter.
+deployment check beside allocation and capacity. Nothing of it is built
+at the snapshot (PRP-0001, ISS-0016); the placement is recorded so that
+when it is built the transducer is a checked term in the deployment pass
+and not host code in the adapter, and the first adapter refuses a design
+with a Source rather than guess. Realization takes the same executable
+design and a chosen profile per driven output and yields the lowered
+design with one encoder and one machine sink per output;
+#emph[admissibility] --- the encoder's typing, `EFits`, and the kind's
+requirements placed by the solver --- is a deployment check beside
+allocation and capacity, composed in `analyze_deployment` and reported
+per judgment on the Deploy page. It is built (ADR-0036), and the
+artefact is refused when a chosen profile is not admissible
+(`backend.realization_invalid`). The third verdict of the table above is
+therefore, in production, allocation #emph[and] admissibility #emph[and]
+capacity; the first two are the pair (design, target, profiles) and the
+last is (design, target, schedule), and none of them is monotone.
 
 == The generated-code boundary
 <the-generated-code-boundary>
@@ -3905,13 +4153,35 @@ which lowers representation --- dense slots, static structs, `f64`
 fields, inlined lambdas --- and may not change meaning. The core is held
 to the evaluator by a 22-case differential corpus, golden files, a
 determinism check, property-generated designs and an error-tick
-agreement check (#strong[production implemented and tested]). No theorem
-relates the generated code to `Ev`/`MEv`, and none relates the static
-list-bound analysis to the capacity theorems: a generated-code
-refinement proof and a proved bound analysis are the open items that
-would close the gap (Part XV). Differential tests are evidence for the
-corpus; they are not a proof, and this document never infers formal
-correctness of generated code from them.
+agreement check (#strong[production implemented and tested]), and since
+output realization the corpus compares the core's raw commands
+(`Tick.commands`) against the encoder applied to the reference
+evaluator's logical outputs. No theorem relates the generated code to
+`Ev`/`MEv`, none relates the generated commands to `RawCommand`, and
+none relates the static list-bound analysis to the capacity theorems: a
+generated-code refinement proof and a proved bound analysis are the open
+items that would close the gap (Part XV). Differential tests are
+evidence for the corpus; they are not a proof, and this document never
+infers formal correctness of generated code from them.
+
+Below the generated core there is now one more layer, and the trust
+chain gets one link weaker still. The platform adapter (Part XI;
+ADR-0037) applies each tick's raw commands to peripherals on the
+Raspberry Pi Pico. What holds it to the raw command trace is a recording
+host counterpart --- the same generated `apply` over mock sinks, so a
+host trace carries the operation sequence the firmware would perform ---
+and a cross-build of the firmware in CI. That is #strong[production
+implemented and tested]\; it is not a theorem, the formal model stops at
+the command (FVD-0134), and no bench measurement of a physical effect is
+recorded anywhere in either repository. The numeric policy at that
+boundary is likewise a tested production decision, not a formal one:
+production computes in `f64`, the encoders emit `f64` commands
+(`pwm_duty8` carries `127.5` for 50 %), and the adapter's explicit,
+deterministic `duty8` policy rounds a finite in-range duty to the
+nearest whole value and #emph[refuses] an out-of-range or non-finite
+one, holding the line's last value rather than clamping --- a third
+numeric domain beside the kernel's `Nat` and production's `f64`,
+recorded in Part XIII.
 
 == Open hardware questions
 <open-hardware-questions>
@@ -3921,10 +4191,13 @@ first dead end under one placement order. What it does not cover is
 stated once, in Part XV: minimal unsatisfiable cores; voltage, current,
 thermal and timing budgets, which need summation constraints that are
 not binary; timer modes and PWM frequency values; the device catalogue
-that provision presupposes; and any board file beyond the Nano and the
-larger mock board (an RP2040 file, runtime loading of
-`hardware/boards/`, and the first platform adapter are production's
-roadmap priorities, not records of anything that exists).
+that provision presupposes on the input side and that the five witness
+profiles stand in for on the output side; and a device that provides a
+Source's value on a board. Board files exist for the Nano, a larger mock
+board and the Raspberry Pi Pico (`rp2040_pico`), the last with a
+generated adapter behind it; runtime loading of board files, a second
+microcontroller, flashing and telemetry are roadmap items, not records
+of anything that exists.
 
 = Part XI --- Production Compiler, Runtime and Daemon
 <part-xi-production-compiler-runtime-and-daemon>
@@ -3935,8 +4208,14 @@ path. It follows the formally developed semantics and is not itself
 formally verified. One property the whole system is built to keep
 obvious: #emph[BDL semantics flows downward; implementation mechanisms
 never flow upward and redefine the language.] This Part describes the
-architecture at the production snapshot (`de8154f`, Appendix F) in
-enough detail to be a reference for it.
+architecture at the production snapshot (`6be778b`, Appendix F) by
+responsibility, in enough detail to be a reference for it: the text
+workspace and parser, the elaborator, the checker, the reference
+evaluator, the executable IR and its lowering, the generated `no_std`
+core, deployment analysis with realization, the generated raw commands,
+the platform adapter, the daemon and the IDE service. What each of them
+means architecturally is said where it is described; the
+release-by-release detail is Appendix F.
 
 == Four trust layers
 <four-trust-layers>
@@ -3955,10 +4234,13 @@ enough detail to be a reference for it.
     generation, the placement of entities that have no position
     yet], [render, decide where a placed node goes],
     [generated Rust core], [deterministic executable behavior: domain
-    step functions, state, output values], [touch hardware, know about
-    tasks or executors],
-    [platform adapter], [physical I/O, clock activation sources,
-    telemetry transport], [interpret BDL semantics],
+    step functions, state, output values, and --- after realization ---
+    the raw commands of the chosen profiles], [touch hardware, know
+    about tasks or executors],
+    [platform adapter], [activating the compiled schedule, applying each
+    tick's raw commands to peripherals, the numeric policy at that
+    boundary, faults and start-up levels], [interpret BDL semantics,
+    read a declaration, choose a pin, invent a value],
   )]
   , kind: table
   )
@@ -4007,7 +4289,9 @@ against. A crate exists only where a real boundary exists.
     [`bdl-reactive`], [dependency graph · causality · `Clocked` · the
     reference evaluator · simulation · window capacity],
     [`bdl-output`], [`DriveWF` · `SingleDriver` · `CompleteOutputs` ·
-    `output_values`],
+    `output_values` · `realization`: the profile registry,
+    `Encoder { rep, raw, encode }` with its well-formedness and purity
+    checks, the three judgments of admissibility],
     [`bdl-hardware`], [capabilities · resources · hardware · device →
     requirements · boards · `solve`/`diagnose`],
     [`bdl-exec-ir`], [the executable IR: slots, first-order expressions,
@@ -4015,10 +4299,13 @@ against. A crate exists only where a real boundary exists.
     [`bdl-lower`], [reactive lowering: Design IR → Exec IR (clock,
     state, input and output slots; inlining; order)],
     [`bdl-codegen-rust`], [Exec IR → owned Rust AST → printed crate +
-    host bridge + `bdl-manifest.json`],
+    host bridge + `bdl-manifest.json`\; `adapter` and `targets::rp2040`:
+    the generated adapter glue and firmware for a target],
     [`bdl-compiler`], [`analyze(snapshot)`,
-    `analyze_deployment(snapshot, target)`,
-    `compile(snapshot, options)`, the collections report],
+    `analyze_deployment(snapshot, target)` (allocation, admissibility,
+    capacity), `compile(snapshot, options)` with the realizations
+    lowered to sinks, `target::adapter_plan` binding each sink to its
+    assigned resource, the collections report],
     [`bdl-system`], [components · instances · bindings · freshening ·
     flatten → `ProjectSnapshot` + origins · packaging],
     [`bdl-text`], [persistence: source discovery · identity sidecar and
@@ -4045,14 +4332,24 @@ against. A crate exists only where a real boundary exists.
     feature `collections`: list operators and the recursor over
     `alloc::Vec`],
     [`bdl-runtime-host`], [std harness: `DynValue`, JSON run
-    request/trace over stdio, cargo driver],
+    request/trace over stdio, cargo driver; `mock` sinks that record
+    what the firmware's `apply` would do (`TickTrace.adapter`)],
+    [`bdl-runtime-embassy`], [the platform adapter's target-independent
+    vocabulary (`no_std`, depends on `bdl-runtime-core` only): the
+    numeric policy `duty8`, the sink traits `PwmDuty8` / `Level`,
+    `apply_*`, `CommandFault`, `schedule::active`],
+    [`bdl-runtime-embassy-rp`], [the RP2040 binding over `embassy-rp`
+    --- PWM slices, GPIO lines, the arena, halt --- kept outside the
+    workspace so the HAL's dependency tree never enters the host
+    lockfile; built only into generated firmware],
   )]
   , kind: table
   )
 
 Planned and designed but not implemented: `bdl-component` (supplied Rust
-component contracts; "supplied Rust cannot drive outputs", ADR-0005) and
-`bdl-runtime-embassy` (the first platform adapter).
+component contracts; "supplied Rust cannot drive outputs", ADR-0005). A
+second target, build orchestration in `bdld`, flashing and telemetry are
+roadmap items behind the adapter.
 
 == The compiler as a pipeline of explicit passes
 <the-compiler-as-a-pipeline-of-explicit-passes>
@@ -4060,8 +4357,9 @@ component contracts; "supplied Rust cannot drive outputs", ADR-0005) and
 load/parse → identity resolution → signature resolution → surface elaboration
 → type checking → semantic-construction (grant) checking → dimension checking
 → dependency analysis → causality → clock domains → physical outputs
-→ hardware requirement generation → hardware allocation → reactive lowering
-→ Rust code generation
+→ hardware requirement generation → hardware allocation → realization admissibility
+→ reactive lowering (with one machine sink per chosen realization) → Rust code generation
+→ [target] adapter plan → generated adapter glue and firmware
 ```
 
 Each pass has an explicit input and output type and is pure where
@@ -4122,7 +4420,8 @@ pub struct State { pub cells: Cells }
 pub struct Inputs { pub decl_n: Option<T>, … }   // unresolved declarations
 pub struct Values { pub decl_n: Option<T>, … }   // every declaration, None when not due
 pub struct Outputs { pub output_n: Option<T>, … }
-pub struct Tick { pub values: Values, pub outputs: Outputs }
+pub struct Commands { pub command_<device>: Option<R>, … }  // the raw command per realized output
+pub struct Tick { pub values: Values, pub outputs: Outputs, pub commands: Commands }
 pub fn init() -> State;
 pub fn step(state: &mut State, active: ActiveDomains, inputs: &Inputs) -> Result<Tick, RuntimeError>;
 ```
@@ -4172,13 +4471,16 @@ core must preserve (`docs/spec/runtime-semantics.md`):
   #emph[source] domain's slot.
 - #strong[Output commit timing.] Outputs are built after the write phase
   from the driving declarations' values (`output_values`), and committed
-  by the domain that owns the sink.
+  by the domain that owns the output; a realized output's raw command is
+  the profile's encoder applied to that value, in the same tick, `None`
+  when the driver was not due.
 - #strong[Allocator requirements.] A core that carries a list needs a
   global allocator (ADR-0024); the manifest records
   `requires_allocator`, per-cell bounds, `state_bytes_max` and
-  `tick_bytes_max`\; the first platform adapter is to declare an arena
-  sized from the manifest and state the most it supplies for each list
-  input.
+  `tick_bytes_max`\; the platform adapter declares an arena sized from
+  the manifest (`state_bytes_max + tick_bytes_max`, rounded up to KiB)
+  for a bounded design, none for a scalar-only design, and refuses an
+  input-bounded or unbounded design for a board.
 - #strong[Collection bounds.] Static, sound per declaration and cell
   (`bdl-exec-ir::bounds`); the window capacity model per crossing;
   refusal of an unbounded state on a bounded-memory target (ADR-0027,
@@ -4197,25 +4499,110 @@ core must preserve (`docs/spec/runtime-semantics.md`):
   pair per element (ISS-0013); no fusion of `map → filter` chains,
   because each is linear and measured and a fused emission was not
   justified by the numbers.
-- #strong[The realization boundary.] A source (an unresolved unit-domain
-  declaration) is an #emph[input slot] of `step`, filled by the adapter
-  from a sensor, a bus or a simulation trace; a driven output is an
-  #emph[output field] of the step's result, committed by the adapter to
-  GPIO or PWM. Neither is a function call inside the core: a zero-input
-  relationship compiles to a zero-argument accessor of the committed
-  value (its unit argument erased, ADR-0029), and a sink is a field, not
-  an `A -> ()` callback (Part IX). The core therefore has no device
-  vocabulary at all.
-- #strong[Targets.] The core is target-independent. macOS and Windows
-  are first-class hosts for the toolchain; no platform adapter exists at
-  the snapshot --- Embassy is roadmap priority 1; an RP2040 board file
-  is not yet present.
+- #strong[The realization boundary.] A Source (an unresolved unit-domain
+  declaration) is an #emph[input slot] of `step`, filled from a
+  simulation trace today and, when a device provides it, by the adapter
+  (ISS-0016); a driven output is an #emph[output field] of the step's
+  result, and a realized output additionally a #emph[command field] ---
+  the encoder's raw value --- which the adapter applies to a peripheral.
+  Neither is a function call inside the core: a zero-input relationship
+  compiles to a zero-argument accessor of the committed value (its unit
+  argument erased, ADR-0029), and a sink is a field, not an `A -> ()`
+  callback (Part IX). The core therefore has no device vocabulary at
+  all; the encoder is a pure expression in the plan, and the peripheral
+  is the adapter's.
+- #strong[Targets.] The core is target-independent and unchanged by a
+  target except for one feature-gated `mod adapter;` line;
+  `cargo check --lib` of the core still compiles with no feature and no
+  HAL. macOS and Windows are first-class hosts for the toolchain; the
+  first embedded target is the Raspberry Pi Pico (next section).
 
 Current cost figures are recorded, not optimized: a lamp core is \~95
 lines and \~7 KB of source with a zero-byte `State`\; the collections
 and buffer corpus cases allocate and their debug-build timings are two
 orders of magnitude above the allocation-free cases --- a baseline for
 later evaluation, nothing more.
+
+== The platform adapter
+<the-platform-adapter>
+The adapter is the layer that turns an already-lowered raw command into
+a physical effect without the board reaching back into the design
+(ADR-0037; `docs/architecture/embedded-adapter.md`). Its architectural
+significance is negative: it #emph[interprets nothing]. It reads
+`Tick.commands` and nothing else --- no declaration, no output, no
+concept --- and each command becomes one peripheral operation.
+Everything a design means was decided above it.
+
+#strong[Board and generation.] The first target is the Raspberry Pi Pico
+(`rp2040_pico`, family `rp2040`, `thumbv6m-none-eabi`), a board file
+like the others. `bdld compile --target rp2040_pico [--tick-micros N]`
+generates, beside the unchanged core, the adapter glue ---
+`apply(tick, sink₁, …)`, one `&mut dyn PwmDuty8` or `&mut dyn Level`
+parameter per machine sink, in sink order, with the bindings as data and
+no map, name or string dispatch --- and the firmware that constructs the
+sinks on the assigned pads, ticks the core, activates the schedule and
+applies each tick's commands. Building the firmware is a `cargo build`
+for the embedded target; orchestrating that build inside `bdld`,
+flashing through `probe-rs` and telemetry back into Studio are roadmap
+priorities 2--4 and do not exist.
+
+#strong[Solved deployment, consumed.] Command sink identity is one
+stable route with no display name on it: the device binding's id names
+the `Commands` field, the manifest sink and the requirement; the
+solver's assignment names the pad (`GP15`); the target entry derives the
+peripheral from the pad number (`GPn ⇒ PIN_n`\; PWM slice `(n/2) % 8`,
+channel by parity) and checks the board file's slice against it. Every
+step is checked and none has a fallback: an infeasible placement, an
+inadmissible realization, a sink without an assigned resource, a
+resource without the capability, a profile with no sink on this target
+(`i2c_level8`, `hbridge_signed`), a design with a Source (ISS-0016), an
+unbounded collection and a zero base tick are each refused by the
+adapter plan with a named code. A device that is placed but realizes
+nothing gets no sink and no peripheral; no value is invented for it.
+
+#strong[Clock activation.] The firmware invents no clock semantics. One
+Embassy `Ticker` fires at the base tick; at global tick `t` the slots
+with `t % PERIODS[slot] == 0` are active --- the simulator's rule,
+verbatim, in the runtime crate and tested against it; then one global
+`step` (ADR-0004) and `apply` in sink order, the interpreter's order. A
+domain that is not due leaves its sinks untouched. No cross-domain
+synchronization happens in the adapter; the compiler resolved or refused
+it upstream.
+
+#strong[The numeric policy at the boundary.] Production computes in
+`f64` and the encoders emit `f64` commands; the peripheral takes
+integers. The conversion is one explicit, deterministic function of the
+value alone, `duty8`: a finite raw duty in `0 ..= 255` rounds to the
+nearest whole duty, halves up; anything else --- out of range, NaN, ±∞
+--- is refused and the line holds its last applied value, with the
+refusal recorded. No clamping and no `as` cast decides semantics: a
+design that commands 105 % has said something the profile did not
+promise to carry, and the peripheral holds rather than guesses. A `bool`
+command is applied as written. The PWM slice is configured with
+`top = 254`, so a duty `d` is high for exactly `d / 255` of the carrier
+period; the carrier (≈ 30.6 kHz) is peripheral configuration, never a
+`ClockId` (FVD-0138). Every line starts low before the first tick; a
+failed tick latches --- state unchanged, lines hold, the firmware waits
+for interrupts until reset --- and a refused command is not a fault.
+These are adapter policies, recorded so they can be revisited with
+evidence; none of them is a truth of the language.
+
+#strong[What is tested, and what is not.] The host path records the same
+operations: `HostProgram::adapter_ops` applies the generated `apply` to
+mock sinks, so a host trace carries the operation sequence the firmware
+would perform, and `crates/bdl-compiler/tests/embedded_rp2040.rs` and
+the runtime's own tests hold the glue, the policy and the schedule to
+that; the firmware cross-compiles in CI. That is the whole of the
+evidence: #strong[production implemented and tested]. The correspondence
+from the raw command trace to the adapter's operations is not a theorem,
+the correspondence from a register write to a physical effect is not
+measured, and the formal model stops one layer above at `RawCommand`
+(FVD-0134; FVI-0022). The adapter closes the #emph[engineering] gap that
+PRP-0001 named for the input side and ADR-0036 for the output side --- a
+transducer or an encoder as unchecked host code --- by leaving the
+encoder in the checked plan and keeping the adapter free of semantics;
+it does not close the #emph[formal] gap, and this document does not say
+it does.
 
 == Differential testing
 <differential-testing>
@@ -4556,12 +4943,29 @@ level: semantic authority stays in Rust, and clients render projections.
 <the-library>
 The Library tab lists the Standard Library's items in two sections,
 #emph[Concepts] and #emph[Sources], with names and search localized by
-id through Studio's ordinary localization pipeline. Inserting an item is
-one request (`InstantiateLibraryItem`) the daemon plans as a fragment of
-ordinary objects and applies in one transaction --- every step or none,
-one revision, one Undo --- and the canvas draws what was created exactly
-as it draws what was made by hand: a Source item's relationship is a
-Source by the derived rule, not by a flag. The Library is an authoring
+id through Studio's ordinary localization pipeline. Inserting a Concept
+item is one request (`InstantiateLibraryItem`) the daemon plans as a
+fragment of ordinary objects and applies in one transaction --- every
+step or none, one revision, one Undo --- and the canvas draws what was
+created exactly as it draws what was made by hand.
+
+#strong[The Source sheet] (protocol 0.23). A Source is never created
+without a concrete concept, so every way of adding one --- #emph[Add
+Source ▸] on the canvas, a Source row's double-click or drag, #emph[New
+Source…] --- opens one sheet whose single decision is the concept the
+Source provides: an existing concept of the design, by identity, or a
+new concept created in the same transaction. The Library's Source items
+are #emph[presets] for that sheet --- #emph[Temperature Input],
+#emph[Tilt Input], #emph[Button Input], #emph[External Input] and the
+rest --- each suggesting a concept name, a value form, a unit and a
+Source name; the daemon lists the design's concepts with the suggested
+value form first and infers nothing from names, units or dimensions.
+What is committed is `mapping tiltInput : () -> Tilt`, a Source by the
+derived rule with no preset, no flag and nothing about how it was made.
+The design consequence is that a Source is authored as what it is at the
+boundary --- an input for a concept the designer chose --- and never as
+a chosen device; the device is deployment's, and at the snapshot no
+device provides a Source's value (ISS-0016). The Library is an authoring
 catalogue; it says nothing about devices.
 
 == Groups and components on one canvas
@@ -4595,6 +4999,27 @@ held with the loader's faults --- malformed text never erases the graph.
 An entity authored first in Code and one authored first in Design are
 indistinguishable once synchronised. The Code pane shows an out-of-step
 banner with the daemon's reasons and syncs selection in Split.
+
+#strong[The Code view is an IDE surface, not a text box] (protocol
+0.22). Completion at the caret offers what the compiler service knows is
+allowed at that spot --- a concept after `:`, a clock after `@`, the
+items at an item start, and inside a formula the inputs, the other
+relationships (a rule as a call, a Source or a Value by name), the
+locals, the equation library, units after a number; a hover card names
+the declaration under the pointer with what it produces, its state and
+its role; ⌘-click or F12 goes to a declaration in this or another file;
+⇧F12 lists every place that names it; #emph[Format] lays a file out
+canonically as one edit and leaves a file that does not parse as it is.
+Every one of these is the same query the language server answers ---
+`bdl_ide::navigation`: one answer to #emph[what is at a position],
+resolved through the projection map and the elaborator's input
+environment, never by spelling, with the authored entity winning over
+the flattened copies it backs --- over the text as typed. The
+significance is architectural rather than a feature count: textual and
+graphical authoring share one semantic project #emph[and] one compiler
+service, so a designer who moves between the canvas and the text meets
+one set of names, one set of verdicts and one set of fixes, and the text
+editor holds no second definition of the language.
 
 Ownership boundaries, stated once and relied on everywhere: source
 semantics in `src/**/*.bdl`\; identity in `.bdl/identities.json`\;
@@ -4751,11 +5176,19 @@ every output; the simulator does not get a separate interpretation.
 selection reruns deployment analysis only, and the workspace reports
 validity and deployability in different places; the readiness matrix
 (bounded-memory refusal, unbounded state, window capacity) is shown
-here. #emph[Simulate] lists the Sources as its inputs and refuses to
-step until each has a value; a probe on a concept names what carries it
-and, on a rule, where it is applied. #emph[Library] is the previous
+here, and so is #strong[realization]: each device card lists every
+profile whose encoder fits the output's concept, shows the three
+judgments --- well typed, fits, placed --- and the analysis's sentence
+when one fails, and a chosen profile changes nothing on the Design page,
+in the inspector or in the simulation (ADR-0036). The Deploy page is the
+only surface that knows a profile exists; the board list includes the
+Raspberry Pi Pico, the one target a generated adapter exists for.
+#emph[Simulate] lists the Sources as its inputs and refuses to step
+until each has a value; a probe on a concept names what carries it and,
+on a rule, where it is applied. #emph[Library] is the previous
 section's. #emph[Monitor] --- telemetry from a deployed core --- is a
-placeholder page, as is the platform adapter it needs.
+placeholder page; the adapter it would listen to exists, the telemetry
+path does not (roadmap priority 4).
 
 == What Studio does not decide
 <what-studio-does-not-decide>
@@ -4786,7 +5219,7 @@ of a kernel fact, with no separate formal object);
 #strong[production-only] (an engineering concern the model does not
 speak to); #strong[formally proved, not implemented]\;
 #strong[intentionally deferred]\; #strong[unresolved divergence] (none
-at the snapshot). The snapshot is `de8154f` (Appendix F); the
+at the snapshot). The snapshot is `6be778b` (Appendix F); the
 correspondence page of the formal repository
 (`docs/project/production-correspondence.md`) and production's
 `formal-correspondence.md` carry the same rows with the FVD and ADR
@@ -4875,10 +5308,15 @@ identifiers.
     `delay_is_sync_own`, `single_domain_embedding` (FVD-0043 …
     FVD-0048)], [the `Clocked` pass, the sync snapshot rule,
     `step_in_order`], [exact], [---], [---],
-    [outputs, drive edge], [`OutputId`, `DriveWF`, `SingleDriver`,
-    `CompleteOutputs`\; `single_driver_output_deterministic` (FVD-0050 …
-    FVD-0056)], [`bdl-output`\; a Source or a Value may drive, a Rule
-    may not], [exact], [---], [---],
+    [logical outputs, drive edge], [`OutputId`, `DriveWF`,
+    `SingleDriver`, `CompleteOutputs`\;
+    `single_driver_output_deterministic` (FVD-0050 … FVD-0056,
+    FVD-0131)], [`bdl-output`,
+    `PhysicalOutput { accepts, clock, required }` (the historical name
+    of the logical output); `drive light by brightness`\; a Source or a
+    Value may drive, a Rule may not], [exact], [the production type name
+    says #emph[physical]\; the object is the logical output and no
+    device fact is on it], [commitments on outputs],
     [relationship roles], [only `Source Δ d` (FVD-0118) has a formal
     object], [`RelationshipRole { Source, Rule, Value }`, one derived
     predicate stated on every projection (ADR-0032 amended, protocol
@@ -4903,12 +5341,12 @@ identifiers.
     `SimulationInput.value`)], [deliberate product projection], [an
     environment provides values, not functions], [---],
     [hardware validation], [`solve_sound`, `solve_complete`,
-    `satisfiable_iff_solve`, `diagnose` (FVD-0057 …
-    FVD-0063)], [`bdl-hardware`, board files (Nano, a larger mock
-    board), target-relative deployment analysis (ADR-0006,
-    ADR-0015)], [exact for the finite fragment], [numeric constraints
-    out of scope in both], [MUS; numeric constraints; RP2040 board
-    file],
+    `satisfiable_iff_solve`, `diagnose` (FVD-0057 … FVD-0063);
+    admissibility's third judgment (FVD-0139)], [`bdl-hardware`, board
+    files (Nano, a larger mock board, the Raspberry Pi Pico),
+    target-relative deployment analysis (ADR-0006, ADR-0015)], [exact
+    for the finite fragment], [numeric constraints out of scope in
+    both], [MUS; numeric constraints; runtime loading of board files],
     [list data, buffer, capacity], [`Ty.list`, Theorem M
     `buffer_window_correspondence`, `Capacity.lean` (FVD-0083 …
     FVD-0087)], [`Vec` last-element-first behind the `collections`
@@ -4937,17 +5375,46 @@ identifiers.
     `_wf`, `_causal`, `_wellClocked`, `_transparent`, `_abstracts`,
     `_exact`, `_not_reapplicable`, `_comm` (FVD-0121 … FVD-0130)], [not
     implemented (PRP-0001 draft; ISS-0016); ownership decided in
-    `relationship-roles.md` § Phase 13], [formally proved, not
+    `relationship-roles.md` § Phase 13; the adapter refuses a design
+    with a Source; the Source sheet (0.23) is authoring over a chosen
+    concept, not a device binding], [formally proved, not
     implemented], [---], [stateful transducers, device clock, commitment
-    discharge (the output side is Phase 14)],
-    [output realization], [`OutputRealization.lean`:
-    `behavior_unchanged`, `lower_transparent`, `lower_correspondence`,
-    `two_realizations_same_behavior`, `retarget_breaks_driveWF`
-    (FVD-0131 … FVD-0139)], [not implemented; `PhysicalOutput`,
-    `DeviceBinding { kind }` and the allocator are the logical output
-    and the requirements half; no encoder, machine sink or
-    lowering], [formal guidance only; the mechanism is already
-    deployment data (ADR-0015)], [], [],
+    discharge (FVI-0020); the input device catalogue],
+    [output realization: encoder, admissibility, machine
+    sink], [`OutputRealization.lean`: `Encoder.WF`, `EFits`,
+    `Admissible`\; `behavior_unchanged`, `lower_transparent`,
+    `lower_correspondence`, `two_realizations_same_behavior`,
+    `admissible_needs_wf`, `retarget_breaks_driveWF` (FVD-0131 …
+    FVD-0139, FVD-0137 superseded)], [ADR-0036:
+    `DeviceBinding.realization`, `OutputProfile { id, encoder, kind }`,
+    `Encoder { rep, raw, encode }` with `well_formed` and `purity`,
+    `DeviceRealization { check, hardware_placed }` composed in
+    `analyze_deployment`, one `SinkPlan` per valid chosen profile, five
+    witness profiles; `output_realization.rs`, the Deploy
+    chooser], [faithful implementation (the encoder and the judgments
+    are transcriptions; the lowering is at the plan level)], [production
+    lowers to a plan-level sink without the fresh `DeclId`s of
+    `lowerΔ`\; observably the same, not proved as such; the profiles are
+    witnesses, not a catalogue], [a proof that the plan-level lowering
+    is the model's; the device catalogue (ISS-0017)],
+    [generated raw commands], [`RawCommand` --- a relation on the
+    unchanged design, the machine boundary (FVD-0134)], [`Tick.commands`
+    beside `values` and `outputs`\; `TickTrace.commands`\; the corpus
+    compares them to the encoder over the reference evaluator's outputs
+    (Exec IR v3)], [faithful implementation, tested only], [the
+    generated command is compared to the encoder applied to the
+    evaluator's output, not to `RawCommand`], [codegen correspondence
+    (FVI-0022)],
+    [the platform adapter], [--- (not modelled: the semantics stops at
+    the raw command)], [ADR-0037: `apply(tick, sinks…)` on the RP2040
+    over Embassy, the solver's pad per sink, `duty8` reject-and-hold,
+    `top = 254`, the compiled schedule, halt on fault, the arena from
+    the manifest; recording mock sinks on the host; a cross-build in
+    CI], [production-only, #strong[production implemented and tested]\;
+    never formally proved], [a third numeric domain (`f64` command →
+    integer register) with a stated policy; no bench measurement of a
+    physical effect], [raw command → physical effect (FVI-0022;
+    ISS-0017); a device for a Source (ISS-0016)],
     [`A -> ()` as a consumer], [`unit_codomain_collapse`,
     `consumers_indistinguishable` (FVD-0119)], [`()` refused in output
     position], [exact], [---], [---],
@@ -4961,18 +5428,23 @@ identifiers.
     `.bdl/identities.json`, `.bdl/authoring.json`, `ui/layout.json`\;
     migration in place; complete authoring state saved (ADR-0023,
     ADR-0030)], [production-only], [the model has no files], [---],
-    [the protocol, the IDE service, highlighting], [---], [protobuf over
-    framed stdio; `bdl-ide-db`/`bdl-ide`/`bdl-lsp`\; one token
-    classifier on the LSP vocabulary (ADR-0007, ADR-0017,
-    ADR-0035)], [production-only], [---], [---],
+    [the protocol, the IDE service, highlighting, the Code
+    view], [---], [protobuf over framed stdio;
+    `bdl-ide-db`/`bdl-ide`/`bdl-lsp`\; one token classifier on the LSP
+    vocabulary; one answer to #emph[what is at a position] serving the
+    language server, the formula field and the Code view (ADR-0007,
+    ADR-0017, ADR-0035; protocol
+    0.22)], [production-only], [---], [---],
     [Studio's semantic projection], [---], [canvas, inspector, Explain,
     Composer, Simulate, Deploy, Library, Code/Split; Studio decides no
     semantic fact (ADR-0001,
     ADR-0018)], [production-only], [---], [usability: open empirical
     questions],
-    [Standard
-    Library], [---], [`LibraryItem → Fragment → ordinary objects`,
-    one-transaction instantiation], [production-only], [an authoring
+    [Standard Library, the Source sheet], [`Source Δ d`
+    (FVD-0118)], [`LibraryItem → Fragment → ordinary objects`,
+    one-transaction instantiation; a Source created over a chosen
+    concept, presets suggesting names and value forms (protocol
+    0.23)], [production-only over an exact base], [an authoring
     catalogue; not the device catalogue provision needs], [the device
     catalogue],
     [temporal modifiers, contexts], [the elaboration cases of Phase 4,
@@ -5071,16 +5543,36 @@ identifiers.
     needed],
     [provision proved; nothing provisions], [the construction was
     audited before production builds a device catalogue], [none today;
-    the risk is building the transducer as adapter host code], [PRP-0001
-    revised; ownership decided in advance], [implement PRP-0001
-    (ISS-0016)],
+    the risk is building the transducer as adapter host code --- the
+    adapter refuses a design with a Source instead], [PRP-0001 revised;
+    ownership decided in advance], [implement PRP-0001 (ISS-0016)],
+    [the model lowers a realization to fresh declarations `e`, `p`\;
+    production lowers to a plan-level `SinkPlan`], [designer-visible
+    sinks would need ids, canvas positions and diagnostics; the plan is
+    the lowest layer that preserves `d`, `o`, `d → o`], [the equivalence
+    of the two lowerings is observed by tests, not
+    proved], [`changing_the_realization_changes_no_behavior_and_only_the_raw_trace`\;
+    the corpus's `commands`], [a proof that the plan-level sink is
+    `lowerΔ`'s machine sink, or a decision that the observation
+    suffices],
+    [the raw command is an `f64`\; the peripheral takes an
+    integer], [production computes in `f64` (ADR-0011); a register is a
+    count], [a third numeric domain at the adapter, with rounding and
+    refusal that the model does not have], [the explicit `duty8` policy
+    and its tests; reject-and-hold recorded as a revisitable
+    policy], [ISS-0006 (numeric representation on device) stays
+    deferred],
+    [raw command proved; adapter tested], [the formal model stops at
+    `RawCommand` by decision (FVD-0134)], [a faithful adapter is a
+    matter of tests and hardware, not of the theory], [recording sinks,
+    the cross-build; no bench measurement], [FVI-0022, ISS-0017],
   )]
   , kind: table
   )
 
 == The snapshot
 <the-snapshot>
-What is implemented, partial and planned at `de8154f`, with the protocol
+What is implemented, partial and planned at `6be778b`, with the protocol
 history and the milestones of the last week, is Appendix F, so that this
 Part's classification survives the next milestone and the snapshot is
 updated in one place.
@@ -5105,7 +5597,8 @@ STANDARD LIBRARY, MOVE TO VALIDATION, MOVE TO AUTHORING/UI
 construct where the construct is discussed; this Part is the ledger that
 gathers them, and the construct-by-construct table with every row's
 evidence is `docs/kernel/minimality.md` in the formal repository (the
-decisions are `docs/decisions/`, FVD-0001 … FVD-0130).
+decisions are `docs/decisions/`, FVD-0001 … FVD-0139, of which FVD-0137
+is superseded).
 
 == Two kinds of minimality
 <two-kinds-of-minimality>
@@ -5136,6 +5629,23 @@ the product draws it first --- and the provision result of Part IX is
 what makes the two facts consistent: the surface concept is exactly a
 realization state, and the state changes at deployment by a construction
 the kernel already admits.
+
+There is a third distinction the output side makes unavoidable:
+#strong[kernel minimality is not whole-system capability]. Phase 14
+added, above the kernel, an encoder, a machine sink, a lowering, three
+admissibility judgments and a machine boundary, and production added a
+profile registry, a plan-level sink, generated commands and a platform
+adapter. None of it entered the kernel, and none of it #emph[could] have
+entered the kernel on the evidence --- retargeting the output is
+refuted, an effectful term cannot name a receiver, and the lowering is
+expressible in the existing kernel with the behavior literally
+unchanged. The encoder was not promoted into the kernel because
+production needs one; it was kept out because the theorems show it is
+deployment structure. The full production architecture is therefore much
+larger than the kernel band of Part III's figure and is supposed to be:
+the claim of minimality is a claim about the kernel, and the whole
+system's capability is measured by what the constructions above the
+kernel can do without adding to it.
 
 The verdicts below say which kind of minimality each row is about.
 REMOVE is a kernel verdict and a surface verdict at once only where the
@@ -5331,6 +5841,59 @@ rejected table says so.
     in the presentation layer, blind to role, unit-by-position and
     contextual keywords], [REMOVE; one classifier in `bdl-ide`
     (ADR-0035)],
+    [retargeting the logical Output to the raw type (`o.accepts := raw`,
+    drive the encoder into it)], [the obvious way to realize an
+    output], [`retarget_breaks_driveWF`: the existing edge `d -> o`
+    fails `DriveWF` because the driver is typed at the concept; the
+    abstract output's meaning is lost; `exI`], [REMOVE --- the logical
+    output is never retargeted (FVD-0132)],
+    [an effectful encoder or device write inside the behavior
+    (`R -> ()`, `Expr.write`, an effect row, `IO`)], [the machine as a
+    term], [`consumers_indistinguishable`: a pure `R -> ()` cannot name
+    a receiver; the behavior environment would depend on the device;
+    `RawCommand` needs none of it], [REMOVE --- the machine boundary is
+    a relation (FVD-0134)],
+    [a device kind in `OutputSpec`], [one record per output], [`exH`:
+    one `oLight` realized by PWM and by I²C has one behavior trace; a
+    kind in the spec would make that two designs], [REMOVE (never add)
+    --- the mechanism is deployment data (FVD-0131)],
+    [fit + allocation as admissibility (`FitsAndAllocates`)], [the first
+    Phase-14 form], [`exJ`, `admissible_needs_wf`: an encoder `λn. true`
+    fits `Brightness` and allocates a PWM line and is not typed
+    `rep -> raw`], [REMOVE --- admissibility is typing ∧ fit ∧ a
+    solvable board (FVD-0139 supersedes FVD-0137)],
+    ["closed and well-typed" as the encoder condition], [typing without
+    purity], [`(λk. λn. k) (delay 0 1)` is typed at `q₀ -> q₀` and
+    encodes 7 as 0 at tick 0 and 1 at tick 1 (`exEFG`)], [REMOVE ---
+    purity is the profile condition (FVD-0133)],
+    [an encoder that constructs a concept], [`λx. mk Other x`], [refused
+    under `Grant.none`\; `encoder_constructs_nothing`,
+    `encoder_decl_no_grant`], [REMOVE (FVD-0133)],
+    [an implicit clock crossing at the encoder (the encoder in another
+    domain, a hidden resample)], [a device at its own rate], [`DriveWF`
+    and `WellClocked` both fail (`exI`); Phase 6's Counterexample G
+    already refuses a hidden resample in the binding], [REMOVE --- a
+    device clock is an explicit `sync`\; a carrier frequency is
+    configuration, not a `ClockId` (FVD-0138)],
+    [a required injectivity or round-trip of the encoding], ["lossless"
+    realization], [a 4-bit PWM sends duty 6 for 40 % and for 41 %
+    (`exB_quantized`); `decode(encode x) = x` is neither assumed nor
+    provable], [REMOVE --- correspondence is directional, quantization
+    admitted (FVD-0135)],
+    [a many-to-one output lowering as a primitive
+    (`lowerMany`)], [atomic device frames], [the H-bridge is a
+    structured command from one concept (`exD_hbridge`); RGB is three
+    per-tick commands or one `Color` upstream], [DEFER --- the singleton
+    is primitive by decision (FVD-0136); the atomic-frame case is
+    FVI-0022],
+    [a runtime dispatch table or symbol strings in the
+    adapter], [binding sinks by name], [a display name would become an
+    identity and binding a runtime lookup (ADR-0037)], [REMOVE
+    (production) --- generated static parameters in sink order],
+    [clamping an out-of-range raw duty at the adapter], [keep the
+    peripheral moving], [hides that the design commanded what the
+    profile did not promise (ADR-0037)], [REMOVE (production policy,
+    revisitable) --- reject and hold],
   )]
   , kind: table
   )
@@ -5390,6 +5953,20 @@ Not rewritten to look inevitable:
     (`concept`, `mapping`, `output`, …)], [every LSP client needed a
     mapping per name], [the LSP standard names with BDL distinctions as
     modifiers; `unit` and `slot` the only additions (ADR-0035)],
+    [admissibility = fit ∧ allocation (FVD-0137, Phase 14's first
+    form)], [an encoder that fits and allocates but is ill-typed
+    (`λn. true`) passed; wrong on the same evidence], [admissibility =
+    the encoder's typing ∧ fit ∧ a solvable board (FVD-0139; ADR-0036
+    keeps the gap refused by a test)],
+    [a Source item that creates a concept and its Source in one drag
+    (the first Standard Library form)], [choosing an existing concept
+    created a redundant one; a Source over a concept nobody chose], [the
+    Source sheet: the concept is the designer's decision, existing or
+    new in one transaction; the items are presets (protocol 0.23)],
+    [`drive light = brightness`], [the first spelling of the drive
+    edge], [the relation reads backwards in a design;
+    `drive light by brightness` says who drives what; the old spelling
+    stays as legacy syntax with a hint and an opt-in migration],
   )]
   , kind: table
   )
@@ -5436,11 +6013,18 @@ Two-hole operands are outside `solve` by design. No parser is modelled
 for the natural surface; its type annotations are the output of local
 inference, described, not proved. Provision is proved for pure
 transducers at the target's clock, and for shared raw readings with a
-joint section where equality is claimed. No theorem covers the Rust or
-Dart code.
+joint section where equality is claimed. Realization is proved for a
+pure, stateless encoder in the output's clock, one logical output per
+machine sink, and stops at the raw command relation: the correspondence
+from the raw command trace to a platform adapter's operations, and from
+those to a physical effect, is not a theorem, and the model does not
+contain the adapter at all. No theorem covers the Rust or Dart code, and
+none covers a board.
 
-== Open formal and engineering problems
-<open-formal-and-engineering-problems>
+== Open formal questions
+<open-formal-questions>
+Each names what exists and what would resolve it.
+
 + #strong[A general edit/invalidation relation] (FVI-0015). Refinement
   is a preorder with proved client stability; an arbitrary edit is
   outside it and forces a recheck of dependents. Production classifies
@@ -5487,24 +6071,40 @@ Dart code.
   still exceed a current budget. Would resolve: a numeric constraint
   layer beside the finite solver, with its own soundness.
 + #strong[A generated-code refinement proof.] The core is held to the
-  reference evaluator by differential tests. Would resolve: a proof that
-  lowering plus code generation refines `Ev`/`MEv` --- or a verified
-  evaluator --- closing the largest deviation of Part XIII. A proved
-  static bound analysis is the same gap on the capacity side. 11a.
-  #strong[Output realization, next steps] (FVI-0022). Stateful output
-  adapters (slew, dithering, batching, hysteresis) and whether each is
-  the behavior's, a stateful lowering's with a stream-level theorem, or
-  the backend's; the device-clock variant with an explicit `sync`\;
-  whether an atomic multi-value frame ever forces a many-to-one
-  lowering; the codegen half from the raw command trace to the generated
-  backend call; commitments on outputs.
-+ #strong[Source provision, next steps] (FVI-0020; PRP-0001, ISS-0016).
-  Stateful transducers and a stream-level transparency theorem; a device
-  clock with a deployment `sync`\; how a profile's declared range
-  discharges a Source's commitments; output provision, the dual; whether
+  reference evaluator by differential tests, and its raw commands to the
+  encoder over the evaluator's outputs. Would resolve: a proof that
+  lowering plus code generation refines `Ev`/`MEv` and that the
+  generated `Commands` are `RawCommand` --- or a verified evaluator ---
+  closing the largest deviation of Part XIII. A proved static bound
+  analysis is the same gap on the capacity side.
++ #strong[The output boundary beyond a pure encoder] (FVI-0022;
+  ISS-0017). What Phase 14 leaves open, and the first platform adapter
+  does not close --- it applies each command independently and
+  untouched: #emph[stateful output adapters] (slew-rate limiting, PWM
+  dithering, protocol batching, servo smoothing, hysteresis), and
+  whether each belongs to the behavior as an ordinary declaration with
+  `delay`, to a stateful lowering with a stream-level correspondence
+  theorem, or to the backend; #emph[a device clock different from the
+  output clock] --- the explicit-`sync` variant of the lowering
+  (FVD-0138) and the line between an activation clock and a carrier
+  frequency, which is configuration; #emph[atomic multi-value frames]
+  --- whether a device that must receive several logical outputs in one
+  indivisible frame (a display controller taking a `Mode` and a `Level`
+  the behavior drives as two outputs, refusing a frame with one) ever
+  forces a `lowerMany` beyond per-tick batching or upstream combination,
+  which FVD-0136 decides for the singleton without settling; #emph[the
+  codegen and adapter correspondence] --- abstract trace → raw command
+  trace is proved, raw command trace → generated command → adapter
+  operation → physical effect is not, and the last arrow is not even a
+  testable statement inside this project; and #emph[commitments on
+  outputs], which production does not author and whose discharge by an
+  encoder's declared transfer would be the output analogue of FVD-0128.
++ #strong[The input boundary beyond a pure transducer] (FVI-0020;
+  PRP-0001, ISS-0016). Stateful transducers and a stream-level
+  transparency theorem; a device clock with a deployment `sync`\; how a
+  profile's declared range discharges a Source's commitments; whether
   `computes` is checked or trusted at the catalogue; out-of-type raw
-  readings as validation; and, on the production side, the device
-  catalogue and the implementation itself.
+  readings as validation.
 + #strong[Enums and sums] (ISS-0005). Encoded as tag × optional payload;
   production keeps user enums open. Would resolve: a case that needs
   `match` exhaustiveness beyond the encoding, and then one eliminator
@@ -5525,23 +6125,61 @@ Dart code.
   commitments beyond typing have an evidence slot and no discharge
   mechanism; the exact chart model and the choice-free rational field
   are the first pieces of a verification story about quantities.
-+ #strong[Production engineering items with no formal content]:
-  projection deltas and a persisted edit history (ISS-0009); a
-  structural diagnostic entity for outputs (ISS-0008); a linear `zip` in
-  the core (ISS-0013); the compiler's diagnostic sentences in every
-  locale (ISS-0015); the first platform adapter, build orchestration,
-  flash and telemetry (production's roadmap priorities 1--4).
+
+== Production engineering work
+<production-engineering-work>
+Not formal questions; work production has decided and not yet done,
+listed so that #emph[not yet built] is never mistaken for #emph[not yet
+understood]. In production's priority order at the snapshot: a device
+that provides a Source's value on the board --- the adapter's remaining
+half, and the implementation of PRP-0001 (ISS-0016; the first adapter
+refuses a design with a Source); I²C and H-bridge sinks on the RP2040
+(`i2c_level8` and `hbridge_signed` are refused for the board today) and
+the device catalogue beyond the five witness profiles (ISS-0017); build
+orchestration in `bdld` for the generated crate and its firmware;
+flashing through `probe-rs`\; telemetry back into Studio and the Monitor
+page, today a placeholder; a second embedded target to prove HAL
+independence; the core's numeric representation on device (ISS-0006,
+deferred); supplied Rust components (ADR-0005, designed, not built); and
+the items with no physical-boundary content --- projection deltas and a
+persisted edit history (ISS-0009), a structural diagnostic entity for
+outputs (ISS-0008), a linear `zip` in the core (ISS-0013), the
+compiler's diagnostic sentences in every locale (ISS-0015), runtime
+loading of board files, and the Studio gaps production's own status page
+lists.
 
 == Empirical questions, explicitly
 <empirical-questions-explicitly>
 The interaction model of Part II and Part XII is fully described,
 largely built, and no part of it has been evaluated with users. The
 following are hypotheses, to be tested, and nothing in this document ---
-no theorem, no test, no differential corpus --- is evidence for any of
+no theorem, no test, no differential corpus, no working screenshot, no
+example a reviewer happened to read correctly --- is evidence for any of
 them:
 
-- that an unresolved typed relationship is a natural stopping point for
-  designers, and that its cost is close to zero;
+- that industrial designers can #emph[read behavior intent] from a BDL
+  artifact --- the canvas, the text, or both --- without translating it
+  back into device terms first;
+- that they can #emph[author] useful product behavior without
+  prematurely reasoning in device APIs, and that the point at which a
+  design meets a device (the Deploy page, a realization profile) is late
+  enough and visible enough;
+- where they need #emph[escape hatches] --- supplied code, a raw value,
+  a device-specific command --- and whether the boundary constructions
+  of Part IX put those hatches where designers reach for them;
+- that an unresolved typed relationship is a natural stopping point,
+  that #emph[signature-first partiality] helps actual design work rather
+  than merely being permitted, and at what task complexity it is taken
+  up;
+- that a #strong[third party can recover design intent] from the
+  behavior graph and the textual relationships --- the
+  #emph[reverse-readability] question: the present system suggests that
+  a reviewer who did not author a design may infer what the product is
+  meant to do from its concepts, relationships and drives, and one such
+  reading has been observed anecdotally during this project; that
+  observation is not evidence of general readability, and a study that
+  hands a BDL artifact to reviewers and measures recovered intent
+  against the author's is the only thing that would be;
 - that Source, Rule and Value are learnable as one distinction, and that
   #emph[not applied] with an offered value is understood;
 - that socket hue for identity and socket shape for value form are read
@@ -5555,9 +6193,13 @@ them:
 - that product-language diagnostics ("This adds an angle and a time"\;
   "Mode values have no default order") are understood and acted on;
 - that Design, Code and Split are experienced as views of one thing, and
-  that semantic colour in the Code view helps rather than distracts;
+  that completion, navigation and colour in the Code view help rather
+  than distract;
 - that groups, packaging and instances match how designers organize
   behavior;
+- that a designer distinguishes a valid design from a deployable one,
+  and a chosen realization from a changed behavior, when the workspace
+  reports them apart;
 - learnability across the vocabulary; productivity against a Node-RED-
   or Arduino-style baseline; cognitive load in the sense of the
   cognitive-dimensions framework.
@@ -5615,8 +6257,10 @@ temporal qualification such as “for 300 ms”; adding an orthogonal safety
 override that competes with an interaction context for one output;
 replacing a sensor with a different sample rate; relating a slowly
 updated quantity to a fast interaction, which forces a cross-domain
-decision; choosing a board that cannot accommodate the design; and
-modifying a mapping late in the task.
+decision; choosing a board that cannot accommodate the design; choosing
+a realization for an output and saying what changed; modifying a mapping
+late in the task; and, for the reverse-readability question, reading a
+design one did not write and stating what the product does.
 
 Primary outcomes should not be limited to task time or a usability
 scale. More important measures are semantic errors in the final
@@ -5686,11 +6330,13 @@ declaration rather than by analysis.
 #strong[Complexity migration into tooling.] Much of what was removed
 from the kernel --- event policies, output selection, context semantics
 --- reappears as elaboration. The kernel is smaller and better
-understood; the elaborator is larger, and it exists (Part IX) and is
+understood; the elaborator is larger, and it exists (Part XI) and is
 held to the kernel by differential testing rather than by proof (Part
-XIII). The claim that the surface is “only syntax” over the kernel is a
-claim about tested cases, and the untested cases are the ones most
-likely to demand a kernel extension.
+XIII); below it the realization lowering and the platform adapter add
+two more layers that are tested and not proved. The claim that the
+surface is “only syntax” over the kernel is a claim about tested cases,
+and the untested cases are the ones most likely to demand a kernel
+extension.
 
 #strong[Usability hypotheses unestablished.] Every statement in this
 document about what designers find natural is a hypothesis, including
@@ -5980,6 +6626,21 @@ is used throughout and the old one is mentioned only in Appendix G.
     [`provision Δ P`,
     `induced Δ P I'`], [`Surface/Provision.lean`], [the provisioned
     design; the abstract input induced by a raw input],
+    [`Encoder`, `EFits`,
+    `Realization`], [`Surface/OutputRealization.lean`], [a pure encoder
+    `rep -> raw` with its transfer function; its fit to the output's
+    accepted type; a logical output, its driver, a fresh machine sink
+    and a fresh encoder declaration],
+    [`RawCommand S Δ I Ω β R t w`], [`Surface/OutputRealization.lean`], [the
+    command specified for realization `R` at tick `t` on the unchanged
+    design --- the machine boundary],
+    [`lowerΔ`, `lowerΩ`, `lowerβ`,
+    `lowerΚ`], [`Surface/OutputRealization.lean`], [the lowering: the
+    encoder declaration, the machine sink, the new drive edge, the
+    sink's clock],
+    [`Admissible Θ accepts H P`], [`Surface/OutputRealization.lean`], [the
+    encoder's typing ∧ `EFits` ∧ a solvable board --- three judgments
+    that never see each other],
     [`Hardware`, `Requirement`, `Assignment`, `ValidFor`,
     `solve`], [`Validation/Hardware.lean`], [the target table, the
     design's needs, an allocation, its validity, the solver],
@@ -7140,7 +7801,7 @@ production records, and the known limitation. Every entry in the
 #emph[formal] column is #strong[formally proved] unless it is an
 executed example or a counterexample by its name; every entry in the
 #emph[production] columns is #strong[production implemented and tested]
-at the snapshot (`de8154f`); #emph[not implemented] means
+at the snapshot (`6be778b`); #emph[not implemented] means
 #strong[formally proved, not implemented]. Theorem names are in
 `KCN-judu/BDL_FV`.
 
@@ -7273,12 +7934,26 @@ at the snapshot (`de8154f`); #emph[not implemented] means
     trace], [`behavior_unchanged`, `lower_transparent`,
     `lower_physicalOutput_unchanged`, `lower_correspondence`,
     `two_realizations_same_behavior`, `retarget_breaks_driveWF`,
-    `encoder_constructs_nothing`\; `exH`, `exB_quantized`, `exI`], [not
-    implemented (the logical output, `DeviceBinding.kind` and the
-    allocator exist; no encoder, no machine sink, no
-    lowering)], [---], [FVD-0131 … FVD-0139], [stateful adapters, device
-    clock, atomic frames, codegen half open (FVI-0022); platform
+    `encoder_constructs_nothing`\; `exH`, `exB_quantized`,
+    `exI`], [ADR-0036: `DeviceBinding.realization`, `OutputProfile`,
+    `Encoder { rep, raw, encode }` with `well_formed`/`purity`, three
+    judgments in `analyze_deployment`, one `SinkPlan` per chosen
+    profile, `Tick.commands`\; the Deploy
+    chooser], [`output_realization.rs`\;
+    `changing_the_realization_changes_no_behavior_and_only_the_raw_trace`\;
+    the corpus's `Commands`\; the daemon and Studio e2e], [FVD-0131 …
+    FVD-0139 (FVD-0137 superseded); ADR-0036], [stateful adapters,
+    device clock, atomic frames, the codegen half open (FVI-0022); the
+    plan-level lowering observably, not provably, the model's; platform
     independence is the formal-evaluation statement only],
+    [the platform adapter applies the raw commands to a board], [---
+    (not modelled; `RawCommand` is the boundary, FVD-0134)], [ADR-0037:
+    the RP2040/Embassy adapter, `apply(tick, sinks…)`, `duty8`, the
+    compiled schedule, the arena, halt on fault], [`embedded_rp2040.rs`,
+    the runtime's policy and schedule tests, recording mock sinks, the
+    cross-build in CI], [FVD-0134, FVD-0138 (the boundary consumed);
+    ADR-0037], [production implemented and tested only; raw command →
+    physical effect never proved (FVI-0022)],
     [`() -> B` is a conservative interface normalization whose kernel
     value is `B`], [`elim_canonical`, `decode_encode`,
     `canonicalOfKernel_encode`, `zero_input_obligation`, `lams_typed`,
@@ -7665,68 +8340,78 @@ table resolves each. The canonical copy is
 = Appendix F --- Production snapshot
 <appendix-f-production-snapshot>
 #strong[Production snapshot as of 2026-09-20, commit
-`de8154f5153495de2ad8a09f3ca3166c3678dc93` of `KCN-judu/BDL`]
-("chore(ide): satisfy clippy and rustfmt in the token tests and the perf
-example", the last commit of the syntax-highlighting milestone). What
-was checked: `docs/README.md`'s current snapshot,
-`docs/project/status.md`, `docs/project/roadmap.md`,
-`docs/project/formal-correspondence.md`,
-`docs/architecture/{overview,relationship-roles,syntax-highlighting,ide-service}.md`,
-`docs/spec/{protocol,textual-syntax,concept-library}.md`, ADR-0032 with
-its two amendments, ADR-0034, ADR-0035, PRP-0001, ISS-0016, the change
-records of 2026-09, `library/std/concepts.toml`, and the fixture sources
-under `docs/fixtures/`. The formal repository is described as of the
-working tree of this revision; its last pushed commit is `af25567`
-(Phase 13, 2026-09-20). The canonical location of the production hash in
-the formal repository is the `snapshot` field of
-`docs/project/production-correspondence.md`\; this appendix repeats it.
+`6be778b07f07bebaba26f580f2b4af74a13ce9df` of `KCN-judu/BDL`]
+("docs(user-guide): describe the Realization row in the Deploy figure's
+text", the head of `main` after the first embedded platform adapter,
+output realization, the Source sheet, the Code view as an IDE surface
+and the `drive … by …` spelling; protocol 0.24). What was checked:
+`docs/README.md`'s current snapshot, `docs/project/status.md`,
+`docs/project/roadmap.md`, `docs/project/formal-correspondence.md`,
+`docs/architecture/{overview,relationship-roles,output-realization,embedded-adapter,syntax-highlighting,ide-service}.md`,
+`docs/spec/{protocol,textual-syntax,concept-library,hardware-model}.md`,
+ADR-0032 with its amendments, ADR-0034 … ADR-0037, PRP-0001, ISS-0016,
+ISS-0017, the change records of 2026-09 (`code-view-ide`,
+`source-creation`, `output-realization`, `embedded-adapter`,
+`drive-by`), `library/std/concepts.toml`, and the fixture sources under
+`docs/fixtures/`. The formal repository is described as of the working
+tree of this revision; its last commit before it is `8e65c63` (the Phase
+14 hardening). The canonical location of the production hash in the
+formal repository is the `snapshot` field of
+`docs/project/production-correspondence.md`\; this appendix and the
+title page repeat it.
 
-== Milestones of the week before the snapshot, newest first
-<milestones-of-the-week-before-the-snapshot-newest-first>
+== Milestones since the previous snapshot (`de8154f`), newest first
+<milestones-since-the-previous-snapshot-de8154f-newest-first>
 #figure(
   align(center)[#table(
     columns: (33.33%, 33.33%, 33.33%),
     align: (auto,auto,auto,),
     table.header([milestone], [what it changed], [records],),
     table.hline(),
-    [syntax highlighting], [one Rust classifier on the LSP
-    semantic-token vocabulary; colour in Studio's Code view and formula
-    field; protocol 0.21], [ADR-0035; `syntax-highlighting.md`],
-    [relationship
-    roles], [`bdl_model::RelationshipRole { Source, Rule, Value }` ---
-    one derived role stated by the daemon; `applied_by`\; Studio
-    re-derives nothing; protocol 0.20], [ADR-0032 amended;
-    `relationship-roles.md`],
-    [unapplied rule], [`reactive.rule_unapplied`\; the action
-    `rule.apply`\; the hollow output socket; the three-state Source
-    control (#emph[no value yet]); `CreateMapping.definition?`\;
-    protocol 0.19], [change record `2026-09-unapplied-rule`],
-    [reference edges], [reference edges into the formula line from
-    `MappingAnalysis.references`\; the word #emph[rule]\; protocol
-    0.18], [ADR-0034],
-    [generalized Standard
-    Library], [`LibraryItem → Fragment → ordinary objects`\;
-    #emph[Concepts] and #emph[Sources]\; one-transaction instantiation;
-    localized item text; protocol 0.17], [ADR-0032 first amendment],
-    [Source role], [a Source as a derived presentation role; FV Phase 12
-    consumed; ISS-0014 resolved; ISS-0016 opened; protocol 0.16
-    (deprecated the same day)], [ADR-0032],
-    [internationalization], [English, Simplified Chinese, Japanese;
-    locale is presentation only], [ADR-0031],
-    [complete persistence], [the whole authoring state saved, including
-    text that does not build and every draft; one save
-    guard], [ADR-0030],
-    [unit-domain normalization], [one canonical type per relationship;
-    `() -> B` preferred; `bdld migrate-unit-domain`\; protocol
-    0.14], [ADR-0029],
-    [natural expression surface], [binders, closed ranges, `??` as
-    one-way desugaring; the Composer draws them; protocol
-    0.13], [ADR-0028 second amendment],
-    [PRP-0001], [the Source-provision proposal, revised after the formal
-    audit; status draft], [PRP-0001],
+    [`drive … by …`], [output driving is spelled
+    `drive light by brightness`\; `drive light = brightness` is legacy
+    syntax with a hint (`text.legacy_drive`) and an opt-in
+    `bdld migrate-drive-by`\; the fixtures and the guide moved], [change
+    record `2026-09-drive-by`],
+    [the first embedded platform
+    adapter], [`bdld compile --target rp2040_pico [--tick-micros N]`:
+    generated adapter glue and Embassy firmware for the Raspberry Pi
+    Pico; `bdl-runtime-embassy` (vocabulary) and
+    `bdl-runtime-embassy-rp` (HAL binding, outside the workspace); the
+    board file `rp2040_pico`\; the explicit reject-and-hold numeric
+    policy; the arena from the manifest; halt on a failed tick;
+    `TickTrace.adapter` on the host; the firmware cross-built in
+    CI], [ADR-0037; `embedded-adapter.md`],
+    [output realization], [`DeviceBinding.realization`\;
+    `OutputProfile { id, encoder, kind }` with
+    `Encoder { rep, raw, encode }`, `well_formed` and `purity`\;
+    three-judgment admissibility
+    (`DeviceRealization { check, hardware_placed }`); one `SinkPlan` per
+    valid chosen profile; `Tick.commands`\; five witness profiles; the
+    Deploy page's chooser; Exec IR v3; protocol 0.24], [ADR-0036;
+    `output-realization.md`\; ISS-0017],
+    [the Source sheet], [a Source is created over a concept the designer
+    chooses --- existing, or new in one transaction; the Standard
+    Library's Source items are presets (#emph[Temperature Input] …);
+    `CreateSource`, `ListSourceCandidates`\; protocol 0.23], [change
+    record `2026-09-source-creation`],
+    [the Code view as an IDE surface], [completion at the caret, a hover
+    card, definition and references across files, #emph[Format] as one
+    edit --- `bdl_ide::navigation`, one answer to #emph[what is at a
+    position] for the language server, the daemon and Studio; protocol
+    0.22], [change record `2026-09-code-view-ide`],
   )]
   , kind: table
   )
+
+The milestones before these --- syntax highlighting (ADR-0035; 0.21),
+relationship roles (ADR-0032 amended; 0.20), the unapplied rule (0.19),
+reference edges (ADR-0034; 0.18), the generalized Standard Library
+(0.17), the Source role (ADR-0032; 0.16), internationalization
+(ADR-0031), complete persistence (ADR-0030), the unit-domain
+normalization (ADR-0029; 0.14), the natural expression surface
+(ADR-0028's second amendment; 0.13), PRP-0001 --- are described in the
+chapters and were the previous snapshot's; nothing in them moved.
 
 == Protocol
 <protocol>
@@ -7735,61 +8420,79 @@ Protobuf over framed stdio; additive minors. 0.11 structured value forms
 the `unit` type kind · 0.15 definition drafts in the system view · 0.16
 Source template fields (deprecated) · 0.17 library items · 0.18
 `MappingAnalysis.references` · 0.19
-`CreateMapping.definition?`/`clock_id?` · #strong[0.20]
-`RelationshipRole`, `MappingView.role`, `MappingAnalysis.role` /
-`applied_by` · #strong[0.21] `SemanticTokens` for a source file or a
-formula draft, with the legend in every answer. A 0.19 client ignores
-the role fields; Studio 0.20 requires them.
+`CreateMapping.definition?`/`clock_id?` · 0.20 `RelationshipRole`,
+`MappingView.role`, `MappingAnalysis.role` / `applied_by` · 0.21
+`SemanticTokens` · 0.22 `SourceCompletion`, `SourceHover`,
+`SourceDefinition`, `SourceReferences`, `FormatSource` · 0.23
+`CreateSource`, `ListSourceCandidates`, `LibraryItemView.preset` ·
+#strong[0.24] `SetDeviceRealization`, `DeviceView.realization`,
+`DeploymentAnalysis.realizations`, `MissingKind.REALIZATION_INVALID`.
+Older clients are unaffected by each addition.
 
 == Implementation status, by area (production's own words, abridged)
 <implementation-status-by-area-productions-own-words-abridged>
 #strong[Implemented:] the language core through outputs and
 completeness; formula language v0 with the slot; the natural forms; one
-canonical type per relationship; the unit registry with linear charts
-offered and affine charts as tested infrastructure (ISS-0004); the data
-core and the equation library; the compiler and simulator with
-product-language diagnostics and Explain; the Rust backend with
-differential, golden and property tests over 22 corpus cases;
+canonical type per relationship; `drive … by …` with the legacy spelling
+as compatibility syntax; the unit registry with linear charts offered
+and affine charts as tested infrastructure (ISS-0004); the data core and
+the equation library; the compiler and simulator with product-language
+diagnostics and Explain; the Rust backend with differential, golden and
+property tests over 22 corpus cases, now comparing `Commands`\;
 collections at deployment (static bounds, window capacity,
-bounded-memory refusal, `bdld compile --bounded-memory --period`);
-hardware and deployment analysis with Nano and a larger board file;
-behavior systems, groups, packaging, versions and substitution; the
-unified project format with migration and complete persistence; the
-layout service; text ↔ graph synchronisation; the IDE service and LSP
-with a VS Code extension, semantic tokens and the Composer queries; the
-protocol and daemon at 0.21; the Standard Library (36 Concept items, 8
-Source items); localization (partial: the compiler's diagnostic
-sentences are English, ISS-0015).
+bounded-memory refusal); hardware and deployment analysis with the Nano,
+a larger mock board and the Raspberry Pi Pico; output realization
+(ADR-0036); behavior systems, groups, packaging, versions and
+substitution; the unified project format with migration and complete
+persistence; the layout service; text ↔ graph synchronisation; the IDE
+service and LSP with a VS Code extension, semantic tokens, navigation
+and the Composer queries; the protocol and daemon at 0.24; the Standard
+Library (36 Concept items; 8 Source presets); localization (partial: the
+compiler's diagnostic sentences are English, ISS-0015).
+
+#strong[Partial --- the embedded runtime:] the first platform adapter
+(ADR-0037) --- PWM duties and digital levels on the RP2040, the compiled
+schedule, the arena, halt on fault, the host's recording of the same
+operations, the cross-build in CI. Not built: a device that provides a
+Source's value (ISS-0016: a design with a Source cannot run on a board
+yet), I²C and H-bridge sinks, stateful adapters and a device clock
+(ISS-0017), build orchestration, flash, telemetry, a second
+microcontroller (roadmap priorities 2--5).
 
 #strong[Partial --- Studio:] the Design page with Design, Code and Split
-views, the canvas with roles, reference edges and groups, the inspector
-with the Formula | Text definition editor, the Formula Composer with
+views; the canvas with roles, reference edges and groups; the inspector
+with the Formula | Text definition editor; the Formula Composer with
 references, literals, slots, operators, calls, binders, ranges, boolean
-logic and choices structured and richer forms as text, Simulate with
-Sources as inputs, Deploy on the 0.5 read model, Library, the conflict
-banner, colour from semantic tokens. Not built: the Monitor page (a
-placeholder), a device binding for a Source (ISS-0016), Explain over a
-protocol request, domain regions and cycle emphasis on the canvas,
-entity hover and fixes inside a component's source, a native menu bar.
+logic and choices structured and richer forms as text; the Code view
+with colour, completion, hover, definition, references and format; the
+Source sheet; Simulate with Sources as inputs; Deploy on the 0.5 read
+model with the realization chooser; the Library; the conflict banner.
+Not built: the Monitor page (a placeholder), a device binding for a
+Source (ISS-0016), Explain over a protocol request, domain regions and
+cycle emphasis on the canvas, entity hover and fixes inside a
+component's source, a native menu bar.
 
-#strong[Planned, designed, not implemented:] the first platform adapter
-(Embassy; roadmap priority 1), build orchestration, flash, telemetry, a
-second embedded target; supplied Rust components (ADR-0005); the device
-catalogue and PRP-0001.
+#strong[Planned, designed, not implemented:] supplied Rust components
+(ADR-0005); the input device catalogue and PRP-0001; the output device
+catalogue beyond the five witness profiles.
 
 #strong[Not implemented by decision:] user enums (ISS-0005), temporal
 modifiers and contexts (ISS-0010), a surface form for occurrence windows
 (ISS-0001), record syntax, `forall`/`exists` sugar, `Set`/interval/sum
-types, an `A -> ()` consumer form.
+types, an `A -> ()` consumer form, an effect or `IO` type, retargeting
+an output to a raw type.
 
 == Facts this document relies on that could move
 <facts-this-document-relies-on-that-could-move>
-Protocol version numbers; the count of library items; the list of
-structured Composer forms (`let`, `match`, blocks and rules are text at
-the snapshot); the roadmap order; the two known code-side drifts
-production recorded while auditing its own docs (an action's reason
-string; a test's doc comment). When any of these moves, this appendix
-and the correspondence page move; the conceptual chapters do not.
+Protocol version numbers; the count of library items and presets; the
+five profile ids; the list of structured Composer forms (`let`, `match`,
+blocks and rules are text at the snapshot); the roadmap order; the
+runtime crate names (`bdl-runtime-embassy` and `bdl-runtime-embassy-rp`
+at the snapshot; a rename of the vocabulary crate was in progress in
+production's working tree at the audit, uncommitted); the two known
+code-side drifts production recorded while auditing its own docs. When
+any of these moves, this appendix and the correspondence page move; the
+conceptual chapters do not.
 
 = Appendix G --- Development chronology
 <appendix-g-development-chronology>
@@ -7861,7 +8564,9 @@ added each report.
     [13], [2026-09-20], [Source provision by device transducers
     (PRP-0001 audit)], [Part
     IX], [`docs/reports/phase-13-source-provision-by-device-transducers-prp-0001-audit.md`],
-    [14], [2026-09-20], [Output realization by device encoders], [Part
+    [14], [2026-09-20], [Output realization by device encoders --- and,
+    the same day, the hardening pass (FVD-0139 supersedes
+    FVD-0137)], [Part
     IX], [`docs/reports/phase-14-output-realization-by-device-encoders.md`],
   )]
   , kind: table
@@ -7874,6 +8579,15 @@ notation of Appendix A. Phase 9b's structural order and Phase 10's
 point/difference sort were revised by 9c and 10b; the earlier positions
 are kept in the reports and in Part XIV's #emph[decisions that changed]
 table.
+
+Production consumed the phases in this order, all on 2026-09-20 unless
+dated: Phases 1--7 and 9a--9c through the kernel transcription and
+ADR-0010/0024--0027 (2026-09-15 … 18); Phase 8a/8b as ADR-0021/0022/0019
+(2026-09-16 … 17); Phase 10 as ADR-0028 (2026-09-18); Phase 11 under
+ADR-0028's second amendment; Phase 12 as ADR-0029 and ADR-0032; Phase 13
+as the revised PRP-0001 (not implemented); Phase 14 as ADR-0036 the day
+it closed, followed by the first platform adapter (ADR-0037), which
+consumes the boundary Phase 14 defined and nothing formal beyond it.
 
 = Appendix H --- Revision log
 <appendix-h-revision-log>
@@ -7928,11 +8642,22 @@ table.
     [Phase 12 --- unit-domain normalization], [`() -> B` as an interface
     normalization whose value is the kernel type `B`\; the source role
     as a realization state; `A -> ()` shown unable to name a consumer],
-    [2026-09-20 --- this revision], [the conceptual restructuring; Phase
-    13 as the environment boundary (Part IX); production at `de8154f`\;
-    the `FVD`/`FVI` identifiers; the indexes (Appendices B--E); the two
-    kinds of minimality; the residue of the conference form removed;
-    `paper/README.md` and `main.typ` describing the monograph pipeline],
+    [2026-09-20 --- the conceptual restructuring], [the conceptual
+    restructuring; Phase 13 as the environment boundary (Part IX);
+    production at `de8154f`\; the `FVD`/`FVI` identifiers; the indexes
+    (Appendices B--E); the two kinds of minimality; the residue of the
+    conference form removed; `paper/README.md` and `main.typ` describing
+    the monograph pipeline],
+    [2026-09-20 --- production at `6be778b`], [the physical boundary as
+    one whole with the strength of each arrow (Part IX); output
+    realization implemented (ADR-0036) and the first embedded platform
+    adapter on the RP2040 (ADR-0037) at production-test strength; the
+    Source sheet, the Code view as an IDE surface, `drive … by …`,
+    protocol 0.22--0.24; the physical-product and industrial-design
+    position stated (Part I); the third minimality distinction (Part
+    XIV); the open agenda split into formal, production and empirical,
+    with the reverse-readability question; counts derived from the
+    repository; the mirror policy for `reference/paper/` in production],
   )]
   , kind: table
   )
@@ -7979,12 +8704,14 @@ refinement.
 
 Each of these is minimal among the designs that were tested, and this
 document has tried to say, for each, what was proved, what was rejected
-by counterexample, and what was preferred. The elaborator, the editor
-and the host-side firmware path have been built and are described in
-Parts XI--XII; the platform adapter and the device catalogue have not;
-the studies have not, and they are where the claims about designers
-would be tested. The research question is not whether designers can be
-taught a simpler programming language. It is whether product behavior
-can become a #emph[design material] whose structure is intuitive at the
-surface and rigorous underneath, and the kernel presented here is the
-part of that question that can now be stated precisely.
+by counterexample, and what was preferred. The elaborator, the editor,
+the realization lowering and a first platform adapter have been built
+and are described in Parts XI--XII; the input-side device binding and
+the device catalogues have not; the last arrow, from a raw command to a
+physical effect, is tested and not proved; the studies have not been
+run, and they are where the claims about designers would be tested. The
+research question is not whether designers can be taught a simpler
+programming language. It is whether product behavior can become a
+#emph[design material] whose structure is intuitive at the surface and
+rigorous underneath, and the kernel presented here is the part of that
+question that can now be stated precisely.

@@ -8,7 +8,7 @@ area: surface
 supersedes: []
 superseded-by: []
 related: [FVD-0050, FVD-0132]
-production: [ADR-0015/supports]
+production: [ADR-0015/supports, ADR-0036/supports]
 ---
 
 # FVD-0131: A logical output is semantic intent; its physical mechanism is deployment data, never part of `OutputSpec`

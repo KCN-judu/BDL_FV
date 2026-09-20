@@ -8,7 +8,7 @@ area: surface
 supersedes: [FVD-0137]
 superseded-by: []
 related: [FVD-0057, FVD-0062, FVD-0133]
-production: [ADR-0015/supports]
+production: [ADR-0015/supports, ADR-0036/supports]
 ---
 
 # FVD-0139: Deployment admissibility is the encoder's typing, its fit and a solvable board; fit-and-allocate alone is not admissibility
@@ -41,11 +41,12 @@ that sees the design.
 ## Reason
 
 `admissible_needs_wf : Admissible ↔ E.WF Θ ∧ FitsAndAllocates`;
-`admissible_satisfiable` (Phase 7's `satisfiable_iff_solve`); `Admissible.enc_wf`
-is the `Encoder.WF` that `Realization.WF` demands, so an admissible profile is
-what a realization may be built from. `exH_admissible`, `exJ`.
+`admissible_satisfiable` (Phase 7's `satisfiable_iff_solve`);
+`Admissible.enc_wf` is the `Encoder.WF` that `Realization.WF` demands, so an
+admissible profile is what a realization may be built from. `exH_admissible`,
+`exJ`.
 
 ## Consequences
 
-Report §14.1, §14.3; minimality row "hardware requirements of an output
-device"; the note §2 and §5.
+Report §14.1, §14.3; minimality row "hardware requirements of an output device";
+the note §2 and §5.

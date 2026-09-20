@@ -8,7 +8,7 @@ area: surface
 supersedes: []
 superseded-by: []
 related: [FVD-0126]
-production: []
+production: [ADR-0036/supports]
 ---
 
 # FVD-0135: Output correspondence is directional; no injectivity, exactness or round-trip is required

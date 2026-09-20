@@ -33,9 +33,10 @@ On 2026-09-20 the records were renamed under one policy
 The old numbers appear nowhere in current documents except this page, the
 `legacy-id` field of each record, and archived material, which is not rewritten
 (`paper/archive/`, the dated entries of `paper/NOTES.md`, commit messages). The
-production repository's records (`formal-correspondence.md`, ADR-0024, ADR-0025,
-`status.md`) cite the old numbers as of production `de8154f`; they are
-production's to update and this table resolves each.
+production repository's records cited the old numbers until its
+documentation-convergence pass; since then (production `6be778b`) its current
+pages cite the `FVD-` identifiers, and the old numbers remain only in three
+immutable ADRs (ADR-0024, ADR-0025, ADR-0028), which this table resolves.
 
 ## Decisions
 
