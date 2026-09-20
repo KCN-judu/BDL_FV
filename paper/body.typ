@@ -39,10 +39,10 @@ environment of named declarations with frozen types, monotone public
 commitments and write-once realizations; nominal concepts constructed
 only where a signature announces them; dimensions in the types of
 primitive operators; one temporal primitive that reads a clock domain at
-its previous activation; nominal clock domains and physical sinks with
-one explicit driver each. Above it, proved constructions rather than
-kernel constructs: list and product data with one recursor, a
-definitional equation library with rank-1 instantiation by matching,
+its previous activation; nominal clock domains and nominal logical
+outputs with one explicit driver each. Above it, proved constructions
+rather than kernel constructs: list and product data with one recursor,
+a definitional equation library with rank-1 instantiation by matching,
 units as coordinates with exact affine charts, natural binder syntax as
 conservative desugaring, behavior components and groups that flatten
 into the same kernel, the canonical interface type `() -> B` whose
@@ -1006,7 +1006,7 @@ architectural result of the formal development.
           cell[nominal concepts `sem`, representation binding, grant; dimensions `q`],
           cell[`delay` / `sync`, tick semantics, causality],
           cell[clock domains, schedule, domain judgment],
-          cell[physical sinks, drive edges, single driver, completeness],
+          cell[logical outputs (nominal sinks), drive edges, single driver, completeness],
           cell[global well-formedness: every realization satisfies its interface],
           cell[lists, products, one recursor `fold`; `eq` on data],
           cell[behavior components: fresh instantiation, bindings, flattening],
@@ -1229,9 +1229,10 @@ IV; the data core, the equation library and the natural surface Part V;
 units and charts Part VI; the reactive semantics, clock domains and
 buffering Part VII; behavior components and groups Part VIII; the
 environment boundaries --- the canonical type `() -> B`, the source
-role, physical sinks and provision --- Part IX; hardware and capacity
-validation Part X. The minimality verdict for each construct is given
-where the construct is discussed and gathered in Part XIV.
+role, logical outputs, provision and realization --- Part IX; hardware
+and capacity validation Part X. The minimality verdict for each
+construct is given where the construct is discussed and gathered in Part
+XIV.
 
 = Part IV --- Semantic Identity and Physical Quantities
 <part-iv-semantic-identity-and-physical-quantities>
@@ -2880,22 +2881,23 @@ by things outside the relation --- an input stream on the way in, a
 drive edge on the way out. This Part is the account of those two
 boundaries as the formal development settled them in four steps: the
 canonical type of a relationship that reads nothing and the derived
-#emph[source role] (Phase 12, ADR-0029 and ADR-0032); the physical sink
-with its single explicit driver, and why the dual form `A -> ()` is not
-a consumer (Phase 6 and Phase 12); the provision of a Source at
-deployment by a raw reading and a device transducer, proved transparent
-to the design (Phase 13, PRP-0001); and its output-side dual, the
-#emph[realization] of a logical output by a device encoder and a machine
-sink, proved to change nothing the behavior observes (Phase 14). The
-third is the conceptual completion of the first: a Source is environment
-provision #emph[at the concept's type], and provision is the
-construction that says how a value of that type comes to exist on a
-product without the design being able to tell. The fourth completes the
-second: an output is semantic intent #emph[at the concept's type], and
-realization is the construction that says how a value of that type
-leaves the product through PWM, a GPIO level, an I²C frame or a UART
-packet --- chosen at deployment, inserted at lowering, performed only by
-the backend --- without the behavior being able to tell either.
+#emph[source role] (Phase 12, ADR-0029 and ADR-0032); the logical output
+("physical sink" in Phase 6's words) with its single explicit driver,
+and why the dual form `A -> ()` is not a consumer (Phase 6 and Phase
+12); the provision of a Source at deployment by a raw reading and a
+device transducer, proved transparent to the design (Phase 13,
+PRP-0001); and its output-side dual, the #emph[realization] of a logical
+output by a device encoder and a machine sink, proved to change nothing
+the behavior observes (Phase 14). The third is the conceptual completion
+of the first: a Source is environment provision #emph[at the concept's
+type], and provision is the construction that says how a value of that
+type comes to exist on a product without the design being able to tell.
+The fourth completes the second: an output is semantic intent #emph[at
+the concept's type], and realization is the construction that says how a
+value of that type leaves the product through PWM, a GPIO level, an I²C
+frame or a UART packet --- chosen at deployment, inserted at lowering,
+performed only by the backend --- without the behavior being able to
+tell either.
 
 The Part is organized by the boundary, not by the phase. The reader who
 wants the chronology has Appendix G.
@@ -3100,7 +3102,13 @@ production commitment mechanism as implemented.
 <the-model>
 A declaration computes a value; it does not move hardware. Physical
 effect happens only through an explicit #strong[drive edge] from a
-declaration to a #strong[physical sink]:
+declaration to a #strong[logical output] --- Phase 6 called it a
+#emph[physical sink], meaning #emph[outside the behavior, terminal], and
+Phase 14 (below) fixes the reading: it is the behavior's semantic intent
+at the boundary, physically realized by a deployment-chosen machine
+sink. The Lean names are unchanged, and the relation `PhysicalOutput`
+--- the value a logical output carries at a tick --- keeps its
+historical name; the machine sink is Phase 14's `p`:
 
 - $upright("OutputId")$ --- the nominal identity of a sink, a logical
   actuator channel;
@@ -3499,9 +3507,12 @@ is typed at the concept (`retarget_breaks_driveWF`, #strong[formally
 proved]\; executed in `exI`), so `β` would have to be rewritten and the
 abstract output's meaning lost; Phase 6 already calls retargeting an
 edit. What survives is a pair. The #emph[specification] is a relation on
-the unchanged design, `RawCommand S Δ I Ω β R t w`: the command sink `p`
-receives at tick `t` is `transfer` of what `o` carries
-(`PhysicalOutput`). This is the machine boundary --- a relation on
+the unchanged design, `RawCommand S Δ I Ω β R t w`: the command
+#emph[specified] for realization `R` at tick `t` is `transfer` of what
+`o` carries (`PhysicalOutput`). The machine sink `p` does not occur in
+it --- it says what the command is, not who receives it; that the
+lowered design's `p` carries exactly this command is the theorem below,
+not the definition. This is the machine boundary --- a relation on
 commands, not a term; the backend that consumes it is outside the
 semantics, and no effectful `R -> ()`, `Expr.write`, effect row or `IO`
 exists (FVD-0134; the reason is the `A -> ()` result above). The
@@ -3553,18 +3564,31 @@ Where provision needed a joint section because abstract inputs had to be
 #emph[reached] from raw ones, realization only has to #emph[deliver]
 what the behavior produced.
 
-#strong[Platform independence, as a theorem.] Two realizations of one
-design --- PWM and I²C for the light --- evaluate every pre-existing
-term alike (`two_realizations_same_behavior`); only the command types
-and traces differ (`exH`: duty 102 versus `(register 42, 40)` for the
-same 40 %). Independent realizations commute exactly, as environment
-equality (`lower_comm`). Both device profiles are admissible for the
-light on the Nano, and the PWM profile is not admissible for the relay
---- the fit fails, not the pins (`exH_admissible`). Admissibility is a
-conjunction of two judgments that never see each other: the encoder's
-fit and Phase 7's solver on the device's requirements (`Admissible`,
-`admissible_satisfiable`, FVD-0137); the encoder knows nothing about
-timers and the requirements nothing about brightness.
+#strong[Platform independence, as a theorem --- and its exact scope.]
+Two realizations of one design --- PWM and I²C for the light ---
+evaluate every pre-existing term alike
+(`two_realizations_same_behavior`): the #emph[same formal evaluation]
+(`MEv`) of every term that mentions neither fresh encoder, in either
+lowered design, under the theorem's hypotheses (both encoder identities
+fresh, inputs whose closures avoid them). That is the formal content of
+"the behavior is independent of the mechanism"\; it says nothing about a
+compiler, a backend, a board or a physical device, whose correctness is
+the open codegen half (Part XI, FVI-0022). Only the command types and
+traces differ (`exH`: duty 102 versus `(register 42, 40)` for the same
+40 %). Independent realizations commute exactly, as environment equality
+(`lower_comm`). Both device profiles are admissible for the light on the
+Nano, and the PWM profile is not admissible for the relay --- the fit
+fails, not the pins (`exH_admissible`). Admissibility is a conjunction
+of three judgments that never see each other: the encoder's typing
+`rep -> raw` under no grant, its fit, and Phase 7's solver on the
+device's requirements (`Admissible`, `admissible_satisfiable`, FVD-0139
+superseding FVD-0137, which had omitted the typing); the encoder knows
+nothing about timers and the requirements nothing about brightness. The
+gap is executed: an `Encoder` value whose term is `λn. true` fits the
+light and allocates a PWM line and is not admissible (`exJ`,
+`admissible_needs_wf`). A solvable board is not an electrically correct
+device --- no voltage, current, thermal or timing property is proved
+(Part XV).
 
 #strong[Single driver stays what it was.] `SingleDriver` is about
 logical outputs: at most one behavior declaration drives `o`. A device
@@ -3577,10 +3601,13 @@ consumes several logical outputs at once is either several machine sinks
 committed in the same tick --- the runtime already commits all outputs
 of a domain together --- or one concept combined upstream, as Phase 6
 places every combination of behaviors; the singleton realization is
-primitive (FVD-0136), and the analogy with the shared raw reading of
-Phase 13 fails for a stated reason: a reading physically arrives as one
-image and its split is real, a frame is assembled by the machine from
-values the behavior already produces separately.
+primitive by #emph[decision] (FVD-0136) --- a decision supported by the
+executed examples and the minimality argument, not a theorem that every
+atomic multi-output protocol reduces to upstream combination or per-tick
+batching (that question is FVI-0022) --- and the analogy with the shared
+raw reading of Phase 13 fails for a stated reason: a reading physically
+arrives as one image and its split is real, a frame is assembled by the
+machine from values the behavior already produces separately.
 
 #strong[Clocks.] The machine sink is in the output's clock and the
 encoder with it; an encoder in another domain fails both `DriveWF` and
@@ -3595,8 +3622,9 @@ GPIO identity on a relay; 8-bit PWM on the light with the driver
 unchanged; the quantizing 4-bit PWM; a servo pulse `1000 + a·1000/180`
 µs; the H-bridge pair; the misfits, the constructing encoder and the
 impure encoder refused; PWM versus I²C for one light; the structural
-theorems instantiated; both profiles admissible on the Nano; Model A and
-the implicit clock crossing refuted.
+theorems instantiated; both profiles admissible on the Nano and an
+ill-typed encoder that fits and allocates but is not admissible; Model A
+and the implicit clock crossing refuted.
 
 #strong[What stays open] (FVI-0022): stateful output adapters ---
 slew-rate limiting, dithering, batching, hysteresis --- and whether each
@@ -3737,10 +3765,12 @@ $ upright("Requirement") = chevron.l thick & italic(i d)\,thick italic(c a p)\,\
  & italic(f i x e d) : upright("Option") thick upright("ResourceId")\,\
  & italic(g r o u p) : upright("Option") thick\(bb(N) times upright("UnitRel")\)thick chevron.r . $
 
-Requirements are generated from the physical sinks of the previous
-section by a #strong[device kind]: an H-bridge channel needs a PWM line
-and a digital output; an I2C sensor needs SDA and SCL on the same unit;
-a quadrature encoder needs two interrupt lines. The pipeline is
+Requirements are generated from the logical outputs of the previous
+section by a #strong[device kind] (the requirements half of a device
+profile; the encoder half is the realization section above): an H-bridge
+channel needs a PWM line and a digital output; an I2C sensor needs SDA
+and SCL on the same unit; a quadrature encoder needs two interrupt
+lines. The pipeline is
 
 $ upright("OutputId") arrow.r upright("DeviceKind") arrow.r upright("Requirements") arrow.r upright("solve") arrow.r upright("Assignment")\, $
 
@@ -4913,7 +4943,7 @@ identifiers.
     [output realization], [`OutputRealization.lean`:
     `behavior_unchanged`, `lower_transparent`, `lower_correspondence`,
     `two_realizations_same_behavior`, `retarget_breaks_driveWF`
-    (FVD-0131 … FVD-0138)], [not implemented; `PhysicalOutput`,
+    (FVD-0131 … FVD-0139)], [not implemented; `PhysicalOutput`,
     `DeviceBinding { kind }` and the allocator are the logical output
     and the requirements half; no encoder, machine sink or
     lowering], [formal guidance only; the mechanism is already
@@ -5932,7 +5962,8 @@ is used throughout and the old one is mentioned only in Appendix G.
     [`Causal Δ`], [`Causal`], [the instantaneous dependency graph is
     acyclic, witnessed by a rank],
     [$Omega$], [`OutputEnv : OutputId → Option OutputSpec`], [each
-    physical sink's accepted type and clock],
+    logical output's accepted type and clock (the "physical sink" of
+    Phase 6)],
     [$beta$], [`DriveEnv : DeclId → Option OutputId`], [the drive edges,
     write-once per declaration],
     [`DriveWF`, `SingleDriver`, `CompleteOutputs`], [---], [the output
@@ -6471,12 +6502,17 @@ Parts III--X.
     `output_value_typed`], [T], [raw trace = transfer ∘ abstract trace,
     tick by tick in the output's clock; typed values from
     totality], [`OutputTyped`\; `Θ.WF`, `Causal`, `GlobalWF`],
-    [`two_realizations_same_behavior`, `lower_comm`], [T], [platform
-    independence; independent realizations commute exactly], [distinct
-    `e`, `p`],
-    [`lowered_interfaces`, `admissible_satisfiable`], [T], [the
-    encoder's canonical type `() -> raw`\; fit plus a solvable board
-    gives a valid assignment], [---],
+    [`two_realizations_same_behavior`, `lower_comm`], [T], [the same
+    evaluation of every pre-existing term in two lowered designs (the
+    formal side of platform independence); independent realizations
+    commute exactly], [both `e` fresh, inputs avoid them; distinct `e`,
+    `p`],
+    [`lowered_interfaces`, `admissible_satisfiable`,
+    `admissible_needs_wf`], [T], [the encoder's canonical type
+    `() -> raw`\; admissibility = typing + fit + a solvable board, and
+    the typing cannot be dropped], [---],
+    [`exJ`], [C/X], [an encoder that fits and allocates but is ill-typed
+    is not admissible], [---],
     [`exA_gpio` … `exD_hbridge`, `exB_quantized`], [X], [GPIO, PWM,
     quantizing PWM, servo, H-bridge], [---],
     [`exEFG`, `exI`], [C/X], [misfits; the constructing and the impure
@@ -7083,11 +7119,15 @@ partial reversal of FVD-0090's `lt` generalisation.
     device batches per tick or is combined upstream], [accepted], [Part
     IX], [Phase 14], [---],
     [FVD-0137], [Hardware requirements are a validation judgment
-    separate from the encoder], [accepted], [Part IX], [Phase
-    14], [ADR-0015 (supports)],
+    separate from the encoder], [superseded by FVD-0139], [Part
+    IX], [Phase 14], [ADR-0015 (supports)],
     [FVD-0138], [The machine sink is in the output's clock; a device
     clock is an explicit `sync`\; a carrier frequency is not a
     `ClockId`], [accepted], [Part IX], [Phase 14], [---],
+    [FVD-0139], [Deployment admissibility is the encoder's typing, its
+    fit and a solvable board; the narrow fit-and-allocate predicate is
+    not admissibility], [accepted (supersedes FVD-0137)], [Part
+    IX], [Phase 14 hardening], [ADR-0015 (supports)],
   )]
   , kind: table
   )
@@ -7236,8 +7276,9 @@ at the snapshot (`de8154f`); #emph[not implemented] means
     `encoder_constructs_nothing`\; `exH`, `exB_quantized`, `exI`], [not
     implemented (the logical output, `DeviceBinding.kind` and the
     allocator exist; no encoder, no machine sink, no
-    lowering)], [---], [FVD-0131 … FVD-0138], [stateful adapters, device
-    clock, atomic frames, codegen half open (FVI-0022)],
+    lowering)], [---], [FVD-0131 … FVD-0139], [stateful adapters, device
+    clock, atomic frames, codegen half open (FVI-0022); platform
+    independence is the formal-evaluation statement only],
     [`() -> B` is a conservative interface normalization whose kernel
     value is `B`], [`elim_canonical`, `decode_encode`,
     `canonicalOfKernel_encode`, `zero_input_obligation`, `lams_typed`,
@@ -7876,6 +7917,14 @@ table.
     `RawCommand` specification and the lowering; behavior preservation,
     directional correspondence, platform independence; the refuted
     models],
+    [Phase 14 hardening], [`Admissible` requires the encoder's typing
+    (FVD-0139 supersedes FVD-0137; `exJ`); the `RawCommand`
+    specification and the lowered machine sink kept apart in every
+    sentence; the exact scope of `two_realizations_same_behavior`\;
+    FVD-0136 as a decision with the atomic-frame case open; "logical
+    output" applied to the current pages, `PhysicalOutput` as the
+    historical name; the production pin `de8154f` stated with its
+    reason],
     [Phase 12 --- unit-domain normalization], [`() -> B` as an interface
     normalization whose value is the kernel type `B`\; the source role
     as a realization state; `A -> ()` shown unable to name a consumer],
