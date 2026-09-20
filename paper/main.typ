@@ -23,6 +23,9 @@
 // and let identifiers inside table cells break at their separators.
 #show figure.where(kind: table): set block(breakable: true)
 #show figure.where(kind: table): set figure(placement: none)
+// A row never splits across pages: each cell body is an unbreakable box
+// (the table itself still breaks between rows; the header row repeats).
+#show table.cell: it => box(width: 100%, it)
 #show raw.where(block: false): it => {
   show regex("[_./:]"): m => m.text + sym.zws
   it
