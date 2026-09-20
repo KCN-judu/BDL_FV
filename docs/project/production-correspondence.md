@@ -2,7 +2,7 @@
 kind: project
 area: process
 status: current
-snapshot: 6be778b07f07bebaba26f580f2b4af74a13ce9df
+snapshot: 081296df606d577eece7e269ed250b255547d497
 snapshot-date: 2026-09-20
 ---
 
@@ -13,10 +13,11 @@ which phase of this development, and at which strength that repository labels
 it. The strength words are production's (`docs/project/formal-correspondence.md`
 there): _formally proved (model)_, _informed by FV_, _production-tested_,
 _engineering choice_. This page mirrors what production's records say **at
-commit `6be778b07f07bebaba26f580f2b4af74a13ce9df` (2026-09-20, HEAD of `main`
-after the first embedded platform adapter (ADR-0037), output realization
-(ADR-0036), the Source sheet and the `drive … by …` spelling; protocol 0.24)**;
-the `snapshot` field above is the one canonical place that hash lives, and the
+commit `081296df606d577eece7e269ed250b255547d497` (2026-09-20, HEAD of `main`
+after the Arduino Nano target over `avr-hal` — the second adapter family, the
+vocabulary crate renamed `bdl-runtime-adapter` (ADR-0037 amended) — and the
+monograph's reference mirror under `reference/paper/`; protocol 0.24)**; the
+`snapshot` field above is the one canonical place that hash lives, and the
 monograph's production snapshot cites it. The pin moves when a row does. It does
 not grade production's labels. The direction of authority is fixed by
 production's ADR-0010: the Lean development is a specification, never a
@@ -54,7 +55,7 @@ read from either end.
 | ADR-0034            | 1       | FVD-0005, FVD-0012                                                              | `Core/Dependency.lean` — `DependsOn`                                                                                                                                                                                                                                                                                                                                                                        | informed by FV                                                                                                                |
 | ADR-0035            | —       | —                                                                               | no formal content: one token classifier, the LSP vocabulary, protocol 0.21 — an engineering choice under ADR-0001                                                                                                                                                                                                                                                                                           | engineering choice                                                                                                            |
 | ADR-0036            | 14      | FVD-0131 … FVD-0139                                                             | `Surface/OutputRealization.lean` — `Encoder.WF`, `EFits`, `encoder_constructs_nothing`, `lower_transparent`, `behavior_unchanged`, `lower_correspondence`, `two_realizations_same_behavior`, `admissible_needs_wf`; production's `realization.rs`, `output_realization.rs`                                                                                                                                  | formally proved (model); production-tested                                                                                    |
-| ADR-0037            | 14, 15  | FVD-0134, FVD-0138; FVD-0140 … FVD-0142 (Phase 15 models the boundary it built) | `Surface/Adapter.lean` — `Policy` (`duty8`), `AdapterOp`, `Line`: the adapter's operation is the policy's reading of the lowered sink's value (`adapter_of_sink`) and reject-and-hold is a fold (`line_value_accepted`); `Surface/DeviceClock.lean` — the explicit device clock the adapter does not yet need; below the operation (the `f64` rounding, the HAL, the register) nothing is proved (FVI-0023) | formally proved (model) for the operation and the line; production-tested for the generated glue; nothing below the operation |
+| ADR-0037 (amended)  | 14, 15  | FVD-0134, FVD-0138; FVD-0140 … FVD-0142 (Phase 15 models the boundary it built) | `Surface/Adapter.lean` — `Policy` (`duty8`), `AdapterOp`, `Line`: the adapter's operation is the policy's reading of the lowered sink's value (`adapter_of_sink`) and reject-and-hold is a fold (`line_value_accepted`); `Surface/DeviceClock.lean` — the explicit device clock the adapter does not yet need; below the operation (the `f64` rounding, the HAL, the register) nothing is proved (FVI-0023) | formally proved (model) for the operation and the line; production-tested for the generated glue; nothing below the operation |
 | ISS-0001 (open)     | 9a      | FVD-0048, FVD-0085                                                              | the occurrence window as five declarations over `delay` and `sync` (`Surface/Buffer.lean`); production has no surface form                                                                                                                                                                                                                                                                                  | —                                                                                                                             |
 | ISS-0002 (open)     | 1       | FVI-0014                                                                        | several candidate definitions with one active — a surface convenience over a write-once realization                                                                                                                                                                                                                                                                                                         | —                                                                                                                             |
 | ISS-0003 (open)     | 1       | FVD-0017, FVD-0018; FVI-0001, FVI-0015                                          | interface-level references and the evidence model                                                                                                                                                                                                                                                                                                                                                           | —                                                                                                                             |
@@ -161,14 +162,15 @@ ADR-0037: `bdld compile --target rp2040_pico [--tick-micros N]` generates,
 beside the unchanged `no_std` core, the adapter glue (`src/adapter.rs`:
 `apply(tick, sink₁, …)`, one `&mut dyn PwmDuty8` / `&mut dyn Level` per machine
 sink, in sink order) and the Embassy firmware (`src/bin/rp2040.rs`) for the
-Raspberry Pi Pico; the vocabulary crate `bdl-runtime-embassy` (`no_std`, the
-numeric policy, the sink traits, `schedule::active`) and the HAL binding
-`bdl-runtime-embassy-rp` (outside the workspace); a board file
-`hardware/boards/rp2040_pico.toml`; the pad derived from the solver's resource
-id (`GPn` ⇒ `PIN_n`, PWM slice `(n/2) % 8`); the numeric policy at the boundary
-explicit and reject-and-hold (`duty8`: a finite raw duty in `0 ..= 255` rounds
-to the nearest whole duty, halves up; out of range or non-finite is refused and
-the line holds); PWM `top = 254`, carrier ≈ 30.6 kHz as peripheral
+Raspberry Pi Pico; the vocabulary crate `bdl-runtime-adapter` (`no_std`, the
+numeric policy, the sink traits, `schedule::active`; renamed from
+`bdl-runtime-embassy` when the second family arrived) and the HAL bindings
+`bdl-runtime-embassy-rp` and `bdl-runtime-arduino` (outside the workspace); a
+board file `hardware/boards/rp2040_pico.toml`; the pad derived from the solver's
+resource id (`GPn` ⇒ `PIN_n`, PWM slice `(n/2) % 8`); the numeric policy at the
+boundary explicit and reject-and-hold (`duty8`: a finite raw duty in `0 ..= 255`
+rounds to the nearest whole duty, halves up; out of range or non-finite is
+refused and the line holds); PWM `top = 254`, carrier ≈ 30.6 kHz as peripheral
 configuration, never a `ClockId` (FVD-0138); one `Ticker` at the base tick, the
 compiled schedule's rule, one global `step` then `apply`; every line low before
 the first tick; a failed tick halts; the arena sized from the manifest; the same
@@ -176,9 +178,18 @@ the first tick; a failed tick halts; the arena sized from the manifest; the same
 an unplaced sink, an inadmissible realization, a design with a Source
 (ISS-0016), an unbounded collection, the `i2c_level8` and `hbridge_signed`
 profiles (no sink on this target). The firmware cross-compiles for
-`thumbv6m-none-eabi` in CI (`BDL_REQUIRE_CROSS=1`); no flash, telemetry or build
-orchestration exists (roadmap priorities 2–4). The formal development has no
-theorem about any of it.
+`thumbv6m-none-eabi` in CI (`BDL_REQUIRE_CROSS=1`). A second family exists at
+the snapshot: one target entry per family (`bdl-codegen-rust::targets::Entry`),
+the Arduino base with the Nano's board table (D3/D11 on timer 2, D5/D6 on timer
+0, D9/D10 on timer 1), a blocking `tick_wait` loop over `avr-hal` with no
+Embassy, 8-bit PWM natively, no collection arena (a `bounded` design is refused,
+`adapter.collections_unsupported`), software `f64` on the AVR, a nightly-only
+build (`--target avr-none -Zbuild-std=core`) cross-built in CI
+(`BDL_REQUIRE_AVR=1`); the plan, the glue and the host's recorded operations are
+family-independent. No flash, telemetry or build orchestration exists (roadmap
+priorities 2–4; a third family is priority 5). The formal development has no
+theorem about any of it beyond Phase 15's `AdapterOp`, which models the
+operation, not the code.
 
 ## What this page never says
 
