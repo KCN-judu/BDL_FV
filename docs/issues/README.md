@@ -37,7 +37,7 @@ The items were carried in the _Open items_ list at the end of the report until
 | [FVI-0019](019-display-name-table-for-concepts.md)                                           | Display-name table for concepts                                                                                              | open  | surface    | 2026-09-15 | —                  |
 | [FVI-0020](020-source-provision-stateful-transducers-a-device-clock-commitment.md)           | Source provision: stateful transducers, a device clock, commitment discharge, output provision                               | open  | surface    | 2026-09-20 | PRP-0001, ISS-0016 |
 | [FVI-0021](021-unit-domain-normalization-elim-beyond-canonical-types-the-input.md)           | Unit-domain normalization: `elim` beyond canonical types; the `Input` narrowing                                              | open  | surface    | 2026-09-18 | ADR-0029           |
-| [FVI-0022](022-output-realization-stateful-adapters-a-device-clock-atomic-frames-codegen.md) | Output realization: stateful adapters, a device clock, atomic multi-value frames, codegen correspondence, output commitments | open  | surface    | 2026-09-20 | ISS-0016           |
+| [FVI-0022](022-output-realization-stateful-adapters-a-device-clock-atomic-frames-codegen.md) | Output realization: stateful adapters, a device clock, atomic multi-value frames, codegen correspondence, output commitments | open  | surface    | 2026-09-20 | ISS-0016, ISS-0017 |
 
 ## Resolved
 

@@ -123,3 +123,64 @@ the note of the original 2026-09 draft.
 - `paper/README.md` and `main.typ` describe the monograph pipeline; the
   ACM-era description is gone. `archive/` keeps the conference manuscript as
   submitted.
+
+## Phase 14 as one physical boundary and the production snapshot `6be778b` (2026-09-20, later revision)
+
+- **Phase 14 integrated and hardened.** Output realization by device encoders
+  is written into the physical-boundary chapter as the output half of one
+  story rather than an addendum: the logical Output stays behavior semantics;
+  realization is deployment structure below it — a pure encoder
+  `Rep(C) -> Raw` typed in the empty design under no grant, `EFits`, and a
+  machine sink added by a lowering that leaves the behavior environment and
+  every trace literally unchanged; multiple realizations of one output;
+  quantizing encoders admitted; the `RawCommand` relation as the machine
+  boundary. The hardening result is the current truth: admissibility is the
+  encoder's typing ∧ fit ∧ a solvable board (FVD-0139 supersedes FVD-0137), and
+  "fits + allocates" is recorded as the rejected criterion, never repeated as
+  current.
+- **The physical boundary as one whole.** A new section draws the chain from
+  the environment through provision, the behavior, the logical Output,
+  realization, the raw command, the platform adapter, to the physical world,
+  with a table stating per arrow what is formally modelled, formally proved,
+  production-implemented, production-tested and still open. The two halves are
+  presented as symmetric in kind and asymmetric in construction and in status:
+  the input side proved and not built, the output side proved and built
+  through the raw command, the last arrow built and not proved (FVI-0022,
+  ISS-0017).
+- **Production snapshot moved** from `de8154f` to
+  `6be778b07f07bebaba26f580f2b4af74a13ce9df` (protocol 0.24), pinned in
+  `docs/project/production-correspondence.md` first and cited from the front
+  matter, Appendix F and the title page: output realization implemented
+  (ADR-0036: profiles, three-judgment admissibility, plan-level sinks,
+  `Tick.commands`); the first embedded platform adapter on the Raspberry Pi
+  Pico over Embassy (ADR-0037) described at production-test strength only —
+  generated glue and firmware, the solver's pad per sink, the explicit
+  reject-and-hold `duty8` policy, the compiled schedule, halt on fault, the
+  cross-build in CI; the Source sheet (0.23); the Code view as an IDE surface
+  (0.22); `drive light by brightness` as the current spelling with the `=`
+  form as legacy syntax.
+- **Design position.** BDL is stated as a behavior-design medium for
+  interactive physical products — sensing, timing, computation and physical
+  response crossing in one artifact — and the industrial-design question is
+  framed as whether such behavior can become a design material before
+  implementation dominates the representation; a general software-interaction
+  language is explicitly out of scope. Nothing about designer cognition is
+  claimed.
+- **Studio/IDE and toolchain snapshot refreshed**: the Code view's completion,
+  hover, navigation, references and format; the Source sheet with presets; the
+  Deploy page's realization chooser; the adapter's crates and the target plan;
+  the pipeline diagram with admissibility, sink lowering and adapter
+  generation.
+- **Correspondence, indexes, agenda.** New rows for output realization, the
+  generated commands and the platform adapter, with their deviations (the
+  plan-level lowering; the third numeric domain at the boundary; tested-not-
+  proved); the decision index marks FVD-0137 superseded and links the Phase 14
+  records to ADR-0036/0037 and ISS-0017; the theorem index re-verified against
+  the Lean sources; the open agenda split into formal questions, production
+  engineering work and empirical questions, the last extended with the
+  reverse-readability question and the industrial-design study questions;
+  the counts (phases, modules, theorems, decisions, items) derived from the
+  repository.
+- **Mirror policy.** `paper/README.md` states that this directory is the
+  canonical monograph source and that `KCN-judu/BDL/reference/paper/` is a
+  reference mirror that does not evolve independently.

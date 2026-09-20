@@ -6,7 +6,7 @@ area: surface
 opened: 2026-09-20
 resolved-by: []
 related: [FVI-0020]
-production: [ISS-0016]
+production: [ISS-0016, ISS-0017]
 ---
 
 # FVI-0022: Output realization: stateful adapters, a device clock, atomic multi-value frames, codegen correspondence, output commitments

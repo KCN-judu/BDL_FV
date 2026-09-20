@@ -53,3 +53,16 @@ bundled Libertinus family.
 - Theorem names are Lean identifiers and never change to track a document id.
 - Every substantive claim carries one of the strength labels of the front
   matter.
+
+## Canonical source and the production mirror
+
+There is one BDL monograph. Its canonical source is this directory,
+`KCN-judu/BDL_FV/paper/`: `paper.md` is the only file whose prose is edited,
+and `body.typ` and the PDF are generated from it here. The production
+repository `KCN-judu/BDL` may carry a copy under `reference/paper/` as a
+reference mirror for readers of that repository. The mirror is a copy of a
+committed revision of this directory, refreshed after a revision lands here; it
+is never edited in place, never carries prose this directory does not, and is
+not a second authority — a change proposed against the mirror is made here and
+mirrored, not the other way round. Nothing in the production repository decides
+what the monograph says; production's own records (`docs/`) are cited by it.

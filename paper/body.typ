@@ -7258,9 +7258,13 @@ this document that discusses it, the Lean files that carry its evidence,
 and the production record it supports, audits or bears on. The records
 themselves --- choice, alternatives rejected, formal reason --- are
 `docs/decisions/` in the formal repository; the map from the retired
-ledger numbers is Appendix E. Status is #emph[accepted] for every
-record; FVD-0106 carries a Phase-10b amendment and FVD-0098 records the
-partial reversal of FVD-0090's `lt` generalisation.
+ledger numbers is Appendix E. Status is #emph[accepted] for every record
+except FVD-0137, superseded by FVD-0139 in the Phase 14 hardening
+(fit-and-allocate is not admissibility); FVD-0106 carries a Phase-10b
+amendment, FVD-0050 a Phase-14 amendment (the #emph[logical output]
+reading), FVD-0136 a hardening amendment (a decision, not a theorem),
+and FVD-0098 records the partial reversal of FVD-0090's `lt`
+generalisation.
 
 #figure(
   align(center)[#table(
@@ -7762,33 +7766,37 @@ partial reversal of FVD-0090's `lt` generalisation.
     mechanism is deployment data, never part of
     `OutputSpec`], [accepted], [Part IX], [Phase 14:
     `Surface/OutputRealization`,
-    `Experiments/OutputRealizationExamples`], [ADR-0015 (supports)],
+    `Experiments/OutputRealizationExamples`], [ADR-0015 (supports),
+    ADR-0036 (supports)],
     [FVD-0132], [Output realization is a lowering that adds an encoder
     declaration and a machine sink; the logical output is never
     retargeted], [accepted], [Part IX], [Phase 14], [ADR-0015
-    (supports)],
+    (supports), ADR-0036 (supports)],
     [FVD-0133], [An encoder is pure, consumes the representation, and
     constructs nothing], [accepted], [Part IX], [Phase 14], [ADR-0005
-    (supports)],
+    (supports), ADR-0036 (supports)],
     [FVD-0134], [The machine boundary is the `RawCommand` relation; no
     effectful `R -> ()` term exists], [accepted], [Part IX], [Phase
-    14], [ADR-0016 (supports)],
+    14], [ADR-0016 (supports), ADR-0036 (supports), ADR-0037
+    (supports)],
     [FVD-0135], [Output correspondence is directional; no injectivity,
     exactness or round-trip is required], [accepted], [Part IX], [Phase
-    14], [---],
+    14], [ADR-0036 (supports)],
     [FVD-0136], [The singleton output realization is primitive; a shared
     device batches per tick or is combined upstream], [accepted], [Part
-    IX], [Phase 14], [---],
+    IX], [Phase 14], [ISS-0017 (bears-on)],
     [FVD-0137], [Hardware requirements are a validation judgment
     separate from the encoder], [superseded by FVD-0139], [Part
-    IX], [Phase 14], [ADR-0015 (supports)],
+    IX], [Phase 14], [ADR-0015 (supports), ADR-0036 (supports)],
     [FVD-0138], [The machine sink is in the output's clock; a device
     clock is an explicit `sync`\; a carrier frequency is not a
-    `ClockId`], [accepted], [Part IX], [Phase 14], [---],
+    `ClockId`], [accepted], [Part IX], [Phase 14], [ADR-0037 (supports),
+    ISS-0017 (bears-on)],
     [FVD-0139], [Deployment admissibility is the encoder's typing, its
     fit and a solvable board; the narrow fit-and-allocate predicate is
     not admissibility], [accepted (supersedes FVD-0137)], [Part
-    IX], [Phase 14 hardening], [ADR-0015 (supports)],
+    IX], [Phase 14 hardening], [ADR-0015 (supports), ADR-0036
+    (supports)],
   )]
   , kind: table
   )

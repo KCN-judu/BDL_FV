@@ -2304,10 +2304,10 @@ Every formal design decision by its stable identifier, with the Part of this doc
 | FVD-0132 | Output realization is a lowering that adds an encoder declaration and a machine sink; the logical output is never retargeted | accepted | Part IX | Phase 14 | ADR-0015 (supports), ADR-0036 (supports) |
 | FVD-0133 | An encoder is pure, consumes the representation, and constructs nothing | accepted | Part IX | Phase 14 | ADR-0005 (supports), ADR-0036 (supports) |
 | FVD-0134 | The machine boundary is the `RawCommand` relation; no effectful `R -> ()` term exists | accepted | Part IX | Phase 14 | ADR-0016 (supports), ADR-0036 (supports), ADR-0037 (supports) |
-| FVD-0135 | Output correspondence is directional; no injectivity, exactness or round-trip is required | accepted | Part IX | Phase 14 | —, ADR-0036 (supports) |
-| FVD-0136 | The singleton output realization is primitive; a shared device batches per tick or is combined upstream | accepted | Part IX | Phase 14 | —, ISS-0017 (bears-on) |
+| FVD-0135 | Output correspondence is directional; no injectivity, exactness or round-trip is required | accepted | Part IX | Phase 14 | ADR-0036 (supports) |
+| FVD-0136 | The singleton output realization is primitive; a shared device batches per tick or is combined upstream | accepted | Part IX | Phase 14 | ISS-0017 (bears-on) |
 | FVD-0137 | Hardware requirements are a validation judgment separate from the encoder | superseded by FVD-0139 | Part IX | Phase 14 | ADR-0015 (supports), ADR-0036 (supports) |
-| FVD-0138 | The machine sink is in the output's clock; a device clock is an explicit `sync`; a carrier frequency is not a `ClockId` | accepted | Part IX | Phase 14 | —, ADR-0037 (supports), ISS-0017 (bears-on) |
+| FVD-0138 | The machine sink is in the output's clock; a device clock is an explicit `sync`; a carrier frequency is not a `ClockId` | accepted | Part IX | Phase 14 | ADR-0037 (supports), ISS-0017 (bears-on) |
 | FVD-0139 | Deployment admissibility is the encoder's typing, its fit and a solvable board; the narrow fit-and-allocate predicate is not admissibility | accepted (supersedes FVD-0137) | Part IX | Phase 14 hardening | ADR-0015 (supports), ADR-0036 (supports) |
 
 # Appendix D — Evidence-strength ledger

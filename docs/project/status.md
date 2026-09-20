@@ -19,7 +19,7 @@ about the production repository.
 | Build                     | `lake build` — 60 jobs, clean                                                                                                                                                                                                                                          |
 | `sorry`                   | none in `BDL/`                                                                                                                                                                                                                                                         |
 | Axioms                    | `propext` and `Quot.sound` (the latter through `funext` and standard `simp` lemmas); no `Classical.choice`. Spot-checked with `#print axioms` on `local_refinement_preserves_global_typing` / `_wf` (`propext` only); each report states the base for its own theorems |
-| Theorem-like declarations | ≈1 275 `theorem`/`lemma` lines across 57 files ([layout.md](../kernel/layout.md))                                                                                                                                                                                      |
+| Theorem-like declarations | 1 255 `theorem`/`lemma` declarations across 57 files, counted by a grep for lines beginning with either keyword ([layout.md](../kernel/layout.md))                                                                                                                     |
 
 ## Phases
 
