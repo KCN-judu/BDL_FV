@@ -1,7 +1,7 @@
 ---
 id: FVI-0009
 legacy-id: OI-09
-state: open
+state: deferred
 area: behavior
 opened: 2026-09-15
 resolved-by: []
@@ -18,4 +18,6 @@ untested.
 
 ## Resolution
 
-Open.
+Deferred (2026-09-20): blocked on production's surface having temporal modifiers
+and contexts at all (ISS-0010); until a handler with its own clock can be
+written, there is nothing to test.

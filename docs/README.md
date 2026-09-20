@@ -43,7 +43,7 @@ One folder per kind of record; every page carries a header that
 
 | Page                                  | What it fixes                                                                                                 |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [kernel.md](kernel/kernel.md)         | the cumulative kernel after Phase 14: objects, judgments, primitives, the refinement/edit split               |
+| [kernel.md](kernel/kernel.md)         | the cumulative kernel after Phase 15: objects, judgments, primitives, the refinement/edit split               |
 | [layout.md](kernel/layout.md)         | every Lean file and the definitions and theorems it holds                                                     |
 | [minimality.md](kernel/minimality.md) | every construct ever proposed with its verdict: kernel · surface · library · validation · UI · defer · remove |
 
@@ -65,14 +65,20 @@ One folder per kind of record; every page carries a header that
   are nominal sinks with a write-once drive edge and one global single-driver
   invariant; hardware feasibility is a separate decidable validation. Everything
   else — behaviours, groups, buffers, the equation library, units, charts,
-  natural binders, the unit domain, Source provision, output realization — is a
-  construction over designs proved to preserve the kernel's judgments.
-- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14 complete; 139
-  decisions; 22 open items (17 open). Build clean on Lean 4.33.1, no `sorry`,
-  `propext`/`Quot.sound` only.
+  natural binders, the unit domain, Source provision, output realization, the
+  adapter boundary and the device clock — is a construction over designs proved
+  to preserve the kernel's judgments.
+- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15 complete; 142
+  decisions; 28 items: 8 open, 9 deferred, 11 resolved. Build clean on Lean
+  4.33.1, no `sorry`, `propext`/`Quot.sound` only.
 - **Not started:** Phase 8c (surface elaboration of the remaining
   designer-facing forms, executable semantics); the final minimality audit.
-- **Recently changed:** Phase 14 — output realization by device encoders, the
+- **Recently changed:** the audit of every open item against Phases 8a–14 and
+  production `6be778b` (eleven resolved, deferred or merged; FVI-0022 split into
+  FVI-0023 … FVI-0027; FVI-0011 narrowed, FVI-0028 split off) and Phase 15 — the
+  adapter boundary (policy, operation, line; `adapter_of_sink`) and the explicit
+  device clock (`lowerSync_correspondence`); no stateful realization primitive
+  (`exE_slew`); Phase 14 — output realization by device encoders, the
   output-side dual of Source provision: a logical output is semantic intent, the
   mechanism (PWM / GPIO / I²C / UART) is a deployment lowering that adds a pure
   encoder and a machine sink and changes nothing the behaviour observes; the

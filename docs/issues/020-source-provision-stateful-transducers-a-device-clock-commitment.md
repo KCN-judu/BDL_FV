@@ -9,15 +9,25 @@ related: []
 production: [PRP-0001, ISS-0016]
 ---
 
-# FVI-0020: Source provision: stateful transducers, a device clock, commitment discharge, output provision
+# FVI-0020: Source provision: stateful transducers, a device clock, commitment discharge
 
 ## Problem
 
 Source provision (Phase 13): stateful transducers (memory in `tr`) and a
 transparency theorem over streams; a device clock with a deployment `sync`;
-commitment discharge by profile ranges (`hcomm`); output provision (the dual);
-whether `computes` is checked or trusted; out-of-type raw readings as a
-validation question.
+commitment discharge by profile ranges (`hcomm`); whether `computes` is checked
+or trusted; out-of-type raw readings as a validation question. ~~Output
+provision (the dual)~~ — answered by Phase 14: output realization is a lowering,
+not a provision.
+
+## Audit (2026-09-20)
+
+Production's first adapter refuses a design with a Source
+(`adapter.inputs_unbound`, ADR-0037) and ISS-0016 (a device binding for a
+Source) is still open, so the Source-side questions are blocked on the same
+production evidence Phase 13 was: no device provides a Source yet. Phase 15's
+explicit device clock for outputs (`lowerSync`) is the shape the Source-side
+device clock would take in reverse.
 
 ## Resolution
 

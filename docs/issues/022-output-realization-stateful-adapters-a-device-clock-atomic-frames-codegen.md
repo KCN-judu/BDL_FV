@@ -1,12 +1,13 @@
 ---
 id: FVI-0022
 legacy-id:
-state: open
+state: resolved
 area: surface
 opened: 2026-09-20
-resolved-by: []
-related: [FVI-0020]
-production: [ISS-0016, ISS-0017]
+resolved-by:
+  [docs/reports/phase-15-the-adapter-boundary-and-the-explicit-device-clock.md]
+related: [FVI-0023, FVI-0024, FVI-0025, FVI-0026, FVI-0027]
+production: [ISS-0017]
 ---
 
 # FVI-0022: Output realization: stateful adapters, a device clock, atomic multi-value frames, codegen correspondence, output commitments
@@ -57,4 +58,12 @@ of ISS-0016's device model); the first platform adapter.
 
 ## Resolution
 
-Open.
+Resolved (2026-09-20) by splitting: the five questions have different answers
+and different states. FVI-0023 (raw command → adapter operation) — answered in
+Phase 15 up to the abstract sink operation and the line (`Adapter.lean`);
+FVI-0024 (explicit device clock) — answered in Phase 15 by the `sync` lowering
+(`DeviceClock.lean`); FVI-0025 (stateful adapters) — Phase 15 classifies the
+representative cases and finds no non-encodability witness, open for the
+remaining classes; FVI-0026 (atomic multi-value frames) — open; FVI-0027 (output
+commitments) — deferred. See the
+[Phase 15 report](../reports/phase-15-the-adapter-boundary-and-the-explicit-device-clock.md).

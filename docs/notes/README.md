@@ -24,3 +24,4 @@ Nine notes were top-level files until 2026-09-20
 | [Unit-domain normalization and the source boundary — design note (Phase 12)](unit-domain-normalization.md)                              | 12    | surface  | 2026-09-18 |
 | [Source provision by device transducers — formal audit of PRP-0001 (Phase 13)](source-provision-by-device-transducers.md)               | 13    | surface  | 2026-09-20 |
 | [Output realization by device encoders — the output-side dual of Source provision (Phase 14)](output-realization-by-device-encoders.md) | 14    | surface  | 2026-09-20 |
+| [The adapter boundary and the device clock (Phase 15)](the-adapter-boundary-and-the-device-clock.md)                                    | 15    | surface  | 2026-09-20 |

@@ -1,7 +1,7 @@
 ---
 id: FVI-0014
 legacy-id: OI-14
-state: open
+state: deferred
 area: surface
 opened: 2026-09-14
 resolved-by: []
@@ -18,4 +18,7 @@ convenience over a write-once kernel realization.
 
 ## Resolution
 
-Open.
+Deferred (2026-09-20): no current use case. Production's definition drafts
+(protocol 0.15) are unfinished text of one definition, not alternatives; a
+relationship has one realization and the kernel's write-once realization is not
+weakened. Reopen with ISS-0002 if production wants alternatives.

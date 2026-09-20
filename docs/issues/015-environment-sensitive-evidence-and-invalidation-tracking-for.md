@@ -1,11 +1,11 @@
 ---
 id: FVI-0015
 legacy-id: OI-15
-state: open
+state: deferred
 area: core
 opened: 2026-09-14
 resolved-by: []
-related: []
+related: [FVI-0001]
 production: [ISS-0003]
 ---
 
@@ -17,4 +17,6 @@ Environment-sensitive evidence and invalidation tracking for edits.
 
 ## Resolution
 
-Open.
+Deferred (2026-09-20): merged into FVI-0001 — the same boundary (evidence that
+depends on other declarations, hence invalidated by edits), blocked on
+production authoring any commitment.
