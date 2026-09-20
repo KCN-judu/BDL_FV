@@ -24,10 +24,12 @@ added; no effectful `R -> ()` exists (Phase 12 `consumers_indistinguishable`).
   accepted concept's representation (or the accepted data type).
 * `Realization` — the logical output `o`, its driver `d`, a fresh machine
   sink `p` and a fresh encoder declaration `e`, and the encoder.
-* **Model B, the specification**: `RawCommand` — the command sink `p`
-  receives at tick `t` is `transfer` of what `o` carries (`PhysicalOutput`),
-  stated on the *unchanged* design.  The machine boundary is this relation,
-  not a term.
+* **Model B, the specification**: `RawCommand` — the command *specified*
+  for realization `R` at tick `t`: `transfer` of what the logical output `o`
+  carries (`PhysicalOutput`), stated on the *unchanged* design.  The machine
+  sink `p` does not occur in it; that `p` carries exactly this command in
+  the lowered design is the theorem `lower_correspondence`, not the
+  definition.  The machine boundary is this relation, not a term.
 * **Model C, the lowering**: `lowerΔ`/`lowerΩ`/`lowerβ`/`lowerΚ` — `e :=
   encode (rep d)` at `raw`, `p` accepts `raw` in `o`'s clock, `e` drives
   `p`; `o`, `d`, `β d = o` and every other declaration are untouched.
@@ -45,9 +47,13 @@ value), `lower_envRefines`, `lower_driveWF`, `lower_singleDriver`,
 exactly the specified raw command: `raw trace = transfer ∘ abstract trace`),
 `output_value_typed` (the abstract value is a typed representation value in
 a well-formed causal design), `encoder_constructs_nothing` /
-`encoder_decl_no_grant` (the nominality boundary), `two_realizations_same_behavior`
-(platform independence), `lower_comm`, `admissible` (fit + solvable
-requirements).
+`encoder_decl_no_grant` (the nominality boundary),
+`two_realizations_same_behavior` (the formal side of platform independence:
+the same evaluation of every pre-existing term under the theorem's
+freshness and input hypotheses — nothing about a compiler, a backend or a
+board), `lower_comm`, `Admissible` (well-typed encoder + fit + solvable
+requirements; `FitsAndAllocates` is the strictly weaker predicate without
+the typing, kept only to show the gap: `admissible_needs_wf`).
 -/
 
 namespace BDL.OutputRealization
@@ -76,9 +82,16 @@ structure Encoder where
   encode_pure : encode.Pure
   computes : ∀ v, TyVal rep v → Transduces encode v (transfer v)
 
-/-- Typed in the empty design under no grant: `rep -> raw`. -/
+/-- Typed in the empty design under no grant: `rep -> raw`.  Not part of
+    the structure: an `Encoder` value may carry a term of another type
+    (`computes` only relates the term to `transfer`), which is why
+    `Admissible` demands `WF` explicitly. -/
 def Encoder.WF (Θ : ConceptEnv) (E : Encoder) : Prop :=
   HasType Θ DeclEnv.empty Grant.none [] E.encode (.arr E.rep E.raw)
+
+instance (Θ : ConceptEnv) (E : Encoder) : Decidable (E.WF Θ) :=
+  decidable_of_iff (infer Θ DeclEnv.empty Grant.none [] E.encode = some (.arr E.rep E.raw))
+    ⟨infer_sound, infer_complete⟩
 
 /-- `EFits Θ accepts E`: at `sem c` the encoder consumes `c`'s
     representation; at a data type the types coincide.  Decidable. -/
@@ -140,10 +153,13 @@ def encoderBody (accepts : Ty) (encode : Expr) (d : DeclId) : Expr :=
 
 /-! ### Model B — the specification (nothing changes) -/
 
-/-- **The raw command** sink `p` receives at tick `t`: the encoder's
-    transfer applied to what the logical output carries.  A relation on the
-    *unchanged* design; the backend that consumes it is outside the
-    semantics.  This — not an `R -> ()` term — is the machine boundary. -/
+/-- **The raw command specified for realization `R` at tick `t`**: the
+    encoder's transfer applied to what the logical output `o` carries.  A
+    relation on the *unchanged* design in which the machine sink `p` does
+    not occur — it says what the command *is*, not who receives it; that the
+    lowered design's `p` carries exactly this value is `lower_correspondence`.
+    The backend that consumes the command is outside the semantics.  This
+    relation — not an `R -> ()` term — is the machine boundary. -/
 def RawCommand (S : Sched) (Δ : DeclEnv) (I : Input) (Ω : OutputEnv) (β : DriveEnv) (R : Realization)
     (t : Nat) (w : Value) : Prop :=
   ∃ spec v, Ω R.o = some spec ∧ PhysicalOutput S Δ I Ω β R.o t v ∧ w = R.E.transfer (unwrapAt spec.accepts v)
@@ -657,19 +673,51 @@ structure DeviceOutputProfile where
   E : Encoder
   requirements : Requirements
 
-/-- A profile is admissible for an output on a board when the encoder fits
-    the accepted type and the board can carry the requirements. -/
-def Admissible (Θ : ConceptEnv) (accepts : Ty) (H : Hardware) (P : DeviceOutputProfile) : Prop :=
+/-- The narrow predicate: the encoder *fits* the accepted type and the
+    board can carry the requirements.  It does **not** say the encoder is
+    typed `rep -> raw`; it is kept only to state the gap
+    (`admissible_needs_wf`, `exJ`). -/
+def FitsAndAllocates (Θ : ConceptEnv) (accepts : Ty) (H : Hardware) (P : DeviceOutputProfile) : Prop :=
   EFits Θ accepts P.E ∧ (solve H P.requirements).isSome
 
 instance (Θ : ConceptEnv) (accepts : Ty) (H : Hardware) (P : DeviceOutputProfile) :
-    Decidable (Admissible Θ accepts H P) :=
+    Decidable (FitsAndAllocates Θ accepts H P) :=
   inferInstanceAs (Decidable (EFits Θ accepts P.E ∧ (solve H P.requirements).isSome))
 
-/-- Admissibility gives a valid assignment (Phase 7's soundness) and a fit;
-    it says nothing electrical. -/
+/-- **Deployment admissibility** of a profile for an output on a board: the
+    encoder is well typed `rep -> raw` under no grant, it fits the accepted
+    type, and the board can carry the device's requirements.  Three
+    judgments — typing, fit, allocation — none of which sees the others.
+    Nothing electrical, thermal or timing-related is claimed. -/
+def Admissible (Θ : ConceptEnv) (accepts : Ty) (H : Hardware) (P : DeviceOutputProfile) : Prop :=
+  P.E.WF Θ ∧ EFits Θ accepts P.E ∧ (solve H P.requirements).isSome
+
+instance (Θ : ConceptEnv) (accepts : Ty) (H : Hardware) (P : DeviceOutputProfile) :
+    Decidable (Admissible Θ accepts H P) :=
+  inferInstanceAs (Decidable (P.E.WF Θ ∧ EFits Θ accepts P.E ∧ (solve H P.requirements).isSome))
+
+theorem Admissible.toFitsAndAllocates {Θ : ConceptEnv} {accepts : Ty} {H : Hardware} {P : DeviceOutputProfile}
+    (h : Admissible Θ accepts H P) : FitsAndAllocates Θ accepts H P :=
+  ⟨h.2.1, h.2.2⟩
+
+/-- **`admissible_needs_wf`**: the narrow predicate plus the encoder's
+    typing is admissibility, and nothing less is — a profile whose encoder
+    fits and whose device allocates but whose term is not `rep -> raw` is
+    not admissible (`exJ` exhibits one). -/
+theorem admissible_needs_wf {Θ : ConceptEnv} {accepts : Ty} {H : Hardware} {P : DeviceOutputProfile} :
+    Admissible Θ accepts H P ↔ P.E.WF Θ ∧ FitsAndAllocates Θ accepts H P :=
+  ⟨fun h => ⟨h.1, h.2.1, h.2.2⟩, fun h => ⟨h.1, h.2.1, h.2.2⟩⟩
+
+/-- Admissibility gives a well-typed encoder, a fit and a valid assignment
+    (Phase 7's soundness); it says nothing electrical. -/
 theorem admissible_satisfiable {Θ : ConceptEnv} {accepts : Ty} {H : Hardware} {P : DeviceOutputProfile}
-    (h : Admissible Θ accepts H P) : EFits Θ accepts P.E ∧ HardwareSatisfiable H P.requirements :=
-  ⟨h.1, satisfiable_iff_solve.mpr h.2⟩
+    (h : Admissible Θ accepts H P) :
+    P.E.WF Θ ∧ EFits Θ accepts P.E ∧ HardwareSatisfiable H P.requirements :=
+  ⟨h.1, h.2.1, satisfiable_iff_solve.mpr h.2.2⟩
+
+/-- An admissible profile's encoder is the `WF` that `Realization.WF`
+    demands: admissibility is what a realization may be built from. -/
+theorem Admissible.enc_wf {Θ : ConceptEnv} {accepts : Ty} {H : Hardware} {P : DeviceOutputProfile}
+    (h : Admissible Θ accepts H P) : P.E.WF Θ := h.1
 
 end BDL.OutputRealization

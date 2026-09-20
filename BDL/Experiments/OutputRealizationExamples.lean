@@ -374,6 +374,37 @@ theorem exH_admissible :
     ¬ Admissible Θ (.sem SwitchState) HardwareCase.nano pwmProfile := by
   refine ⟨by decide, by decide, by decide⟩
 
+/-! ## J — fit and allocation are not admissibility -/
+
+/-- An `Encoder` value whose term is *not* `rep -> raw`: it claims
+    `Q0 -> Q0` but the term is `λn. true : Q0 -> bool`.  `computes` still
+    holds (the term computes `transfer`), the representation fits the light
+    and one PWM line allocates — and the profile is not admissible, because
+    `Encoder.WF` fails.  This is why `Admissible` cannot be the narrow
+    `FitsAndAllocates`. -/
+def illTyped : Encoder where
+  rep := Q0
+  raw := Q0
+  encode := .lam Q0 (.boolLit true)
+  transfer := fun _ => .bool true
+  rep_semFree := trivial
+  rep_data := trivial
+  raw_semFree := trivial
+  raw_data := trivial
+  encode_pure := trivial
+  computes := by rintro v ⟨n, rfl⟩; exact .appClo .lam (.refInput rfl) .boolLit
+
+def illTypedProfile : DeviceOutputProfile := ⟨illTyped, [⟨⟨0⟩, .pwm, none, none⟩]⟩
+
+theorem exJ :
+    FitsAndAllocates Θ (.sem Brightness) HardwareCase.nano illTypedProfile ∧
+    ¬ illTyped.WF Θ ∧
+    ¬ Admissible Θ (.sem Brightness) HardwareCase.nano illTypedProfile ∧
+    -- and the well-typed profiles are admissible in the full sense
+    Admissible Θ (.sem Brightness) HardwareCase.nano pwmProfile ∧
+    Admissible Θ (.sem Brightness) HardwareCase.nano i2cProfile := by
+  refine ⟨by decide, by decide, by decide, by decide, by decide⟩
+
 /-! ## I — Model A and an implicit clock crossing, refuted executably -/
 
 /-- Retargeting the light's accepted type to the duty type: the existing
