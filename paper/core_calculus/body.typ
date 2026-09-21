@@ -230,24 +230,32 @@ whether a realization is present. That an input is "a relationship
 realized by the world" is not a metaphor here --- it is exactly how the
 semantics of §6 reads it.
 
-The levels are worth naming once, because the words #emph[concept] and
-#emph[value] are easy to conflate. A #strong[concept] is a #emph[type]:
-`Brightness` names a nominal type
-$upright("sem") thick italic(B r i g h t n e s s)$ (§5) and is a
-template that has no value of its own. A declaration of that type,
-`light : Brightness`, is an #emph[instance] of the concept --- one value
-at each tick --- and its realization, when present, is the one thing
-that produces that value. A relationship with inputs is a template of
-another kind: a function applied wherever a declaration's realization
-names it. Several declarations of one concept are ordinary
-(`sensorA : Temperature`, `sensorB : Temperature`,
+In type-theoretic terms the whole design state is a #emph[global
+environment] of named constants, and that is the vocabulary the rest of
+the paper uses. A #strong[concept] is a #emph[nominal base type]: a type
+constant $C$, distinct from every other by name, whose values are formed
+by an injection $upright("sem") thick C$ from a representation type $R$
+that the environment $Theta$ binds to it --- an abstract type with a
+private constructor (§5). A #strong[declaration] is a #emph[typed
+constant] $delta : tau$ in the global environment $Delta$, with an
+optional #emph[definiens]: exactly a proof assistant's `Parameter`
+before its `Definition`, except that here the parameter state is the
+normal one and giving the definiens is the design step. A declaration of
+base type, $delta : upright("sem") thick C$, is one #emph[inhabitant] of
+the concept --- one value at each tick --- and its definiens, when
+present, is the one term that produces that value; a declaration without
+a definiens is an #emph[axiom] the environment discharges (the product's
+#emph[Source]). A declaration of function type is a template applied
+wherever another definiens names it. Several constants of one base type
+are ordinary (`sensorA : Temperature`, `sensorB : Temperature`,
 `roomTemp : Temperature := if available then sensorA else sensorB`); a
-term refers to a declaration by identity and never to a concept, so
-nothing is ever resolved "by concept". In the product this ladder is
-spoken as concept (the template), #emph[Sem block] (an instance) and
-#emph[mapping block] (its realization); the calculus needs only
-#emph[concept] and #emph[declaration], and the identity of a concept is
-a $upright("ConceptId")$.
+term refers to a constant by name and never to a type, so nothing is
+ever resolved "by concept". The product speaks the same ladder as
+#emph[concept] (the type), #emph[Sem block] (a constant of concept type,
+holding one value) and #emph[mapping block] (its definiens); the
+calculus needs only #emph[type], #emph[constant] and #emph[definiens],
+and it keeps the product's word #emph[relationship] for a constant read
+as a design object.
 
 == Unrealized but usable
 <unrealized-but-usable>
