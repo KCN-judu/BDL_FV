@@ -43,7 +43,7 @@ One folder per kind of record; every page carries a header that
 
 | Page                                  | What it fixes                                                                                                 |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [kernel.md](kernel/kernel.md)         | the cumulative kernel after Phase 20: objects, judgments, primitives, the refinement/edit split               |
+| [kernel.md](kernel/kernel.md)         | the cumulative kernel after Phase 21: objects, judgments, primitives, the refinement/edit split               |
 | [layout.md](kernel/layout.md)         | every Lean file and the definitions and theorems it holds                                                     |
 | [minimality.md](kernel/minimality.md) | every construct ever proposed with its verdict: kernel · surface · library · validation · UI · defer · remove |
 
@@ -68,13 +68,21 @@ One folder per kind of record; every page carries a header that
   natural binders, the unit domain, Source provision, output realization, the
   adapter boundary and the device clock — is a construction over designs proved
   to preserve the kernel's judgments.
-- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
-  complete; 162 decisions; 30 items: 7 open, 9 deferred, 14 resolved. Build
-  clean on Lean 4.33.1, no `sorry`, `propext`/`Quot.sound` only.
+- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+  20, 21 complete; 163 decisions; 30 items: 7 open, 9 deferred, 14 resolved.
+  Build clean on Lean 4.33.1, no `sorry`, `propext`/`Quot.sound` only.
 - **Not started:** Phase 8c (surface elaboration of the remaining
   designer-facing forms, executable semantics); the final minimality audit.
-- **Recently changed:** Phase 20 — one producer per concept: `ProducerUnique` as
-  a global invariant beside `SingleDriver` (an origin is a construction outside
+- **Recently changed:** Phase 21 — the Sem-block model: a concept is a type
+  template, a Sem block is a declaration of it with one value per tick and its
+  write-once realization as its one producer (the mapping block), a rule is the
+  template mapping blocks apply; several Sem blocks of one concept are ordinary
+  and every reference is `declRef` to a Sem block (`producedBy_unique`,
+  `reads_iff_dependsOn`, `new_sem_transparent`, `lamp_picture`,
+  `sensors_natural`); FVD-0163 supersedes FVD-0161/0162, `ProducerUnique`
+  becomes an optional judgment in `Validation/` and the concept reference an
+  experiment; Phase 20 — one producer per concept: `ProducerUnique` as a global
+  invariant beside `SingleDriver` (an origin is a construction outside
   initial-value positions, or a Source; relays do not count), preserved by
   refinement (`ProducerUnique.refine`) and by flattening under the boundary rule
   that a shared concept is originated by at most one instance

@@ -25,10 +25,10 @@ lake build
   paper: the kernel of `BDL/Core/` and its metatheory written for a
   programming-languages audience, with the same pipeline
 
-Status: Phases 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15, 16, 17, 18, 19
-and 20 complete; Phase 8c (surface elaboration of the remaining designer-facing
-forms, executable semantics) and the final minimality audit not started —
-[docs/project/status.md](docs/project/status.md).
+Status: Phases 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+20 and 21 complete; Phase 8c (surface elaboration of the remaining
+designer-facing forms, executable semantics) and the final minimality audit not
+started — [docs/project/status.md](docs/project/status.md).
 
 Kernel in one line: `DeclEnv : DeclId → Option DesignDecl`, where a `DesignDecl`
 is a stable id, a `DeclInterface` (expected type + monotone public commitments)

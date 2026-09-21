@@ -159,19 +159,19 @@ production-tested through recording sinks and a cross-build; Phase 15 models
 that step up to the abstract sink operation and the line (FVD-0140) and no
 further (FVI-0023).
 
-Phase 20 (one producer per concept) has no production consumer yet; it asks
-production for a projection change and a diagnostic, not a kernel change: the
-concept block as a value node with one producing edge in and any number of
-reading edges out, an edge from a concept elaborating to the producer's
-declaration identity (`elabS_cref`), "concept produced twice" as a diagnostic of
-the design in the class of two drivers of one output, the composition-level
-boundary rule, and the naming of alternatives as their own concepts — design
-recommendation in
-[one-producer-per-concept.md](../notes/one-producer-per-concept.md) § 5
-(FVD-0161, FVD-0162). ADR-0034 §4's definition of _produces_ (the signature) is
-the formal `SigProduces`; its reference edge relationship → formula line becomes
-concept → formula line under FVD-0162. Phase 19's audit (FVD-0159, FVD-0160,
-superseded) recorded the state before the decision.
+Phase 21 (the Sem-block model) has no production consumer yet; it asks
+production for a projection change only: the canvas draws **Sem blocks** (value
+declarations of a concept — a Source when undefined) and **mapping blocks**
+(their definitions), with one edge from a mapping block into its Sem block and
+one edge from each Sem block a definition reads (`MappingAnalysis.references`,
+unchanged); the concept node disappears and the Concept sheet (ADR-0041) becomes
+the template a Sem block is created from; no diagnostic for two Sem blocks of
+one concept — design recommendation in
+[the-sem-block-model.md](../notes/the-sem-block-model.md) § 5 (FVD-0163).
+ADR-0034's three shapes map onto Sem block + mapping block (_value_), Sem block
+alone (_Source_) and template (_rule_). Phases 19 and 20 (FVD-0159 … FVD-0162,
+superseded) recorded the path to this reading: Phase 20's
+one-producer-per-concept invariant survives as an optional judgment.
 
 Phase 18 (the Source-side boundary) is cited by ISS-0018 as the formal statement
 of what production has not built; its guidance for the in-flight input profile —
