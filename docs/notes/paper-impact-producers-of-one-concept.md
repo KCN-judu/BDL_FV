@@ -28,6 +28,17 @@ relays excluded). Two entries change under that reading: §8.2's `base`, `corr`,
 and the statement "the desired steering angle is a value" is now literally true
 of the concept. The papers are still not revised in this phase.
 
+## Amendment (2026-09-21, Phase 21)
+
+FVD-0163 supersedes FVD-0161/0162: the operative column is again **Under A** — a
+concept is a nominal type, several declarations (Sem blocks) of it are ordinary
+— with the projection corrected: the papers' "a declaration is a value; a
+concept is its type" is exactly the Sem-block model, and the core-calculus
+paper's §8.2 (`base`, `corr`, `final` sharing a concept) stands as written. The
+only revision the papers need is vocabulary, when they are next revised: _Sem
+block_ / _mapping block_ for the canvas objects (monograph Parts III and VI),
+the concept as a template (III.1), and no concept node.
+
 ## 1. The core-calculus paper (`paper/core_calculus/paper.md`)
 
 No theorem statement in the paper becomes false under the result; the changes

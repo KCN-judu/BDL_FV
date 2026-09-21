@@ -31,3 +31,4 @@ Nine notes were top-level files until 2026-09-20
 | [Concepts and their producers (Phase 19)](concepts-and-their-producers.md)                                                              | 19    | experiments | 2026-09-21 |
 | [Paper impact — several producers of one concept (Phase 19)](paper-impact-producers-of-one-concept.md)                                  | 19    | paper       | 2026-09-21 |
 | [One producer per concept (Phase 20)](one-producer-per-concept.md)                                                                      | 20    | core        | 2026-09-21 |
+| [The Sem-block model (Phase 21)](the-sem-block-model.md)                                                                                | 21    | surface     | 2026-09-21 |

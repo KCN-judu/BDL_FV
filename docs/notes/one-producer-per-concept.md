@@ -13,10 +13,18 @@ frozen during Phase 19 — and for the papers. It settles the reading of a
 concept: **one product quantity, one value per tick, one producer**, and what
 follows for the canvas, the checks and the naming of alternatives. Report:
 [Phase 20](../reports/phase-20-one-producer-per-concept.md); decisions FVD-0161,
-FVD-0162; Lean: `BDL/Core/Producer.lean`, `BDL/Behavior/Producer.lean`,
-`BDL/Surface/ConceptRef.lean`, `BDL/Experiments/ProducerUniqueExamples.lean`.
+FVD-0162; Lean: `BDL/Validation/Producer.lean` (moved from `Core/` in Phase 21),
+`BDL/Behavior/Producer.lean`, `BDL/Experiments/ConceptRef.lean` (moved from
+`Surface/` in Phase 21), `BDL/Experiments/ProducerUniqueExamples.lean`.
 Supersedes § 5 of
 [concepts-and-their-producers.md](concepts-and-their-producers.md).
+
+## Amendment (2026-09-21, Phase 21)
+
+FVD-0163 supersedes FVD-0161/0162: the value block is the Sem block (a
+declaration), several Sem blocks of one concept are ordinary, and
+`ProducerUnique` is an optional judgment. The theorems of § 2 stand; § 5 is
+replaced by [the-sem-block-model.md](the-sem-block-model.md) § 5.
 
 ## 1. The question and the answer
 

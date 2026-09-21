@@ -32,16 +32,17 @@ determined (`valueOf_det`). The designs Phase 19 found with several producers �
 Phase 6's composition and priority, Phase 14's re-wrap, Phase 8a's shared lamp —
 are rewritten in the invariant's form with the same executed traces
 (`composition_unique`, `priority_unique`, `rewrap_unique`,
-`private_lamp_unique`). Files: `BDL/Core/Producer.lean`,
-`BDL/Behavior/Producer.lean`, `BDL/Surface/ConceptRef.lean`,
+`private_lamp_unique`). Files: `BDL/Validation/Producer.lean` (moved from
+`Core/` in Phase 21), `BDL/Behavior/Producer.lean`,
+`BDL/Experiments/ConceptRef.lean` (moved from `Surface/` in Phase 21),
 `BDL/Experiments/ProducerUniqueExamples.lean`; decisions FVD-0161 (supersedes
 FVD-0159, FVD-0160), FVD-0162; note:
 [one-producer-per-concept.md](../notes/one-producer-per-concept.md).
 
 ## 20.1 The model
 
-`Core/Producer.lean` (kernel, a global invariant; nothing in `Ty`, `Expr`,
-`HasType`, `Ev`/`MEv` or the grant changes):
+`Validation/Producer.lean` (in Phase 20 `Core/Producer.lean`, a global
+invariant; nothing in `Ty`, `Expr`, `HasType`, `Ev`/`MEv` or the grant changes):
 
 - `Expr.mkSet` — the concepts a term constructs, as a list (`mem_mkSet_iff` with
   `Expr.constructs`, which becomes decidable).

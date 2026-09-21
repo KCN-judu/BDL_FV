@@ -20,7 +20,10 @@ Lean: `BDL/Experiments/ProducerAlternatives.lean`.
 § 1, § 4 and § 5 below record Phase 19's result under FVD-0159/FVD-0160, which
 FVD-0161 supersedes: a concept has **one** producer, as a global invariant, and
 a formula may read a concept by name. The theorems of § 2 stand; the guidance is
-replaced by [one-producer-per-concept.md](one-producer-per-concept.md) § 5.
+replaced by [one-producer-per-concept.md](one-producer-per-concept.md) § 5 —
+itself replaced in Phase 21 by [the-sem-block-model.md](the-sem-block-model.md)
+§ 5 (FVD-0163), which restores this note's kernel reading with the canvas
+drawing declarations.
 
 ## 1. The question and the answer
 
