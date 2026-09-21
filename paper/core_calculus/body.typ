@@ -563,6 +563,28 @@ $sans(i n f e r) thick Theta thick Delta thick G thick Gamma thick e = sans(s o 
 iff $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$\; hence typing is decidable
 and every term has at most one type.
 
+#emph[Proof.] Define $sans(i n f e r)$ by structural recursion on $e$,
+reading each rule of Figure 2 as an equation: a variable looks up
+$Gamma$\; a constant $delta$ looks up $Delta in.rev delta : tau$\; an
+application infers $f$ and $a$ and requires the inferred type of $f$ to
+be an arrow $tau arrow.r sigma$ with $tau$ the inferred type of $a$\;
+$sans(r e p) thick e$ requires the inferred type to be a concept $C$ and
+returns $Theta\(C\)$\; $sans(m k)_C thick e$ requires $C in G$ and the
+inferred type to be $Theta\(C\)$\; a primitive returns its registered
+type. #emph[Soundness] ($sans(i n f e r) = sans(s o m e) thick tau$
+implies a derivation) is by induction on $e$: in each case the
+equation's premises are exactly the rule's premises, and the induction
+hypotheses supply the sub-derivations. #emph[Completeness] (a derivation
+implies $sans(i n f e r)$ returns its type) is by induction on the
+derivation: each rule's premises determine the recursive calls, and the
+side conditions the rule checked are the ones $sans(i n f e r)$ tests.
+Uniqueness follows from completeness: two derivations of $e : tau_1$ and
+$e : tau_2$ give
+$sans(i n f e r) thick e = sans(s o m e) thick tau_1 = sans(s o m e) thick tau_2$.
+Decidability follows from soundness and completeness together, since
+$sans(i n f e r)$ is a total computable function whose result is
+compared with $tau$. $square.stroked.tiny$
+
 Uniqueness matters beyond decidability: it is why the surface language's
 polymorphism can be #emph[matching] rather than unification (§7.2), and
 why a nominal mismatch is reported as "Brightness and Opacity are
@@ -657,6 +679,26 @@ steps, all side conditions checked in $Delta$, relates $h$ to $h'$ iff
 $sans(D e c l L e q) thick h thick h'$ and $h'$ is well formed in
 $Delta$.
 
+#emph[Proof.] ($arrow.r.double$) Each step preserves the identity,
+refines the interface (the type unchanged, the commitment list extended)
+and never removes a definiens --- so each step is below
+$sans(D e c l L e q)$, which is transitive, and each step's side
+condition is exactly that the target is well formed. ($arrow.l.double$)
+Given $sans(D e c l L e q) thick h thick h'$ and $h'$ well formed, write
+$h = chevron.l delta\,cal(P)\,r chevron.r$ and
+$h' = chevron.l delta\,cal(P)'\,r' chevron.r$ with
+$cal(P) subset.eq.sq cal(P)'$. If $r = sans(n o n e)$ and
+$r' = sans(n o n e)$, one $sans(r e f i n e)$ step suffices. If
+$r = sans(n o n e)$ and $r' = sans(s o m e) thick e$, take a
+$sans(r e f i n e)$ to
+$chevron.l delta\,cal(P)'\,sans(n o n e) chevron.r$ followed by a
+$sans(r e a l i z e)$ with $e$, whose side condition --- $e$ satisfies
+$cal(P)'$ --- is the well-formedness of $h'$. If
+$r = sans(s o m e) thick e$ then $r' = sans(s o m e) thick e$ (a
+definiens is never dropped), and one $sans(s t r e n g t h e n)$ step to
+$cal(P)'$ suffices, its side condition again being the well-formedness
+of $h'$. $square.stroked.tiny$
+
 == Client stability
 <client-stability>
 Another part of the product may already depend on a relationship before
@@ -672,6 +714,19 @@ meaning of earlier design decisions.
 $Delta thick B = sans(s o m e) thick h$ and
 $sans(D e c l L e q) thick h thick h'$, then every judgment
 $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$ holds in $Delta\[h'\]$.
+
+#emph[Proof.] Let $Delta' = Delta\[h'\]$. For every constant $delta'$,
+the type view agrees: if $delta' eq.not B$ then
+$Delta' thick delta' = Delta thick delta'$, and if $delta' = B$ then
+$Delta' in.rev B : tau$ exactly when $Delta in.rev B : tau$, because
+$sans(D e c l L e q) thick h thick h'$ keeps the expected type. Now
+proceed by induction on the derivation of
+$Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$: T-Ref is the only rule that
+reads $Delta$, and it reads the type view, which is the same in
+$Delta'$\; every other rule is reproduced with the induction hypotheses.
+(This is the monotonicity lemma `HasType.mono_env`: typing is preserved
+by any change of $Delta$ that preserves the type view.)
+$square.stroked.tiny$
 
 The proof is one line: typing reads $Delta$ through the type view, and
 the type view is invariant under $sans(D e c l L e q)$. That the proof
@@ -702,11 +757,47 @@ $sans(G l o b a l W F) thick italic(e v) thick Theta thick\(Delta\[h'\]\)$.
 The same holds for a whole lifecycle $h arrow.r.squiggly^(*) h'$ checked
 against the original $Delta$.
 
+#emph[Proof.] Write $Delta' = Delta\[h'\]$ and note first that
+$Delta subset.eq.sq Delta'$ pointwise (`EnvRefines`): every declaration
+of $Delta$ is below the corresponding one of $Delta'$, since only $B$
+changed and it moved up by $sans(D e c l L e q)$. Global well-formedness
+of $Delta'$ asks, for every $delta$ with $Delta' in.rev delta := b$,
+that $b$ satisfies $delta$'s interface #emph[in $Delta'$]. Two cases. If
+$delta = B$, the step's side condition gives that $h'$'s definiens
+satisfies $h'$'s interface in $Delta$\; satisfaction is a typing
+judgment plus evidence for each commitment, the typing transfers to
+$Delta'$ by Theorem 3, and the evidence transfers because $italic(e v)$
+is monotone along $Delta subset.eq.sq Delta'$. If $delta eq.not B$, the
+declaration is unchanged and was well formed in $Delta$ by hypothesis;
+the same two transfers move that fact to $Delta'$. For the lifecycle
+version, induct on the sequence of steps with the invariant "the current
+environment refines $Delta$, is globally well formed, and still holds
+$B$'s record as the steps expect": each step is a single-step instance
+whose side conditions, checked in $Delta$, transfer to the current
+environment by monotonicity, and updating twice at one name is updating
+once. $square.stroked.tiny$
+
 #strong[Theorem 5 (Monotonicity is necessary; `badEv_not_mono`).] There
 is an evidence relation $italic(e v)_(upright(b a d))$, a globally well
 formed two-declaration design, and a valid realization step of one
 declaration after which the design is not globally well formed;
 consequently $italic(e v)_(upright(b a d))$ is not monotone.
+
+#emph[Proof.] Take two declarations
+$A : sans(N a t) arrow.r sans(B o o l)$, realized and committed to
+`total`, and $B : sans(N a t) arrow.r sans(N a t)$, unrealized, with
+$A$'s definiens applying $B$. Let
+$italic(e v)_(upright(b a d)) thick Delta thick e thick p$ hold exactly
+when $p$ is `total`, $e$ is $A$'s definiens and $B$ has no definiens in
+$Delta$. The two-declaration design is globally well formed under
+$italic(e v)_(upright(b a d))$ (a finite check). Realizing $B$ with the
+identity function is a valid $sans(r e a l i z e)$ step: its side
+condition is checked in the original environment, where $B$ is
+unrealized. In the updated environment $B$ has a definiens, so
+$italic(e v)_(upright(b a d))$ no longer discharges `total` for $A$, and
+the design is not globally well formed. Were
+$italic(e v)_(upright(b a d))$ monotone, Theorem 4 would contradict
+this; hence it is not. $square.stroked.tiny$
 
 The relation $italic(e v)_(upright(b a d))$ discharges "$A$ is total"
 whenever the declaration $A$ reads is still unrealized --- evidence from
@@ -787,6 +878,30 @@ reference on a cycle through realized declarations has no unfolding at
 all; and a fully realized well-typed design unfolds to a reference-free
 program of the same type.
 
+#emph[Proof.] Unfolding is the least relation that copies every
+syntactic form, leaves an unrealized constant in place, and replaces a
+realized constant by the unfolding of its definiens. #emph[Determinism]:
+induction on one unfolding derivation, inverting the other; at a
+constant, the definiens is determined by $Delta$. #emph[Existence under
+acyclicity]: an acyclic $Delta$ comes with a rank that strictly
+decreases along every reference edge; prove, by strong induction on a
+bound $n$, that every term whose referenced constants all have rank
+below $n$ unfolds --- the structural cases pass the bound to their
+subterms, and a realized constant $delta$ of rank below $n$ has a
+definiens whose references have rank below
+$italic(r a n k)\(delta\)< n$, so the inner induction hypothesis
+applies. #emph[No unfolding on a cycle]: an unfolding of $delta$ carries
+a derivation whose referenced constants are not on a cycle through
+$delta$ (proved by induction on the derivation: the only way to pass
+through a realized constant is to unfold it, and the result's references
+are those of the definiens, so a reference back to $delta$ would give a
+smaller derivation of the same shape, which is impossible); a constant
+reaching itself contradicts this. #emph[Reference-freeness]: if every
+constant is realized, no `refStuck` case can occur, so the result
+mentions no constant; its type is preserved because each unfolding step
+replaces a constant by a definiens of the same type, typed under the
+universal grant. $square.stroked.tiny$
+
 Acyclicity is witnessed by a rank that strictly decreases along edges,
 $sans(A c y c l i c) thick Delta := exists thin italic(r a n k) . thick forall a thin b . thick sans(D e p e n d s O n) thick Delta thick a thick b arrow.r italic(r a n k) thick b < italic(r a n k) thick a$,
 and excludes cycles (`Acyclic.not_cyclic`). The pure fragment has no
@@ -861,6 +976,16 @@ $e . sans(c o n s t r u c t s) thick C$, then $C in G$. Under
 $upright(g r a n t) thick tau$: a value of $C$ is built only inside a
 realization whose signature announces $C$.
 
+#emph[Proof.] By induction on the typing derivation, with
+$e . sans(c o n s t r u c t s) thick C$ meaning that $sans(m k)_C$
+occurs somewhere in $e$. The only rule that introduces $sans(m k)_C$ is
+T-Mk, whose premise is $C in G$\; every other rule leaves the grant
+unchanged for its subterms, so an occurrence inside a subterm is handled
+by the induction hypothesis at the same $G$. Under
+$G = upright(g r a n t)\(tau\)$ for a definiens of type $tau$,
+$C in upright(g r a n t)\(tau\)$ says that $C$ is the result concept of
+$tau$, i.e.~that the signature announces it. $square.stroked.tiny$
+
 The hidden crossing above is rejected under the grant of an unrelated
 declaration and becomes legal, and visible, once `tiltToMotor` is
 declared (`hidden_crossing_rejected_under_grant`,
@@ -898,6 +1023,17 @@ $Theta . sans(W F)$, $eta$ agrees with $Theta$, and
 $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$, then
 $Theta\;Delta^eta\;Gamma^eta scripts(tack.r)_(G') e^eta : tau^eta$ for every
 grant $G'$.
+
+#emph[Proof.] By induction on the derivation. Erasure maps each concept
+$C$ to $eta\(C\)$, agreeing with $Theta$ where the latter is defined,
+and replaces $sans(m k)_C thick e$ by $e^eta$ and $sans(r e p) thick e$
+by $e^eta$. In the T-Mk case the premise types $e$ at $Theta\(C\)= R$\;
+since $Theta$ is well formed, $R$ is concept-free, so
+$R^eta = R = eta\(C\)= C^eta$, and the erased term $e^eta$ has the
+erased type. The T-Rep case is symmetric. T-Ref uses the erased type
+view $Delta^eta$, and no rule needs the grant after erasure, so any $G'$
+serves. All remaining rules commute with erasure syntactically.
+$square.stroked.tiny$
 
 Erasure is not injective --- `Tilt` and `MotorAngle` erase to the same
 type (`erase_not_injective`) --- and the untyped baseline is exactly
@@ -1041,6 +1177,14 @@ separate lemma by induction on the list (§7.1).
 $rho scripts(tack.r)_t e arrow.b.double v_1$ and
 $rho scripts(tack.r)_t e arrow.b.double v_2$ then $v_1 = v_2$.
 
+#emph[Proof.] By induction on the first derivation, inverting the
+second: each syntactic form has at most one applicable rule per tick
+(for $sans(d e l a y)$ and $sans(s y n c)$ the tick decides between the
+initial and the successor rule, and for a constant the presence of a
+definiens decides between E-Real and E-Input), the environment lookup,
+the input and the definiens are functions, and the induction hypotheses
+identify the values of the premises. $square.stroked.tiny$
+
 Evaluation is a partial function with no hidden evaluation order ---
 there are no effects to order --- and this holds unconditionally.
 
@@ -1074,6 +1218,16 @@ cycle that is partly delayed is not.
 through neither a delayed operand nor a lambda, then for every tick and
 environment there is no $v$ with
 $rho scripts(tack.r)_t sans(d e c l R e f) thick a arrow.b.double v$.
+
+#emph[Proof.] Every derivation of $rho scripts(tack.r)_t e arrow.b.double v$
+carries the invariant that no #emph[strict] reference of $e$ --- a
+reference not under a delayed operand or a lambda --- lies on a strict
+cycle: E-Real passes from $delta$ to the strict references of its
+definiens, so a strict path from $delta$ back to $delta$ would yield a
+strictly smaller derivation of the same conclusion, which is impossible
+by induction; the delay rules read their operand at an earlier tick and
+do not count as strict; a lambda's body is not evaluated. A constant on
+a strict cycle violates the invariant at the root. $square.stroked.tiny$
 
 Not "some default", not "one of several": no derivation exists. A gap
 should be recorded. A cycle guarded by a lambda, `A := λx. A x`, is
@@ -1123,6 +1277,54 @@ and $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$, and every $rho$ related to
 $Gamma$ such that every instantaneous reference of $e$ has rank below
 $r$, there is $v$ with $rho scripts(tack.r)_t e arrow.b.double v$ and
 $cal(R)_Theta^(sans(A p p l y) thick Delta thick I thick t)\[tau\]thick v$.
+
+#emph[Proof.] Let $cal(R)_Theta\[tau\]thick v$ be the logical relation
+of §6.3 at the application relation of the single-domain semantics:
+booleans and numbers are related at $sans(B o o l)$, $sans(N a t)$ and
+$sans(Q)_d$\; optionals, lists and pairs componentwise; a value at
+$tau arrow.r sigma$ is related when applying it to any value related at
+$tau$ yields a value related at $sigma$\; a value at a concept $C$ is
+$sans(m k)_C thin w$ with $w$ related at the representation $Theta\(C\)$
+through the concept-free relation. Prove the stronger statement:
+#emph[for every tick $t$ and bound $r$, every well-typed $e$ whose
+instantaneous references have rank below $r$ evaluates, in every
+environment related to its context, to a value related to its type.] The
+proof is a triple induction --- strong induction on $t$, inside it
+strong induction on $r$, inside that induction on the typing derivation
+--- and the two outer inductions are what the two temporal constructs
+need.
+
+#emph[Constant] (T-Ref). If $delta$ has no definiens, its value is the
+input $I thick delta thick t$, related by the hypothesis on inputs.
+Otherwise its definiens $b$ is typed under $upright(g r a n t)\(tau\)$
+at top level by global well-formedness; causality gives
+$italic(r a n k)\(delta'\)< italic(r a n k)\(delta\)< r$ for every
+instantaneous reference $delta'$ of $b$, so the inner induction
+hypothesis at bound $italic(r a n k)\(delta\)$ evaluates $b$ in the
+empty environment, and E-Real lifts the result to $delta$.
+
+#emph[Delay] (T-Delay). At tick $0$ the initial value's derivation gives
+the result. At tick $t' + 1$ the operand is evaluated at tick $t'$ by
+the #emph[outer] induction hypothesis, with the full bound $R$ --- a
+delayed operand may reference anything, since its reference is not
+instantaneous --- and the value is related at $tau$ because $tau$ is a
+data type, at which the relation does not depend on the application
+relation (`Red_data`), so relatedness transports across ticks.
+
+#emph[Application] (T-App). The function's value is related at
+$tau arrow.r sigma$ and the argument's at $tau$\; the definition of the
+relation at arrow type yields a result value and its relatedness at
+$sigma$. #emph[Abstraction] produces a closure, related at the arrow
+type by the induction hypothesis applied to any related argument.
+#emph[Rep] and #emph[Mk] move between a concept and its representation
+using the concept clause of the relation; #emph[primitives] are related
+at their types because each registered operator is total on related
+arguments (`Red_prim`); #emph[fold] is an inner induction on the list
+value.
+
+`reactive_total` instantiates this at $e = delta$, bound $R$, empty
+environment; `Ev.red` combines it with determinism to say that
+#emph[the] value of a well-typed term is related. $square.stroked.tiny$
 
 Consequently, in a causal, globally well formed design with well-typed
 inputs, every declared relationship has a value at every tick, and that
@@ -1183,6 +1385,24 @@ $Delta$ constructs $C$, no input value is tainted by $C$, $e$ does not
 construct $C$ and $rho$ is clean, then every value
 $rho scripts(tack.r)_t e arrow.b.double v$ is clean. In particular a delayed
 value carries exactly the tag of the value delayed.
+
+#emph[Proof.] Say a value is #emph[tainted] by $C$ when a $sans(m k)_C$
+tag occurs inside it --- including inside a closure's environment, and
+counting a closure whose body could construct $C$. Prove by induction on
+the evaluation derivation that if $e$ does not construct $C$ and the
+environment is clean, the result is clean. The literal, variable and
+primitive cases are immediate (a registered operator builds no tag). A
+closure is clean because its body does not construct $C$ and its
+environment is clean. Application evaluates a clean closure's body in a
+clean environment. A constant with a definiens is evaluated from that
+definiens, clean by hypothesis on $Delta$\; a constant without one
+yields an input, clean by hypothesis on $I$. $sans(d e l a y)$ and
+$sans(s y n c)$ evaluate either the initial value or the operand at an
+earlier tick, both covered by the induction. $sans(r e p)$ strips a tag
+and $sans(m k)_(C')$ with $C' eq.not C$ adds a foreign one; neither
+introduces $C$. The statement about a delayed value carrying exactly the
+tag of the value delayed is the successor case read directly.
+$square.stroked.tiny$
 
 Combined with Theorem 7 this is the runtime half of semantic integrity:
 a concept appears in a value only if some signature announces it or some
@@ -1267,6 +1487,17 @@ $sans(s y n c)_kappa thick i thick e$ is. Under the always-active
 schedule, $rho scripts(tack.r)_t^kappa e arrow.b.double v$ iff
 $rho scripts(tack.r)_t e arrow.b.double v$, for every $kappa$.
 
+#emph[Proof.] The two multi-domain rules for $sans(d e l a y)$ read the
+operand at the previous activation of the current domain $kappa$ (or the
+initial value if there is none), and the two rules for
+$sans(s y n c)_kappa$ read the operand at the previous activation of
+$kappa$\; with the source domain equal to the current one the premises
+coincide, so each derivation converts into the other by renaming the
+rule. The clock judgment agrees for the same reason. The single-domain
+semantics of §6 is the multi-domain one under the schedule that
+activates one domain at every tick, since then the previous activation
+of that domain is always the previous tick. $square.stroked.tiny$
+
 The kernel therefore has one temporal primitive --- read a domain at its
 previous activation --- and $sans(d e l a y)$ is notation for its
 diagonal; a $sans(d e l a y)$ in a slow domain reads three global ticks
@@ -1280,6 +1511,18 @@ partial function, for every schedule. In a causal, globally well formed
 design with inputs well typed in every domain, every declared
 relationship has a value in every domain at every tick, related to its
 expected type.
+
+#emph[Proof.] Determinism is the argument of Theorem 9 with the
+multi-domain rules: the previous activation of a domain at a tick is a
+function of the schedule, so the two temporal forms are deterministic
+given determinism at the earlier tick. Totality is the argument of
+Theorem 11 with the application relation of the multi-domain semantics
+and one change in the temporal cases: a $sans(s y n c)_(kappa')$ reads
+its operand at the last activation of $kappa'$ strictly before $t$, a
+tick $t' < t$, so the outer strong induction on the global tick still
+applies, and the initial value covers a domain that has not activated
+yet. The value at the first activation of a domain is therefore the
+explicit initial value of every transport into it. $square.stroked.tiny$
 
 The proof reuses the logical relation of §6.3 with the application
 relation
@@ -1311,6 +1554,19 @@ semantics in which a transport may also see a simultaneously active
 source, resolved by a priority between domains. There is a two-domain
 design, a schedule and an input such that two priorities give two
 different values to the same declaration at the same tick.
+
+#emph[Proof.] Take two domains, `fast` and `other`, both active at tick
+$1$ and `other` for the first time; an input $x$ in `other` with
+$x thick 1 = 1$\; and
+$a := sans(s y n c)_(upright(o t h e r)) thick 0 thick x$ in `fast`.
+Under $sans(M E v)_lt.eq$ with `other` ordered first the transport sees
+the simultaneous activation and $a$ evaluates to $1$\; with `fast`
+ordered first there is no earlier activation of `other` and $a$
+evaluates to the initial value $0$. Both are derivations of the same
+judgment form, differing only in the order parameter; so the semantics
+depends on the order --- which the design never authored. Under
+strict-before there is no simultaneous case, and $a$ is $0$ regardless
+of order. $square.stroked.tiny$
 
 At tick 1 both domains are active for the first time; with the source
 first the transport delivers the source's current value, with the
@@ -1515,6 +1771,24 @@ domain and tick, if the five declarations are realized as above and
 $italic(s r c)$ is an input, then
 $\[thin\]scripts(tack.r)_t^(italic(d s t)) sans(w i n d o w) arrow.b.double sans(l i s t) thin\(sans(m a p) thin\(I thin italic(s r c)\)thin\(sans(w i n d o w T i c k s) thick S thick italic(s r c) thick italic(d s t) thick t\)\)$.
 
+#emph[Proof.] The five declarations are: a log of every source
+activation (a list in the source domain, extended by one element at each
+activation), a count of source activations, the count as seen at the
+destination's previous activation, the difference of the two, and the
+window, which takes that many elements from the reversed log. Prove
+three equations by induction on the tick, each in its domain: the log at
+tick $t$ is the list of the source's values at the source activations up
+to $t$\; the count is its length; and the count transported into the
+destination domain is the length at the destination's previous
+activation. The window's definiens then evaluates, by the list
+operators' equations, to the reversal of the first (length now minus
+length then) elements of the reversed log --- that is, the source values
+at exactly the source activations since the destination's previous
+activation, in order and with multiplicity, which is the definition of
+$sans(w i n d o w T i c k s)$. No hypothesis on the schedules is used;
+at a non-activation tick the equations hold with the previous values.
+$square.stroked.tiny$
+
 The elaboration is well typed and well clocked
 (`buffer_elaboration_well_typed`, `buffer_elaboration_well_clocked`);
 the list is injective on windows, ordered by tick, and
@@ -1635,6 +1909,16 @@ clocked, causal and individually well formed --- violate
 $sans(S i n g l e D r i v e r)$ and nothing else, and there is a tick at
 which the output receives two values.
 
+#emph[Proof.] A physical output value at $o$ and $t$ is the value of
+some driver $delta$ with $beta thick delta = o$, evaluated in the domain
+the output specifies. Given two such values from drivers $delta_1$ and
+$delta_2$, $sans(S i n g l e D r i v e r) thick beta$ gives
+$delta_1 = delta_2$, the specification of $o$ is unique, and Theorem 14
+identifies the two values. The rejection of two direct drivers is a
+finite check on the design of Counterexample A: both edges pass typing,
+clocks, causality and the per-edge condition, and only the global count
+fails. $square.stroked.tiny$
+
 #emph[Why not hide output arbitration?] The principle is #emph[many
 contributors, one explicit final driver]. Contributors are dependencies:
 `base + corr -> final -> motor` passes every check; priority is a
@@ -1704,6 +1988,17 @@ $Theta'\;Delta'\;G'\;Gamma^r tack.r e^r : tau^r$\; likewise for
 satisfaction, and for the domain judgment under a clock environment that
 agrees on the declared identities.
 
+#emph[Proof.] By induction on the derivation. Renaming acts
+homomorphically on types, terms, contexts and environments; each rule of
+Figure 2 is closed under it provided the environments agree on the image
+--- T-Ref because $Delta'$ holds the renamed declaration at the renamed
+name, T-Rep and T-Mk because $Theta'$ binds the renamed concept to the
+renamed representation and the grant is transported, and the remaining
+rules syntactically. No injectivity is used: two names sent to one are
+consistent with every rule. Satisfaction and the clock judgment follow
+by the same induction, with equivariance of evidence as the hypothesis
+for the commitment half. $square.stroked.tiny$
+
 Evidence must be equivariant as well (`Evidence.Equivariant`), an
 abstract condition beside monotonicity. Nothing else is new in the
 composition theory; the rest is definitions over Proposition 18 and §4.
@@ -1756,11 +2051,53 @@ reference to a declaration of the same interface), the flattening is
 globally well formed, well clocked, single-driver, causal when the
 inter-instance graph is acyclic, and its open ports remain open.
 
+#emph[Proof.] Flattening first takes the disjoint union of the
+instances, each template renamed by a fresh injective renaming, and then
+realizes every bound port with a binding body --- a constant name, a
+transport of one, or a closed constant. Establish an invariant along the
+sequence of bindings: the current environment refines the union, is
+globally well formed, and holds every port already bound at its binding
+body. The base case is the union, globally well formed by Proposition 18
+applied to each template. For a step, the binding body satisfies the
+destination port's interface in any environment refining the union
+(`binding_satisfies`): a port binding reads a provided port whose
+interface refines the required one, with the transport's initial value
+typed under the empty grant; a constant binding is closed and typed at
+the port's type; the commitments transfer by port-soundness of the
+evidence. Realizing an unrealized port with a satisfying body is a
+$sans(r e a l i z e)$ step, so Theorem 4 preserves global
+well-formedness and the invariant. Causality of the result: order
+instances by the acyclic inter-instance graph and, within an instance,
+by the template's own rank; a direct binding creates an instantaneous
+edge only from a destination to a source in a lower instance, and a
+transport creates none. Clocks: bindings connect ports of equal domain
+or through a transport whose source domain is the provided port's.
+Single driver: each instance's drive edges are renamed injectively and
+external sinks have at most one driving instance. An unbound port keeps
+no definiens, since only bindings realize ports. $square.stroked.tiny$
+
 #strong[Theorem 20 (Modular semantics, restricted; `eval_flat_to_inst`,
 `eval_inst_to_flat`, `modular_iff_flat`).] For wiring designs with
 closure-free inputs and direct bindings, in one domain, the value of a
 declaration in an instance evaluated alone with a consistent modular
 input equals its value in the flattened system.
+
+#emph[Proof.] In the modular semantics an instance evaluates its own
+declarations with an input that supplies, for each of its bound ports,
+the value the binding delivers; #emph[consistent] means that input
+equals the flattened value of the port's source. Forward direction, by
+induction on the flattened derivation over wiring terms (constants,
+applications of primitives, no lambdas): a reference the instance owns
+evaluates identically, since its definiens is the same renamed body; a
+reference to a bound port is, in the flattened design, a reference to
+the source, and its value is by consistency the modular input for that
+port. The backward direction is the same induction from the modular
+side, using totality of the flattened semantics to obtain the source's
+value and consistency to identify it. Closure-freeness of inputs keeps
+every value first-order, so no environment of a closure can differ
+between the two sides; direct bindings keep every reference within one
+tick. The equivalence for a declaration $delta$ owned by instance $k$ is
+both directions at $e = delta$. $square.stroked.tiny$
 
 The restriction is exact and recorded: transported bindings under
 $sans(M E v)$ need a domain-indexed input for the transported port, and
