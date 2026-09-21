@@ -1,12 +1,12 @@
 ---
 id: FVD-0159
 legacy-id:
-status: accepted
+status: superseded
 date: 2026-09-21
 phase: 19
 area: experiments
 supersedes: []
-superseded-by: []
+superseded-by: [FVD-0161]
 related: [FVD-0019, FVD-0020, FVD-0022, FVD-0053, FVD-0160]
 production: [ADR-0034/supports, ADR-0032/bears-on]
 ---

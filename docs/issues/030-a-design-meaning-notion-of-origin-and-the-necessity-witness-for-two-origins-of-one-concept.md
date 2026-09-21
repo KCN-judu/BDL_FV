@@ -1,10 +1,10 @@
 ---
 id: FVI-0030
 legacy-id:
-state: open
+state: resolved
 area: experiments
 opened: 2026-09-21
-resolved-by: []
+resolved-by: [FVD-0161]
 related: [FVI-0014]
 production: []
 ---
@@ -50,4 +50,13 @@ complete.
 
 ## Resolution
 
-—
+Resolved by
+[FVD-0161](../decisions/161-each-concept-has-one-producer-producerunique-is-a-global-invariant-beside-singledriver.md)
+(Phase 20). The origin count is fixed by decision: a `mk C` outside the
+initial-value position of a `delay`/`sync`, or a Source (`Expr.originSet`); the
+transport's initial value is the relay's default, and the re-wrap is written as
+a wire. The necessity witness is moot: producer uniqueness is a global invariant
+of the design, and a design that needs two origins of one concept is refused, as
+one with two drivers of one output is. What remains unproved — a general
+rewriting theorem — is recorded in the Phase 20 claim audit, not as an open
+item.
