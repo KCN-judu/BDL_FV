@@ -88,17 +88,16 @@ We are careful about what this claim is. Existing mechanisms provide
 every piece of the story: module signatures separate interface from
 implementation; abstract types hide representations; refinement and
 contract systems attach progressively stronger constraints; synchronous
-languages interpret definitions as clocked streams.
-$lambda_(upright("BDL"))$ does not show that any of these cannot express
-a declared-but-unrealized relationship. What it contributes is a direct,
-compositional semantics for a workflow in which #emph[concept identity,
-interface commitment, delayed realization, temporal structure and
-physical effect coexist as facts about one object], together with
-mechanized proofs that they interact as the workflow needs. A
-relationship is representationally a declaration in an environment,
-referred to by identity from terms; it is a first-class #emph[design]
-object, not a first-class value that terms pass around, and the paper
-says so wherever the distinction matters.
+languages interpret definitions as clocked streams. The calculus does
+not show that any of these cannot express a declared-but-unrealized
+relationship. What it contributes is a direct, compositional semantics
+for a workflow in which #emph[concept identity, interface commitment,
+delayed realization, temporal structure and physical effect coexist as
+facts about one object], together with mechanized proofs that they
+interact as the workflow needs. A relationship is representationally a
+declaration in an environment, referred to by identity from terms; it is
+a first-class #emph[design] object, not a first-class value that terms
+pass around, and the paper says so wherever the distinction matters.
 
 == One object, six constraints
 <one-object-six-constraints>
@@ -236,20 +235,20 @@ In type-theoretic terms the whole design state is a #emph[global
 environment] of named constants, and that is the vocabulary the rest of
 the paper uses. A #strong[concept] is a #emph[nominal base type]: a type
 constant $C$, distinct from every other by name, whose values are formed
-by an injection $C$ from a representation type $R$ that the environment
-$Theta$ binds to it --- an abstract type with a private constructor
-(§5). A #strong[declaration] is a #emph[typed constant] $delta : tau$ in
-the global environment $Delta$, with an optional #emph[definiens]:
-exactly a proof assistant's `Parameter` before its `Definition`, except
-that here the parameter state is the normal one and giving the definiens
-is the design step. A declaration of base type, $delta : C$, is one
-#emph[inhabitant] of the concept --- one value at each tick --- and its
-definiens, when present, is the one term that produces that value; a
-declaration without a definiens is an #emph[axiom] the environment
-discharges (the product's #emph[Source]). A declaration of function type
-is a template applied wherever another definiens names it. Several
-constants of one base type are ordinary (`sensorA : Temperature`,
-`sensorB : Temperature`,
+by the injection $sans("mk")_C$ from a representation type $R$ that the
+environment $Theta$ binds to it --- an abstract type with a private
+constructor (§5). A #strong[declaration] is a #emph[typed constant]
+$delta : tau$ in the global environment $Delta$, with an optional
+#emph[definiens]: exactly a proof assistant's `Parameter` before its
+`Definition`, except that here the parameter state is the normal one and
+giving the definiens is the design step. A declaration of base type,
+$delta : C$, is one #emph[inhabitant] of the concept --- one value at
+each tick --- and its definiens, when present, is the one term that
+produces that value; a declaration without a definiens is an
+#emph[axiom] the environment discharges (the product's #emph[Source]). A
+declaration of function type is a template applied wherever another
+definiens names it. Several constants of one base type are ordinary
+(`sensorA : Temperature`, `sensorB : Temperature`,
 `roomTemp : Temperature := if available then sensorA else sensorB`); a
 term refers to a constant by name and never to a type, so nothing is
 ever resolved "by concept". The product speaks the same ladder as
@@ -368,8 +367,9 @@ divides thick & sans("none")_tau divides sans("some")_tau divides sans("isSome")
 divides thick & sans("toList")_tau divides sans("pair")_(tau sigma) divides sans("fst")_(tau sigma) divides sans("snd")_(tau sigma) $
 
 #figcaption[Figure 1. Syntax of $lambda_(upright("BDL"))$. Variables are de
-Bruijn indices in the development; the paper writes names. $italic("pf")$
-in $sans("eq")_tau^(italic("pf"))$ is a proof that $tau$ is a data type.]
+Bruijn indices in the development; the paper writes names. The
+superscript $italic("pf")$ on $sans("eq")_tau^(italic("pf"))$ is a proof
+that $tau$ is a data type.]
 
 #emph[Notation.] The conventions are those of type theory, and each
 letter is bound once, where its object first appears, and never rebound.
@@ -401,15 +401,15 @@ Terms are those of the λ-calculus plus five design-specific forms. A
 constant name $delta$ refers to a relationship by the identity of its
 declaration; nothing about the declaration's interface or realization is
 in the syntax, which is what lets a term refer to a relationship that
-has no realization yet. $sans("rep") thick e$ observes the
+has no realization yet. The term $sans("rep") thick e$ observes the
 representation of a concept value and $sans("mk")_C thick e$ constructs
 one --- the elimination and the introduction of the abstract type $C$\;
-$sans("mk")_C thin v$ is the value form.
+the value form is $sans("mk")_C thin v$. The term
 $sans("delay") thick i thick e$ is the value of $e$ at the previous
 activation of the current domain, $i$ before any;
 $sans("sync")_kappa thick i thick e$ is the value of $e$ in domain
 $kappa$ at $kappa$'s last activation strictly before now, $i$ if none.
-$sans("fold") thick f thick z thick l$ is the list recursor,
+The term $sans("fold") thick f thick z thick l$ is the list recursor:
 $sans("fold") thick f thick z thick\[x_1\,dots.h\,x_n\]= f thick x_1 thick\(dots.h.c\(f thick x_n thick z\)\)$.
 Registered operators $p$ are first-order constants with types; they
 never apply a closure.
@@ -432,26 +432,31 @@ never its realization, so the realization can change without the client
 noticing.
 
 - A #strong[declaration] is a triple
-  $ sans("DesignDecl") = chevron.l thin italic("id") : sans("DeclId")\,med italic("interface") : chevron.l italic("expectedType") : sans("Ty")\,med italic("commitments") : sans("PropertyId")^(*) chevron.r\,med italic("realization") : sans("Option") thick sans("Expr") thin chevron.r . $
-  A #strong[design] is a global environment $Delta$ of declarations, a
-  partial map from constant names. Two projections of it are the only
-  views a judgment may take: the #emph[type view]
-  $Delta in.rev delta : tau$ (the constant $delta$ is declared at
-  $tau$), which is all that typing sees, and the #emph[realization view]
-  $Delta in.rev delta := b$ (its definiens is $b$), which is all that
-  evaluation sees; $delta in.not upright("def")\(Delta\)$ says the
-  constant has no definiens. An #strong[unrealized] declaration is one
-  without a definiens; nothing else distinguishes it. - A
-  #strong[concept signature] $Theta$ binds each concept, write-once, to
-  a representation, $Theta\(C\)= R$. It is well formed,
+  $h = chevron.l delta\,cal(P)\,r chevron.r$: a constant name $delta$,
+  an interface $cal(P) = chevron.l tau\,cal(K) chevron.r$ --- the
+  expected type and a list of commitments, atomic property labels ---
+  and an optional definiens $r$, which is $sans("none")$ or
+  $sans("some") thick b$ for a term $b$. A #strong[design] is a global
+  environment $Delta$ of declarations, a partial map from constant
+  names. Two projections of it are the only views a judgment may take:
+  the #emph[type view] $Delta in.rev delta : tau$ (the constant $delta$
+  is declared at $tau$), which is all that typing sees, and the
+  #emph[realization view] $Delta in.rev delta := b$ (its definiens is
+  $b$), which is all that evaluation sees;
+  $delta in.not upright("def")\(Delta\)$ says the constant has no
+  definiens. An #strong[unrealized] declaration is one without a
+  definiens; nothing else distinguishes it.
+- A #strong[concept signature] $Theta$ binds each concept, write-once,
+  to a representation, $Theta\(C\)= R$. It is well formed,
   $Theta . sans("WF")$, when every bound representation is concept-free
   and data:
   $Theta\(C\)= R arrow.r.double R . sans("SemFree") and R . sans("Data")$.
-- A #strong[grant] $G$ is a set of concepts a term may construct.
-  $diameter$ permits nothing; $upright("grant") thick tau$ permits the
-  concepts in result position of $tau$, $sans("grant")\(C\)=\[C\]$,
-  $sans("grant")\(tau arrow.r sigma\)= sans("grant")\(sigma\)$,
-  $sans("grant")\(\_\)=\[thin\]$.
+- A #strong[grant] $G$ is a set of concepts a term may construct. The
+  empty grant $diameter$ permits nothing; $upright("grant")\(tau\)$
+  permits the concepts in result position of $tau$:
+  $upright("grant")\(C\)= { C }$,
+  $upright("grant")\(tau arrow.r sigma\)= upright("grant")\(sigma\)$,
+  and $upright("grant")\(tau\)= diameter$ otherwise.
 - A #strong[clock environment]
   $upright(K) : sans("DeclId") arrow.r sans("Option") thick sans("ClockId")$
   assigns each declaration a domain; $sans("none")$ marks a
@@ -470,8 +475,8 @@ noticing.
 Typing sees $Theta$, the type view of $Delta$ and $G$. Evaluation sees
 the realization view of $Delta$, $I$ and (in several domains) $S$. The
 domain judgment sees $upright(K)$. Outputs see $Omega$, $upright(K)$,
-$Delta^(upright("ty"))$ and $beta$. Commitments and evidence are seen by
-the satisfaction relation of §4 and by nothing else.
+the type view of $Delta$ and $beta$. Commitments and evidence are seen
+by the satisfaction relation of §4 and by nothing else.
 
 == Typing
 <typing>
@@ -522,8 +527,9 @@ rule reading $G$.]
   )
 
 #figcaption[Figure 3. Types of the registered operators (`Prim.ty`), abridged.
-Dimension algebra lives here and nowhere else. $sans("eq")$ is available
-at every data type and $sans("lt")$ at quantities only.]
+Dimension algebra lives here and nowhere else. Equality $sans("eq")$ is
+available at every data type and the order $sans("lt")$ at quantities
+only.]
 
 Three features of Figure 2 carry the rest of the paper.
 
@@ -535,22 +541,22 @@ reference is typed by the relationship's promise, and the stability of
 clients under later realization (Theorem 3) is a direct consequence.
 
 #emph[The construction boundary.] Client code is typed under
-$diameter$\; a declaration's realization is typed under
-$upright("grant")$ its own expected type (§4.1). A value of $C$ is
-therefore constructed only inside a declaration whose signature
-announces $C$: the signature is the realization's authority, and §5
-shows what each weaker alternative admits.
+$diameter$\; a declaration's realization is typed under the grant
+$upright("grant")\(tau\)$ of its own expected type $tau$ (§4.1). A
+value of $C$ is therefore constructed only inside a declaration whose
+signature announces $C$: the signature is the realization's authority,
+and §5 shows what each weaker alternative admits.
 
-#emph[The temporal boundary.] $sans("delay")$ and $sans("sync")$ are
-typed only in the empty context and only at data types. Both
-restrictions were forced by the totality proof of §6, not chosen: a
-delayed closure would have to be transported across ticks, and a delay
-under a binder would re-evaluate its operand at the previous tick in an
-environment created at the current one. Temporal state therefore belongs
-to declarations --- memory is a property of a relationship, not of a
-function --- and relationships with inputs are pointwise --- the
-arrangement of `pre` in Lustre, where it lives in nodes rather than in
-functions @halbwachs1991lustre.
+#emph[The temporal boundary.] The forms $sans("delay")$ and
+$sans("sync")$ are typed only in the empty context and only at data
+types. Both restrictions were forced by the totality proof of §6, not
+chosen: a delayed closure would have to be transported across ticks, and
+a delay under a binder would re-evaluate its operand at the previous
+tick in an environment created at the current one. Temporal state
+therefore belongs to declarations --- memory is a property of a
+relationship, not of a function --- and relationships with inputs are
+pointwise --- the arrangement of `pre` in Lustre, where it lives in
+nodes rather than in functions @halbwachs1991lustre.
 
 == Inference, uniqueness and monotonicity
 <inference-uniqueness-and-monotonicity>
@@ -626,13 +632,13 @@ a decidable preorder, frozen on the type and growing on commitments
 
 What discharges a commitment is not the kernel's business; it is the
 validation layer's. The kernel abstracts it as an #strong[evidence]
-relation
-$italic("ev") : sans("DeclEnv") arrow.r sans("Expr") arrow.r sans("PropertyId") arrow.r sans("Prop")$.
-Evidence takes the environment because compositional discharge needs it
---- "$A$ is monotone because $B$ is committed to be monotone" consults
-$B$'s interface. A realization $e$ #strong[satisfies] $cal(P)$ in
-$Theta\,Delta\,Gamma$ when it has the expected type under the grant of
-that type and every commitment is discharged:
+relation $italic("ev") thick Delta thick e thick p$ between a design, a
+term and a property. Evidence takes the environment because
+compositional discharge needs it --- "$A$ is monotone because $B$ is
+committed to be monotone" consults $B$'s interface. A realization $e$
+#strong[satisfies] $cal(P)$ in $Theta\,Delta\,Gamma$ when it has the
+expected type under the grant of that type and every commitment is
+discharged:
 $ sans("Satisfies") thick italic("ev") thick Theta thick Delta thick Gamma thick e thick cal(P) thick := thick Theta\;Delta\;Gamma scripts(tack.r)_(upright("grant")\(cal(P) . tau\)) e : cal(P) . tau thick and thick forall p in cal(P) . cal(K) . thick italic("ev") thick Delta thick e thick p . $
 A declaration is well formed when its body, if any, satisfies its
 interface; a design is #strong[globally well formed],
@@ -663,16 +669,16 @@ mechanized (`naive_breaks_wellformedness`).
 
 Separately from the steps there is a purely structural order with no
 satisfaction condition: $sans("DeclLeq") thick h thick h'$ requires
-the same identity, $h . cal(P) subset.eq.sq h' . cal(P)$, and a
-write-once realization
-($h . italic("realization") = sans("some") thick e arrow.r.double h' . italic("realization") = sans("some") thick e$);
-$sans("EnvRefines") thick Delta thick Delta'$ lifts it pointwise
-and permits new declarations. Storing a refined declaration back under
-its identity is an environment refinement ---
-$Delta thick h . italic("id") = sans("some") thick h and sans("DeclLeq") thick h thick h' arrow.r.double sans("EnvRefines") thick Delta thick\(Delta\[h'\]\)$
-(`EnvRefines_update`) --- and this is the one place identity does any
-work: it makes the update land on the slot every reference resolves to,
-which is what a name does in any environment semantics.
+the same name, $h . cal(P) subset.eq.sq h' . cal(P)$, and a write-once
+definiens (if $h$ has definiens $e$ then so has $h'$); the pointwise
+lifting $Delta subset.eq.sq Delta'$ ($sans("EnvRefines")$)
+permits new declarations besides. Storing a refined declaration back
+under its name is an environment refinement: if $Delta$ holds $h$ at its
+name and $sans("DeclLeq") thick h thick h'$, then
+$Delta subset.eq.sq Delta\[h'\]$ (`EnvRefines_update`). This is the one
+place identity does any work: it makes the update land on the slot every
+reference resolves to, which is what a name does in any environment
+semantics.
 
 #thm("Proposition", "2")[The lifecycle is the structural order;
 `DeclRefinesStar_iff`][The reflexive--transitive closure of the three
@@ -711,10 +717,11 @@ paper's central result: progress in the design does not destroy the
 meaning of earlier design decisions.
 
 #thm("Theorem", "3")[Clients survive realization --- typing;
-`local_refinement_preserves_global_typing`][If
-$Delta thick B = sans("some") thick h$ and
-$sans("DeclLeq") thick h thick h'$, then every judgment
-$Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$ holds in $Delta\[h'\]$.]
+`local_refinement_preserves_global_typing`][Let $B$ be declared in
+$Delta$ with record $h$, and let $h'$ be above $h$ in the structural
+order, $sans("DeclLeq") thick h thick h'$. Then every judgment
+$Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$ holds in $Delta\[h'\]$, the
+design with $B$'s record replaced by $h'$.]
 
 #proof[Let $Delta' = Delta\[h'\]$. For every constant $delta'$,
 the type view agrees: if $delta' eq.not B$ then
@@ -740,22 +747,25 @@ $subset.eq.sq$ and why changing it is an edit (§4.4).
 
 The commitment half needs more.
 
-#thm("Definition", "")[Monotone evidence][$italic("ev")$ is
-#strong[monotone] when
-$sans("EnvRefines") thick Delta_1 thick Delta_2 and italic("ev") thick Delta_1 thick e thick p arrow.r.double italic("ev") thick Delta_2 thick e thick p$.
-Evidence that ignores the environment is monotone; evidence that
-consults only the #emph[presence] of commitments and realizations is
-monotone; evidence that consults their #emph[absence] is not.]
+#thm("Definition", "")[Monotone evidence][An evidence relation
+$italic("ev")$ is #strong[monotone] when, for all designs
+$Delta_1 subset.eq.sq Delta_2$ (pointwise refinement,
+$sans("EnvRefines")$), every term $e$ and every property $p$,
+$italic("ev") thick Delta_1 thick e thick p$ implies
+$italic("ev") thick Delta_2 thick e thick p$. Evidence that ignores the
+environment is monotone; evidence that consults only the #emph[presence]
+of commitments and realizations is monotone; evidence that consults
+their #emph[absence] is not.]
 
 #thm("Theorem", "4")[Clients survive realization --- commitments;
 `local_refinement_preserves_global_wf`,
-`local_lifecycle_preserves_global_wf`][If $italic("ev")$ is monotone,
-$sans("GlobalWF") thick italic("ev") thick Theta thick Delta$,
-$Delta thick B = sans("some") thick h$ and $h arrow.r.squiggly h'$ with
-side conditions checked in $Delta$, then
-$sans("GlobalWF") thick italic("ev") thick Theta thick\(Delta\[h'\]\)$.
-The same holds for a whole lifecycle $h arrow.r.squiggly^(*) h'$ checked
-against the original $Delta$.]
+`local_lifecycle_preserves_global_wf`][Let $italic("ev")$ be monotone,
+let $Delta$ be globally well formed under $italic("ev")$ and $Theta$, let
+$B$ be declared in $Delta$ with record $h$, and let
+$h arrow.r.squiggly h'$ be a lifecycle step whose side conditions are
+checked in $Delta$. Then $Delta\[h'\]$ is globally well formed. The same
+holds for a whole lifecycle $h arrow.r.squiggly^(*) h'$ checked against
+the original $Delta$.]
 
 #proof[Write $Delta' = Delta\[h'\]$ and note first that
 $Delta subset.eq.sq Delta'$ pointwise (`EnvRefines`): every declaration
@@ -946,7 +956,7 @@ under T-Ref and T-App only, a value of $C$ can originate only in a
 declaration of concept type (`no_semantic_value_without_declaration`).
 That is the right state #emph[before] a realization exists. To let a
 formula realize a relationship, representation must be observable and
-constructible, and the obvious way to add it destroys what identity just
+constructible, and the obvious way to add it destroys what identity has
 bought. With global $sans("rep")_C : C arrow.r R$ and
 $sans("mk")_C : R arrow.r C$ available everywhere,
 $lambda x . thick sans("mk")_(upright("Motor"))\(sans("rep")_(upright("Tilt")) thick x\)$
@@ -959,10 +969,11 @@ cannot realize a mapping.
 
 The grant separates the two, and its design reading is #emph[realization
 authority]: the signature the designer wrote before any computation
-existed is what authorizes the computation's result. $sans("rep")$ is
-typed everywhere (T-Rep); $sans("mk")_C$ is typed only where $C in G$
-(T-Mk); client code is typed under $diameter$ and a realization under
-$upright("grant")$ of its own signature (the definition of
+existed is what authorizes the computation's result. Observation
+$sans("rep")$ is typed everywhere (T-Rep); construction $sans("mk")_C$ is
+typed only where $C in G$ (T-Mk); client code is typed under $diameter$
+and a realization of type $tau$ under $upright("grant")\(tau\)$, the
+grant of its own signature (the definition of
 $sans("Satisfies")$). A realization of `Tilt -> Brightness` may
 construct a `Brightness` and nothing else --- not a `MotorAngle`, not an
 `Opacity`, whatever their representations. Let
@@ -973,7 +984,7 @@ in $e$.
 `HasType.constructs_granted`][If
 $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$ and
 $e . sans("constructs") thick C$, then $C in G$. Under
-$upright("grant") thick tau$: a value of $C$ is built only inside a
+$upright("grant")\(tau\)$: a value of $C$ is built only inside a
 realization whose signature announces $C$.]
 
 #proof[By induction on the typing derivation, with
@@ -1014,9 +1025,9 @@ executable.
 <representation-is-not-meaning-erasure>
 Let $eta : sans("ConceptId") arrow.r sans("Ty")$ map each concept
 to a data type, agreeing with $Theta$ on bound concepts. Erasure
-$tau^eta$ replaces $C$ by $eta thick C$ throughout a type; on terms,
-$sans("rep") thick e$ and $sans("mk")_C thick e$ erase to $e^eta$, and
-the type indices of operators are erased.
+$tau^eta$ replaces each concept $C$ by $eta\(C\)$ throughout a type; on
+terms, $sans("rep") thick e$ and $sans("mk")_C thick e$ erase to $e^eta$,
+and the type indices of operators are erased.
 
 #thm("Proposition", "8")[Erasure is sound; `HasType.erase`][If
 $Theta . sans("WF")$, $eta$ agrees with $Theta$, and
@@ -1149,7 +1160,8 @@ $ frac(rho scripts(tack.r)_t f arrow.b.double v_f quad rho scripts(tack.r)_t z a
 #figcaption[Figure 4. Single-domain evaluation (`Ev`), with $Delta$ and $I$
 ambient. In one domain $sans("sync")_kappa$ evaluates exactly as
 $sans("delay")$ (rules `syncZero`, `syncSucc`), which §6.7 justifies.
-Literals evaluate to themselves. $\#i$ is de Bruijn index $i$.]
+Literals evaluate to themselves. The variable $\#i$ is de Bruijn index
+$i$.]
 
 Three points of Figure 4 deserve comment. An unrealized declaration is
 an #emph[input]: E-Input reads $I thick delta thick t$, the
@@ -1197,11 +1209,18 @@ proof checker.
 Let $e . sans("instRefs")$ be the declarations $e$ refers to
 #emph[instantaneously]: those not under the delayed operand of a
 $sans("delay")$ or $sans("sync")$ (the initial value is read at tick
-$0$ and counts as instantaneous).
+$0$ and counts as instantaneous). The relation
 $sans("InstDependsOn") thick Delta thick a thick b$ holds when
-$b in sans("instRefs")$ of $a$'s body.
+$b$ is among the instantaneous references of $a$'s definiens.
 
-#thm("Definition", "")[Causal][$sans("Causal") thick Delta := exists thin italic("rank") thin R . thick\(forall delta . thick italic("rank") thick delta < R\)and forall a thin b . thick sans("InstDependsOn") thick Delta thick a thick b arrow.r italic("rank") thick b < italic("rank") thick a$.]
+#thm("Definition", "")[Causal][A design $Delta$ is #strong[causal] when
+there are a rank $italic("rank")$ on constant names and a bound $R$
+with $italic("rank") thick delta < R$ for every $delta$, such that
+every instantaneous dependency strictly decreases the rank:
+$sans("InstDependsOn") thick Delta thick a thick b$ implies
+$italic("rank") thick b < italic("rank") thick a$. We write
+$sans("Causal") thick Delta$, and say that $italic("rank")\,R$
+witness it.]
 
 On the delay-free fragment $sans("InstDependsOn")$ is
 $sans("DependsOn")$, so causality is exactly bounded acyclicity
@@ -1212,10 +1231,10 @@ cycle every path of which passes through a delayed operand ---
 cycle that is partly delayed is not.
 
 #thm("Proposition", "10")[Strict cycles have no value;
-`Ev.not_of_strictCyclic`][If $a$ lies on a cycle of references passing
-through neither a delayed operand nor a lambda, then for every tick and
-environment there is no $v$ with
-$rho scripts(tack.r)_t sans("declRef") thick a arrow.b.double v$.]
+`Ev.not_of_strictCyclic`][If a constant $delta$ lies on a cycle of
+references passing through neither a delayed operand nor a lambda, then
+for every tick $t$ and environment $rho$ there is no $v$ with
+$rho scripts(tack.r)_t delta arrow.b.double v$.]
 
 #proof[Every derivation of $rho scripts(tack.r)_t e arrow.b.double v$
 carries the invariant that no #emph[strict] reference of $e$ --- a
@@ -1230,8 +1249,9 @@ a strict cycle violates the invariant at the root.]
 Not "some default", not "one of several": no derivation exists. A gap
 should be recorded. A cycle guarded by a lambda, `A := λx. A x`, is
 rejected by $sans("Causal")$ yet `declRef A` does evaluate --- to a
-closure; only applying it diverges. $sans("Causal")$ is conservative
-for lambda-guarded cycles and Proposition 10 covers strict cycles only.
+closure; only applying it diverges. The judgment $sans("Causal")$ is
+conservative for lambda-guarded cycles, and Proposition 10 covers strict
+cycles only.
 
 == The logical relation and totality
 <the-logical-relation-and-totality>
@@ -1328,17 +1348,6 @@ Consequently, in a causal, globally well formed design with well-typed
 inputs, every declared relationship has a value at every tick, and that
 value --- unique by Theorem 9 --- is related to its expected type.
 
-#emph[Proof sketch.] Lexicographic induction on
-$\(t\,r\,sans("derivation")\)$. A delayed operand at tick $t + 1$
-is evaluated at tick $t$ under #emph[any] rank (the first component
-decreases); an instantaneous reference to a realized declaration $delta$
-is evaluated at the same tick under the smaller bound
-$italic("rank") thick delta$ (the second decreases), and its
-realization is well typed under the grant of its own signature by
-$sans("GlobalWF")$\; every other case is the induction on the
-derivation. The $sans("fold")$ case uses `fold_total` (§7.1).
-$square.stroked.tiny$
-
 The relation is a step-indexed logical relation in the sense of Appel
 and McAllester @appel2001indexed and Ahmed @ahmed2006stepindexed, with
 the tick as the index and the rank as a second, inner index; what
@@ -1394,12 +1403,13 @@ closure is clean because its body does not construct $C$ and its
 environment is clean. Application evaluates a clean closure's body in a
 clean environment. A constant with a definiens is evaluated from that
 definiens, clean by hypothesis on $Delta$\; a constant without one
-yields an input, clean by hypothesis on $I$. $sans("delay")$ and
-$sans("sync")$ evaluate either the initial value or the operand at an
-earlier tick, both covered by the induction. $sans("rep")$ strips a tag
-and $sans("mk")_(C')$ with $C' eq.not C$ adds a foreign one; neither
-introduces $C$. The statement about a delayed value carrying exactly the
-tag of the value delayed is the successor case read directly.]
+yields an input, clean by hypothesis on $I$. The forms $sans("delay")$
+and $sans("sync")$ evaluate either the initial value or the operand at
+an earlier tick, both covered by the induction. Observation
+$sans("rep")$ strips a tag, and $sans("mk")_(C')$ with $C' eq.not C$ adds
+a foreign one; neither introduces $C$. The statement about a delayed
+value carrying exactly the tag of the value delayed is the successor
+case read directly.]
 
 Combined with Theorem 7 this is the runtime half of semantic integrity:
 a concept appears in a value only if some signature announces it or some
@@ -1469,10 +1479,10 @@ $kappa$ at global tick $t$, with $S$, $Delta$, $I$ ambient --- is
 $sans("Ev")$ with the two temporal rules replaced by four (`MEv`):
 $ frac(sans("prevAct") thick S thick kappa thick t = sans("none") quad rho scripts(tack.r)_t^kappa i arrow.b.double v, rho scripts(tack.r)_t^kappa sans("delay") thick i thick e arrow.b.double v) #h(2em) frac(sans("prevAct") thick S thick kappa thick t = sans("some") thick t' quad rho scripts(tack.r)_(t')^kappa e arrow.b.double v, rho scripts(tack.r)_t^kappa sans("delay") thick i thick e arrow.b.double v) $
 $ frac(sans("prevAct") thick S thick kappa' thick t = sans("none") quad rho scripts(tack.r)_t^kappa i arrow.b.double v, rho scripts(tack.r)_t^kappa sans("sync")_(kappa') thick i thick e arrow.b.double v) #h(2em) frac(sans("prevAct") thick S thick kappa' thick t = sans("some") thick t' quad rho scripts(tack.r)_(t')^(kappa') e arrow.b.double v, rho scripts(tack.r)_t^kappa sans("sync")_(kappa') thick i thick e arrow.b.double v) $
-$sans("delay")$ reads the previous activation of the current domain;
-$sans("sync")_(kappa')$ reads the previous activation of $kappa'$ and
-evaluates its operand #emph[there], in $kappa'$. All other rules carry
-$kappa$ unchanged.
+The form $sans("delay")$ reads the previous activation of the current
+domain; $sans("sync")_(kappa')$ reads the previous activation of
+$kappa'$ and evaluates its operand #emph[there], in $kappa'$. All other
+rules carry $kappa$ unchanged.
 
 #thm("Proposition", "13")[One temporal primitive; `delay_is_sync_own`,
 `clocked_delay_iff_sync_own`, `single_domain_embedding`][$rho scripts(tack.r)_t^kappa sans("delay") thick i thick e arrow.b.double v$
@@ -1597,15 +1607,15 @@ the lossless cross-domain window.
 
 == The recursor, products and equality
 <the-recursor-products-and-equality>
-$sans("fold") thick f thick z thick l$ is a #emph[term former], not a
-registered operator. The kernel has no recursion, deliberately; a total
-language needs an eliminator for its inductive data, and $sans("fold")$
-is the one construct that applies a function value in the course of
-evaluation. Registered operators never apply closures. The alternative
-of one primitive per collection operation was rejected because a
-primitive cannot apply a closure and each would need its own evaluation
-rule; the alternative of bounded unrolling was rejected because lists
---- the cross-domain window --- are unbounded.
+The recursor $sans("fold") thick f thick z thick l$ is a #emph[term
+former], not a registered operator. The kernel has no recursion,
+deliberately; a total language needs an eliminator for its inductive
+data, and $sans("fold")$ is the one construct that applies a function
+value in the course of evaluation. Registered operators never apply
+closures. The alternative of one primitive per collection operation was
+rejected because a primitive cannot apply a closure and each would need
+its own evaluation rule; the alternative of bounded unrolling was
+rejected because lists --- the cross-domain window --- are unbounded.
 
 The recursor is total on related values (`fold_total`, `mfold_total`),
 by an induction on the list separate from Theorem 11, which invokes it
@@ -1624,28 +1634,28 @@ means membership with duplicates irrelevant (`oneOf_mem`,
 `oneOf_dup_irrelevant`), so there is no `Set` type and no uniqueness
 convention.
 
-$tau times sigma$ with $sans("pair")$, $sans("fst")$, $sans("snd")$
-entered the kernel after the Church encoding was tried and refuted
-twice. A Church pair is an arrow, and arrows are not data: nothing of
-function type can be delayed or transported (`arrow_not_delayable`), so
-paired #emph[state] --- a delayed reading with its timestamp --- needs a
-data product. And a Church pair used as a first-class value needs rank-2
-types: in a toy System F with a rank measure, the type of $sans("fst")$
-on Church pairs has rank 2 (`church_fst_rank`), and in the prenex
-fragment a pair instantiated at one result type serves only one
-projection (`church_pair_prenex_one_projection`). Products are value
-composition only; they are never a component interface or an output
-bundle (§9 shows what a tuple-returning declaration does to the
-dependency graph).
+Products $tau times sigma$ with $sans("pair")$, $sans("fst")$,
+$sans("snd")$ entered the kernel after the Church encoding was tried and
+refuted twice. A Church pair is an arrow, and arrows are not data:
+nothing of function type can be delayed or transported
+(`arrow_not_delayable`), so paired #emph[state] --- a delayed reading
+with its timestamp --- needs a data product. And a Church pair used as a
+first-class value needs rank-2 types: in a toy System F with a rank
+measure, the type of $sans("fst")$ on Church pairs has rank 2
+(`church_fst_rank`), and in the prenex fragment a pair instantiated at
+one result type serves only one projection
+(`church_pair_prenex_one_projection`). Products are value composition
+only; they are never a component interface or an output bundle (§9 shows
+what a tuple-returning declaration does to the dependency graph).
 
-$sans("eq")_tau^(italic("pf"))$ is structural equality at every data type
---- booleans, numbers, $sans("none")$/$sans("some")$, pairs and lists
-componentwise, concept values by tag and representation --- with the
-proof $h : tau . sans("Data")$ carried #emph[in the syntax]. This is
-the kernel's only capability evidence: an equality on a function type is
-unwritable rather than ill typed, which keeps T-Prim unconditional. On
-first-order values structural equality is equality (`Value.beq_iff`, by
-a mutual induction over the nested value type).
+Equality $sans("eq")_tau^(italic("pf"))$ is structural equality at every
+data type --- booleans, numbers, $sans("none")$/$sans("some")$, pairs
+and lists componentwise, concept values by tag and representation ---
+with the proof $h : tau . sans("Data")$ carried #emph[in the syntax].
+This is the kernel's only capability evidence: an equality on a function
+type is unwritable rather than ill typed, which keeps T-Prim
+unconditional. On first-order values structural equality is equality
+(`Value.beq_iff`, by a mutual induction over the nested value type).
 
 Order is deliberately not generalized. A first formulation gave `<` a
 structural meaning at every data type --- booleans, options, pairs and
@@ -1979,7 +1989,7 @@ identity.
 $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$ and $Theta'\,Delta'\,G'$ are the
 images of $Theta\,Delta\,G$ under $r$ (agreement on the image, with no
 injectivity required), then
-$Theta'\;Delta'\;G'\;Gamma^r tack.r e^r : tau^r$\; likewise for
+$Theta'\;Delta'\;Gamma^r scripts(tack.r)_(G') e^r : tau^r$\; likewise for
 satisfaction, and for the domain judgment under a clock environment that
 agrees on the declared identities.]
 
@@ -2008,9 +2018,9 @@ data-typed declarations bound to closed constants at instantiation) and
 clock parameters. A #strong[component] is an interface, a template
 design over local identities below a width $W$, and a partition of its
 concepts and outputs into private (freshened per instance) and shared.
-$sans("Realizes") thick italic("ev") thick cal(C)$ is a predicate
-over the existing judgments: the template is a well-formed design
-(`Design.WF`: $sans("GlobalWF")$, $Theta . sans("WF")$, well
+The judgment $sans("Realizes") thick italic("ev") thick cal(C)$ is a
+predicate over the existing judgments: the template is a well-formed
+design (`Design.WF`: $sans("GlobalWF")$, $Theta . sans("WF")$, well
 clocked, causal, $sans("DriveWF")$,
 $sans("SingleDriver")$), every required port is an unrealized
 declaration of the stated interface, every provided port is declared
@@ -2164,35 +2174,36 @@ through function extensionality and the choice-free rational quotient
 used by the unit laws; classical choice is absent, and the whole
 development was re-audited for it at every phase.
 
-Three proof-engineering choices carried the metatheory. $sans("Ev")$ and
-$sans("MEv")$ are ordinary inductive relations with no mutual recursion,
-because the recursor's rule unrolls through the environment (§6.1);
-every induction on evaluation extends by one case when a construct is
-added, and the transport primitive and the recursor entered this way
-with every earlier theorem re-established without a change of statement.
-The logical relation is parameterized by an application relation so that
-the single- and multi-domain semantics share it, and is independent of
-that parameter at data types (`Red_data`), which is the fact that lets a
-value cross a tick. Every rejected alternative is a theorem whose
-content is a rejection, stated on a concrete design and discharged by
-`decide` or by running the interpreters
-$sans("evalF")$/$sans("mevalF")$ --- proved sound for the relations
---- inside the checker; there is no test suite beside the proofs.
-Several results are recorded as trivial by definition and reported as
-such. Extraction is not part of the development; the production
-toolchain implements the calculus in Rust and is tested differentially
-against the interpreter's traces, a tested claim and not a theorem.
+Three proof-engineering choices carried the metatheory. The relations
+$sans("Ev")$ and $sans("MEv")$ are ordinary inductive relations with no
+mutual recursion, because the recursor's rule unrolls through the
+environment (§6.1); every induction on evaluation extends by one case
+when a construct is added, and the transport primitive and the recursor
+entered this way with every earlier theorem re-established without a
+change of statement. The logical relation is parameterized by an
+application relation so that the single- and multi-domain semantics
+share it, and is independent of that parameter at data types
+(`Red_data`), which is the fact that lets a value cross a tick. Every
+rejected alternative is a theorem whose content is a rejection, stated
+on a concrete design and discharged by `decide` or by running the
+interpreters $sans("evalF")$/$sans("mevalF")$ --- proved sound for
+the relations --- inside the checker; there is no test suite beside the
+proofs. Several results are recorded as trivial by definition and
+reported as such. Extraction is not part of the development; the
+production toolchain implements the calculus in Rust and is tested
+differentially against the interpreter's traces, a tested claim and not
+a theorem.
 
 = Related work
 <related-work>
 #emph[Modules and signatures.] ML-style module systems separate an
 interface from its implementation, and a signature may be written,
 checked and depended upon before a structure matches it
-@leroy1994manifest@harper1994modules. $lambda_(upright("BDL"))$ does not
-claim that such systems cannot express an unrealized relationship. The
-difference is one of organization: here an unrealized declaration is an
-ordinary inhabitant of the #emph[design environment] rather than a
-separate compilation unit; its clients are typed against it in the same
+@leroy1994manifest@harper1994modules. The calculus does not claim that
+such systems cannot express an unrealized relationship. The difference
+is one of organization: here an unrealized declaration is an ordinary
+inhabitant of the #emph[design environment] rather than a separate
+compilation unit; its clients are typed against it in the same
 environment and, by Theorem 3, remain typed when it is realized; and the
 same declaration is simultaneously the carrier of a nominal semantic
 signature (§5), a clock assignment (§6) and a drive edge (§8). The
@@ -2337,15 +2348,15 @@ recorded in the development.
 
 = Conclusion
 <conclusion>
-$lambda_(upright("BDL"))$ is not interesting because it makes every
-implementation detail first-class. It is interesting because a typed
-semantic relationship can be declared, connected to concepts, depended
-upon by other parts of a product, placed in time and bound to a physical
-output while its computation is still undecided --- and can then acquire
-that computation without disturbing anything built on it. The
-intermediate state is a design state, not a broken program state, and
-the calculus gives it a semantics in which it is typable, referenceable,
-composable, refinable, stable for clients and eventually realizable.
+The calculus is not interesting because it makes every implementation
+detail first-class. It is interesting because a typed semantic
+relationship can be declared, connected to concepts, depended upon by
+other parts of a product, placed in time and bound to a physical output
+while its computation is still undecided --- and can then acquire that
+computation without disturbing anything built on it. The intermediate
+state is a design state, not a broken program state, and the calculus
+gives it a semantics in which it is typable, referenceable, composable,
+refinable, stable for clients and eventually realizable.
 
 The results are the constraints on that one object, each with its
 theorem. Refinement preserves earlier reasoning: a client typed against
