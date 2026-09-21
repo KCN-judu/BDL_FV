@@ -66,3 +66,4 @@ import BDL.Experiments.CommunicationExamples
 import BDL.Experiments.ProviderExamples
 import BDL.Experiments.OutputWindowExamples
 import BDL.Experiments.SourceBoundaryExamples
+import BDL.Experiments.ProducerAlternatives
