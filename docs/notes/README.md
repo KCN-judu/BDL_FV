@@ -30,3 +30,4 @@ Nine notes were top-level files until 2026-09-20
 | [The Source-side boundary (Phase 18)](the-source-side-boundary.md)                                                                      | 18    | surface     | 2026-09-20 |
 | [Concepts and their producers (Phase 19)](concepts-and-their-producers.md)                                                              | 19    | experiments | 2026-09-21 |
 | [Paper impact — several producers of one concept (Phase 19)](paper-impact-producers-of-one-concept.md)                                  | 19    | paper       | 2026-09-21 |
+| [One producer per concept (Phase 20)](one-producer-per-concept.md)                                                                      | 20    | core        | 2026-09-21 |

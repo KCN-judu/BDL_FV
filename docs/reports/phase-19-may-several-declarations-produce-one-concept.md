@@ -166,10 +166,13 @@ results are:
   origin-uniqueness is therefore: a shared concept is provided by at most one
   instance, or is private — a rule about the system's binding, checkable, not a
   kernel invariant.
-- **Clock domains**: a transport is not an origin, but its explicit initial
+- **Clock domains**: a transport is not an origin, ~~but its explicit initial
   value is what it says — `sync c (mk C 0) x` constructs `C` (the initial value
   is a `C` from nowhere) and `sync c 0 x` does not
-  (`transport_second_signature`, last two conjuncts). The count is syntactic.
+  (`transport_second_signature`, last two conjuncts). The count is syntactic.~~
+  — corrected in Phase 20: under `Expr.originSet` the initial value is the
+  relay's default and not an origin (FVD-0161 §2, `transport_unique`); the
+  theorem's conjuncts are about `Expr.constructs` and stand.
 - **State**: the same for `delay`: memory preserves tags
   (`temporal_state_preserves_semantic_identity`) and originates nothing beyond
   its initial value.
@@ -315,11 +318,14 @@ across 69 files; `lake build` 72 jobs, clean, no warnings. The Phase 18 report's
 
 ## 19.12 Verdicts
 
-- `Ty.sem` as a nominal type, many producers legal — **KEEP IN KERNEL**
-  (FVD-0159; the Phase 2 verdict unchanged).
-- producer uniqueness per concept (`SigUnique`, `MkUnique`) — **not a kernel
+- ~~`Ty.sem` as a nominal type, many producers legal — **KEEP IN KERNEL**
+  (FVD-0159; the Phase 2 verdict unchanged).~~ — superseded in Phase 20: one
+  producer per concept, FVD-0161.
+- ~~producer uniqueness per concept (`SigUnique`, `MkUnique`) — **not a kernel
   invariant**; `MkUnique` with the boundary rule **MOVE TO AUTHORING/UI** as an
-  optional lint at most (FVD-0160).
+  optional lint at most (FVD-0160).~~ — superseded in Phase 20: `MkUnique` (now
+  `ProducerUnique`) **KEEP IN KERNEL** as a global invariant, FVD-0161;
+  `SigUnique` stays refuted.
 - a resolver primitive / concept-level value lookup — **REMOVE** (never added;
   FVD-0159): explicit resolution is an ordinary declaration.
 - intermediate concepts for alternatives — **KEEP IN SURFACE** as guidance

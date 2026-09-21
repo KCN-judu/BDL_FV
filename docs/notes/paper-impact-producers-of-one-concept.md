@@ -16,6 +16,18 @@ not a kernel invariant). Each entry names the sentence, what it says today, and
 what it would need under each model — so that the revision, when made, is a
 matter of prose and not of re-deciding.
 
+## Amendment (2026-09-21, Phase 20)
+
+FVD-0161 chose Model B at the design level: one producer per concept as a global
+invariant (`ProducerUnique`), with explicit resolution through intermediate
+concepts and a concept reference that elaborates to the producer (FVD-0162). The
+operative column below is therefore **Under B**, read with Phase 20's definition
+of a producer (a construction outside initial-value positions, or a Source;
+relays excluded). Two entries change under that reading: §8.2's `base`, `corr`,
+`final` are rewritten with `BaseAngle` and `Correction` (`composition_unique`),
+and the statement "the desired steering angle is a value" is now literally true
+of the concept. The papers are still not revised in this phase.
+
 ## 1. The core-calculus paper (`paper/core_calculus/paper.md`)
 
 No theorem statement in the paper becomes false under the result; the changes

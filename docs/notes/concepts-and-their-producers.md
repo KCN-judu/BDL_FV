@@ -15,6 +15,13 @@ and may not say about "the producer" of a concept. Report:
 [Phase 19](../reports/phase-19-may-several-declarations-produce-one-concept.md);
 Lean: `BDL/Experiments/ProducerAlternatives.lean`.
 
+## Amendment (2026-09-21, Phase 20)
+
+§ 1, § 4 and § 5 below record Phase 19's result under FVD-0159/FVD-0160, which
+FVD-0161 supersedes: a concept has **one** producer, as a global invariant, and
+a formula may read a concept by name. The theorems of § 2 stand; the guidance is
+replaced by [one-producer-per-concept.md](one-producer-per-concept.md) § 5.
+
 ## 1. The question and the answer
 
 May several distinct declarations produce values of the same nominal concept in
