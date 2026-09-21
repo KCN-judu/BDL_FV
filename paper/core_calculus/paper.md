@@ -112,10 +112,10 @@ Figure 1 gives the syntax. Types are those of a simply typed calculus with boole
 
 $$
 \begin{array}{rl}
-& C \in \text{ConceptId} \qquad d \in \text{Dim} \qquad c \in \text{ClockId} \qquad \delta \in \text{DeclId} \qquad o \in \text{OutputId}\\[3pt]
+& C \in \text{ConceptId} \qquad d \in \text{Dim} \qquad \kappa \in \text{ClockId} \qquad \delta \in \text{DeclId} \qquad o \in \text{OutputId}\\[3pt]
 \tau,\sigma \;\text{::=}\; & \text{bool} \mid \text{nat} \mid \tau \to \sigma \mid \text{sem}\;C \mid \text{q}\;d \mid \text{opt}\;\tau \mid \text{list}\;\tau \mid \tau \times \sigma\\[3pt]
 e \;\text{::=}\; & x \mid \text{true} \mid \text{false} \mid n \mid \lambda x{:}\tau.\,e \mid e\;e \mid \text{declRef}\;\delta \mid \text{rep}\;e \mid \text{mk}\;C\;e \mid p\\
-\mid\; & \text{delay}\;e\;e \mid \text{sync}\;c\;e\;e \mid \text{fold}\;e\;e\;e\\[3pt]
+\mid\; & \text{delay}\;e\;e \mid \text{sync}\;\kappa\;e\;e \mid \text{fold}\;e\;e\;e\\[3pt]
 p \;\text{::=}\; & \text{lit}_d\,n \mid \text{add}_d \mid \text{sub}_d \mid \text{mul}_{d_1 d_2} \mid \text{div}_{d_1 d_2} \mid \text{lt}_d \mid \text{eq}_\tau^{\mathit{pf}} \mid \neg \mid \wedge \mid \vee \mid \text{ite}_\tau\\
 \mid\; & \text{none}_\tau \mid \text{some}_\tau \mid \text{isSome}_\tau \mid \text{getD}_\tau \mid \text{nil}_\tau \mid \text{cons}_\tau \mid \text{length}_\tau \mid \text{take}_\tau \mid \text{drop}_\tau \mid \text{reverse}_\tau \mid \text{head}_\tau\\
 \mid\; & \text{toList}_\tau \mid \text{pair}_{\tau\sigma} \mid \text{fst}_{\tau\sigma} \mid \text{snd}_{\tau\sigma}
@@ -124,9 +124,9 @@ $$
 
 *Figure 1. Syntax of $\lambda_{\mathrm{BDL}}$. Variables are de Bruijn indices in the development; the paper writes names. $\mathit{pf}$ in $\text{eq}_\tau^{\mathit{pf}}$ is a proof that $\tau$ is a data type.*
 
-*Notation.* Each letter is bound once, where its object first appears, and is never rebound: $C$ a concept (a nominal type, the level of $\text{ConceptId}$), $\delta$ a declaration identity and $h$ a declaration record (§3.2), $v, w$ values — a value of concept $C$ is $\text{sem}\;C\;v$ (§6) — $c$ a clock domain, $o$ an output, $d$ a dimension, $\tau, \sigma$ types, $R$ a representation (a concept-free data type), $e, b$ terms, $x$ variables, $t$ a tick, $p$ a property. Environments: $\Theta$ concepts, $\Delta$ the design, $G$ the grant, $\Gamma$ the context, $\mathrm{K}$ clocks, $S$ the schedule, $I$ the input, $\rho$ the evaluation environment, $\Omega$ outputs and $\beta$ drive edges (§3.2, §8); $\mathcal{P} = \langle \tau, \mathcal{K} \rangle$ an interface with its commitment list (§4), $\mathit{ev}$ evidence, $\eta$ an erasure (§5.2), $\mathcal{C}$ a component and $k$ an instance index (§9). The ladder of §2 reads, in these letters: $R$ is the type of a type, $C$ is a type, $h$ (named $\delta$) is one instance holding one $v$ per $t$.
+*Notation.* Each letter is bound once, where its object first appears, and is never rebound: $C$ a concept (a nominal type, the level of $\text{ConceptId}$), $\delta$ a declaration identity and $h$ a declaration record (§3.2), $v, w$ values — a value of concept $C$ is $\text{sem}\;C\;v$ (§6) — $\kappa$ a clock domain (lowercase $c$ is avoided, so that no letter reads as an instance of the concept $C$), $o$ an output, $d$ a dimension, $\tau, \sigma$ types, $R$ a representation (a concept-free data type), $e, b$ terms, $x$ variables, $t$ a tick, $p$ a property. Environments: $\Theta$ concepts, $\Delta$ the design, $G$ the grant, $\Gamma$ the context, $\mathrm{K}$ clocks, $S$ the schedule, $I$ the input, $\rho$ the evaluation environment, $\Omega$ outputs and $\beta$ drive edges (§3.2, §8); $\mathcal{P} = \langle \tau, \mathcal{K} \rangle$ an interface with its commitment list (§4), $\mathit{ev}$ evidence, $\eta$ an erasure (§5.2), $\mathcal{C}$ a component and $k$ an instance index (§9). The ladder of §2 reads, in these letters: $R$ is the type of a type, $C$ is a type, $h$ (named $\delta$) is one instance holding one $v$ per $t$.
 
-Terms are those of the λ-calculus plus five design-specific forms. $\text{declRef}\;\delta$ refers to a relationship by the identity of its declaration; nothing about the declaration's interface or realization is in the syntax, which is what lets a term refer to a relationship that has no realization yet. $\text{rep}\;e$ observes the representation of a concept value and $\text{mk}\;C\;e$ constructs one. $\text{delay}\;i\;e$ is the value of $e$ at the previous activation of the current domain, $i$ before any; $\text{sync}\;c\;i\;e$ is the value of $e$ in domain $c$ at $c$'s last activation strictly before now, $i$ if none. $\text{fold}\;f\;z\;l$ is the list recursor, $\text{fold}\;f\;z\;[x_1,\dots,x_n] = f\;x_1\;(\cdots(f\;x_n\;z))$. Registered operators $p$ are first-order constants with types; they never apply a closure.
+Terms are those of the λ-calculus plus five design-specific forms. $\text{declRef}\;\delta$ refers to a relationship by the identity of its declaration; nothing about the declaration's interface or realization is in the syntax, which is what lets a term refer to a relationship that has no realization yet. $\text{rep}\;e$ observes the representation of a concept value and $\text{mk}\;C\;e$ constructs one. $\text{delay}\;i\;e$ is the value of $e$ at the previous activation of the current domain, $i$ before any; $\text{sync}\;\kappa\;i\;e$ is the value of $e$ in domain $\kappa$ at $\kappa$'s last activation strictly before now, $i$ if none. $\text{fold}\;f\;z\;l$ is the list recursor, $\text{fold}\;f\;z\;[x_1,\dots,x_n] = f\;x_1\;(\cdots(f\;x_n\;z))$. Registered operators $p$ are first-order constants with types; they never apply a closure.
 
 Two predicates on types recur. A type is **data**, $\tau.\text{Data}$, when no arrow occurs in it; a type is **concept-free**, $\tau.\text{SemFree}$, when no $\text{sem}$ occurs in it. Both are decidable by structural recursion, and $(\tau \times \sigma).\text{Data} \iff \tau.\text{Data} \wedge \sigma.\text{Data}$, $(\text{list}\;\tau).\text{Data} \iff \tau.\text{Data}$ hold definitionally (`Ty.prod_data`, `Ty.list_data`).
 
@@ -178,7 +178,7 @@ $$
 $$
 
 $$
-\frac{\tau.\text{Data} \quad \Theta;\Delta;G;[\,] \vdash i : \tau \quad \Theta;\Delta;G;[\,] \vdash e : \tau}{\Theta;\Delta;G;[\,] \vdash \text{sync}\;c\;i\;e : \tau}\ \text{(T-Sync)}
+\frac{\tau.\text{Data} \quad \Theta;\Delta;G;[\,] \vdash i : \tau \quad \Theta;\Delta;G;[\,] \vdash e : \tau}{\Theta;\Delta;G;[\,] \vdash \text{sync}\;\kappa\;i\;e : \tau}\ \text{(T-Sync)}
 $$
 
 $$
@@ -390,7 +390,7 @@ $$
 \frac{\begin{array}{c}\rho \vdash_t f \Downarrow v_f \quad \rho \vdash_t z \Downarrow v_z \quad \rho \vdash_t l \Downarrow \text{list}\,(x\,\text{::}\,\mathit{xs})\\ {}[\text{list}\,\mathit{xs},\, v_z,\, v_f] \vdash_t \text{fold}\;\#2\;\#1\;\#0 \Downarrow r \qquad [r,\, x,\, v_f] \vdash_t \#2\;\#1\;\#0 \Downarrow v\end{array}}{\rho \vdash_t \text{fold}\;f\;z\;l \Downarrow v}\ \text{(E-FoldCons)}
 $$
 
-*Figure 4. Single-domain evaluation (`Ev`), with $\Delta$ and $I$ ambient. In one domain $\text{sync}\;c$ evaluates exactly as $\text{delay}$ (rules `syncZero`, `syncSucc`), which §6.7 justifies. Literals evaluate to themselves. $\#i$ is de Bruijn index $i$.*
+*Figure 4. Single-domain evaluation (`Ev`), with $\Delta$ and $I$ ambient. In one domain $\text{sync}\;\kappa$ evaluates exactly as $\text{delay}$ (rules `syncZero`, `syncSucc`), which §6.7 justifies. Literals evaluate to themselves. $\#i$ is de Bruijn index $i$.*
 
 Three points of Figure 4 deserve comment. An unrealized declaration is an *input*: E-Input reads $I\;\delta\;t$, the environment's realization of the relationship. A realized declaration is evaluated from its realization at the current tick in the *empty* environment (E-Real): a reference's value never depends on the local environment of the reader, which is what makes a relationship a stream the design observes rather than a function of its call site (`Ev.declRef_env_irrelevant`). And $\text{delay}$ shifts the tick: read at $t+1$, it evaluates its operand at $t$; at $0$ it evaluates the initial value.
 
@@ -460,47 +460,47 @@ On the first-order fragment a compiler cares about — *wiring* designs, whose r
 
 ## Clock domains as design context
 
-A clock domain is part of a relationship's design context: it says *when the relationship's value belongs to the design*, and the designer authors it as an identity — "moves with the interaction", "moves with the environment" — before any rate is known. The time model is one global base tick and a schedule $S : \text{ClockId} \to \mathbb{N} \to \text{Bool}$ saying at which global ticks each domain activates. A period $n$ induces the schedule $t \bmod n = 0$ (`Sched.periodic`); the schedule lives outside the design. Domain-local time is not a separate counter but the sequence of a domain's activations. The last activation of $c$ strictly before $t$ is
+A clock domain is part of a relationship's design context: it says *when the relationship's value belongs to the design*, and the designer authors it as an identity — "moves with the interaction", "moves with the environment" — before any rate is known. The time model is one global base tick and a schedule $S : \text{ClockId} \to \mathbb{N} \to \text{Bool}$ saying at which global ticks each domain activates. A period $n$ induces the schedule $t \bmod n = 0$ (`Sched.periodic`); the schedule lives outside the design. Domain-local time is not a separate counter but the sequence of a domain's activations. The last activation of $\kappa$ strictly before $t$ is
 $$
-\text{prevAct}\;S\;c\;0 = \text{none},\qquad \text{prevAct}\;S\;c\;(t{+}1) = \text{if}\;S\;c\;t\;\text{then}\;\text{some}\;t\;\text{else}\;\text{prevAct}\;S\;c\;t ,
+\text{prevAct}\;S\;\kappa\;0 = \text{none},\qquad \text{prevAct}\;S\;\kappa\;(t{+}1) = \text{if}\;S\;\kappa\;t\;\text{then}\;\text{some}\;t\;\text{else}\;\text{prevAct}\;S\;\kappa\;t ,
 $$
-with $\text{prevAct}\;S\;c\;t = \text{some}\;t' \Rightarrow t' < t \wedge S\;c\;t'$.
+with $\text{prevAct}\;S\;\kappa\;t = \text{some}\;t' \Rightarrow t' < t \wedge S\;\kappa\;t'$.
 
 Each declaration is assigned a domain by the clock environment $\mathrm{K}$, or none if it is a domain-agnostic relationship usable anywhere. The clock is interface data in every sense that matters — clients' validity depends on it, it is frozen under refinement, and changing it is an edit (Table 2) — and it is stored as a projection beside the interface, as a concept's representation is stored in $\Theta$ rather than in the type.
 
-The **domain judgment** $\text{Clocked}\;\mathrm{K}\;c\;e$, for $c : \text{Option}\;\text{ClockId}$, says that $e$ may be evaluated in domain $c$:
+The **domain judgment** $\text{Clocked}\;\mathrm{K}\;\kappa\;e$, for $\kappa : \text{Option}\;\text{ClockId}$, says that $e$ may be evaluated in domain $\kappa$:
 $$
 \begin{array}{rl}
-\text{Clocked}\;\mathrm{K}\;c\;(\text{declRef}\;\delta) \iff & \mathrm{K}\;\delta = \text{none} \;\vee\; \mathrm{K}\;\delta = c\\
-\text{Clocked}\;\mathrm{K}\;(\text{some}\;c)\;(\text{delay}\;i\;e) \iff & \text{Clocked}\;\mathrm{K}\;(\text{some}\;c)\;i \wedge \text{Clocked}\;\mathrm{K}\;(\text{some}\;c)\;e\\
-\text{Clocked}\;\mathrm{K}\;(\text{some}\;c)\;(\text{sync}\;c'\;i\;e) \iff & \text{Clocked}\;\mathrm{K}\;(\text{some}\;c)\;i \wedge \text{Clocked}\;\mathrm{K}\;(\text{some}\;c')\;e\\
-\text{Clocked}\;\mathrm{K}\;\text{none}\;(\text{delay}\;i\;e) \iff & \text{False} \qquad\qquad \text{Clocked}\;\mathrm{K}\;\text{none}\;(\text{sync}\;c'\;i\;e) \iff \text{False}
+\text{Clocked}\;\mathrm{K}\;\kappa\;(\text{declRef}\;\delta) \iff & \mathrm{K}\;\delta = \text{none} \;\vee\; \mathrm{K}\;\delta = \kappa\\
+\text{Clocked}\;\mathrm{K}\;(\text{some}\;\kappa)\;(\text{delay}\;i\;e) \iff & \text{Clocked}\;\mathrm{K}\;(\text{some}\;\kappa)\;i \wedge \text{Clocked}\;\mathrm{K}\;(\text{some}\;\kappa)\;e\\
+\text{Clocked}\;\mathrm{K}\;(\text{some}\;\kappa)\;(\text{sync}\;\kappa'\;i\;e) \iff & \text{Clocked}\;\mathrm{K}\;(\text{some}\;\kappa)\;i \wedge \text{Clocked}\;\mathrm{K}\;(\text{some}\;\kappa')\;e\\
+\text{Clocked}\;\mathrm{K}\;\text{none}\;(\text{delay}\;i\;e) \iff & \text{False} \qquad\qquad \text{Clocked}\;\mathrm{K}\;\text{none}\;(\text{sync}\;\kappa'\;i\;e) \iff \text{False}
 \end{array}
 $$
-and homomorphically elsewhere. A reference stays in its domain or is agnostic; a delay needs a domain; $\text{sync}\;c'$ switches the domain of its operand. A design is well clocked when every realization is clocked in its own declaration's domain. Typing is unchanged and blind to domains: the direct wire between two domains at the same value type is well typed and rejected only by $\text{Clocked}$. Placing the domain in the type instead was tried and set aside: every domain-agnostic relationship would then need clock polymorphism (`clocked_type_forces_polymorphism`), and nothing the type rejects is missed by the judgment.
+and homomorphically elsewhere. A reference stays in its domain or is agnostic; a delay needs a domain; $\text{sync}\;\kappa'$ switches the domain of its operand. A design is well clocked when every realization is clocked in its own declaration's domain. Typing is unchanged and blind to domains: the direct wire between two domains at the same value type is well typed and rejected only by $\text{Clocked}$. Placing the domain in the type instead was tried and set aside: every domain-agnostic relationship would then need clock polymorphism (`clocked_type_forces_polymorphism`), and nothing the type rejects is missed by the judgment.
 
 ## Multi-domain evaluation
 
-The judgment $\rho \vdash^{c}_{t} e \Downarrow v$ — in domain $c$ at global tick $t$, with $S$, $\Delta$, $I$ ambient — is $\text{Ev}$ with the two temporal rules replaced by four (`MEv`):
+The judgment $\rho \vdash^{\kappa}_{t} e \Downarrow v$ — in domain $\kappa$ at global tick $t$, with $S$, $\Delta$, $I$ ambient — is $\text{Ev}$ with the two temporal rules replaced by four (`MEv`):
 $$
-\frac{\text{prevAct}\;S\;c\;t = \text{none} \quad \rho \vdash^{c}_{t} i \Downarrow v}{\rho \vdash^{c}_{t} \text{delay}\;i\;e \Downarrow v}
+\frac{\text{prevAct}\;S\;\kappa\;t = \text{none} \quad \rho \vdash^{\kappa}_{t} i \Downarrow v}{\rho \vdash^{\kappa}_{t} \text{delay}\;i\;e \Downarrow v}
 \qquad
-\frac{\text{prevAct}\;S\;c\;t = \text{some}\;t' \quad \rho \vdash^{c}_{t'} e \Downarrow v}{\rho \vdash^{c}_{t} \text{delay}\;i\;e \Downarrow v}
+\frac{\text{prevAct}\;S\;\kappa\;t = \text{some}\;t' \quad \rho \vdash^{\kappa}_{t'} e \Downarrow v}{\rho \vdash^{\kappa}_{t} \text{delay}\;i\;e \Downarrow v}
 $$
 $$
-\frac{\text{prevAct}\;S\;c'\;t = \text{none} \quad \rho \vdash^{c}_{t} i \Downarrow v}{\rho \vdash^{c}_{t} \text{sync}\;c'\;i\;e \Downarrow v}
+\frac{\text{prevAct}\;S\;\kappa'\;t = \text{none} \quad \rho \vdash^{\kappa}_{t} i \Downarrow v}{\rho \vdash^{\kappa}_{t} \text{sync}\;\kappa'\;i\;e \Downarrow v}
 \qquad
-\frac{\text{prevAct}\;S\;c'\;t = \text{some}\;t' \quad \rho \vdash^{c'}_{t'} e \Downarrow v}{\rho \vdash^{c}_{t} \text{sync}\;c'\;i\;e \Downarrow v}
+\frac{\text{prevAct}\;S\;\kappa'\;t = \text{some}\;t' \quad \rho \vdash^{\kappa'}_{t'} e \Downarrow v}{\rho \vdash^{\kappa}_{t} \text{sync}\;\kappa'\;i\;e \Downarrow v}
 $$
-$\text{delay}$ reads the previous activation of the current domain; $\text{sync}\;c'$ reads the previous activation of $c'$ and evaluates its operand *there*, in $c'$. All other rules carry $c$ unchanged.
+$\text{delay}$ reads the previous activation of the current domain; $\text{sync}\;\kappa'$ reads the previous activation of $\kappa'$ and evaluates its operand *there*, in $\kappa'$. All other rules carry $\kappa$ unchanged.
 
-**Proposition 13 (One temporal primitive; `delay_is_sync_own`, `clocked_delay_iff_sync_own`, `single_domain_embedding`).** $\rho \vdash^{c}_{t} \text{delay}\;i\;e \Downarrow v$ iff $\rho \vdash^{c}_{t} \text{sync}\;c\;i\;e \Downarrow v$, and $\text{delay}\;i\;e$ is clocked in $c$ iff $\text{sync}\;c\;i\;e$ is. Under the always-active schedule, $\rho \vdash^{c}_{t} e \Downarrow v$ iff $\rho \vdash_t e \Downarrow v$, for every $c$.
+**Proposition 13 (One temporal primitive; `delay_is_sync_own`, `clocked_delay_iff_sync_own`, `single_domain_embedding`).** $\rho \vdash^{\kappa}_{t} \text{delay}\;i\;e \Downarrow v$ iff $\rho \vdash^{\kappa}_{t} \text{sync}\;\kappa\;i\;e \Downarrow v$, and $\text{delay}\;i\;e$ is clocked in $\kappa$ iff $\text{sync}\;\kappa\;i\;e$ is. Under the always-active schedule, $\rho \vdash^{\kappa}_{t} e \Downarrow v$ iff $\rho \vdash_t e \Downarrow v$, for every $\kappa$.
 
 The kernel therefore has one temporal primitive — read a domain at its previous activation — and $\text{delay}$ is notation for its diagonal; a $\text{delay}$ in a slow domain reads three global ticks back where a $\text{delay}$ in a fast one reads one, with the same syntax. The single-domain semantics of §6.1 is the one-domain special case of this one rather than a replaced machine.
 
 **Theorem 14 (Determinism and totality in every domain; `MEv.det`, `mfundamental`, `multi_domain_total`).** Multi-domain evaluation is a partial function, for every schedule. In a causal, globally well formed design with inputs well typed in every domain, every declared relationship has a value in every domain at every tick, related to its expected type.
 
-The proof reuses the logical relation of §6.3 with the application relation $\text{MApply}\;S\;\Delta\;I\;c\;t$, and the same lexicographic induction: a transport at $t$ evaluates its operand at $t' < t$ under any rank. Causality is the *same* $\text{Causal}\;\Delta$: a transport's operand is never instantaneous, so no cross-domain cycle can be. An interpreter $\text{mevalF}$ is proved sound (`mevalF_sound`). Tag provenance holds across domains (`MEv.tag_provenance`): transport changes timing, not identity, and a crossing from `Tilt@fast` to `Tilt@slow` authorizes neither `Tilt -> MotorAngle` nor $\text{q}\;\text{Length} \to \text{q}\;\text{Time}$, by the typing rule.
+The proof reuses the logical relation of §6.3 with the application relation $\text{MApply}\;S\;\Delta\;I\;\kappa\;t$, and the same lexicographic induction: a transport at $t$ evaluates its operand at $t' < t$ under any rank. Causality is the *same* $\text{Causal}\;\Delta$: a transport's operand is never instantaneous, so no cross-domain cycle can be. An interpreter $\text{mevalF}$ is proved sound (`mevalF_sound`). Tag provenance holds across domains (`MEv.tag_provenance`): transport changes timing, not identity, and a crossing from `Tilt@fast` to `Tilt@slow` authorizes neither `Tilt -> MotorAngle` nor $\text{q}\;\text{Length} \to \text{q}\;\text{Time}$, by the typing rule.
 
 ## Strictly before: preserving the authored temporal structure
 
@@ -616,7 +616,7 @@ Evidence must be equivariant as well (`Evidence.Equivariant`), an abstract condi
 
 A **port** is a template declaration by local identity with the public part of its interface and its parameter clock. A **behavior interface** has required ports (unrealized declarations a composer binds), provided ports, elaboration-time parameters (unrealized data-typed declarations bound to closed constants at instantiation) and clock parameters. A **component** is an interface, a template design over local identities below a width $W$, and a partition of its concepts and outputs into private (freshened per instance) and shared. $\text{Realizes}\;\mathit{ev}\;\mathcal{C}$ is a predicate over the existing judgments: the template is a well-formed design (`Design.WF`: $\text{GlobalWF}$, $\Theta.\text{WF}$, well clocked, causal, $\text{DriveWF}$, $\text{SingleDriver}$), every required port is an unrealized declaration of the stated interface, every provided port is declared with it, parameters are unrealized, data-typed and clock-free.
 
-Instance $k$ of a component maps local identity $n$ to $\text{fresh}\;W\;k\;n = W\cdot(k{+}1) + n$, with $\text{decode}$ its inverse; distinct instances never share an identity (`inst_decl_disjoint`). The encoding is a device — any injective allocator would do. A **binding** realizes a destination port of one instance from a source — a port of another instance or a closed constant — with an optional transport: none for a direct reference in the same or an agnostic domain, $\text{some}\;\mathit{init}$ for $\text{sync}$ from the source's domain. A **system** is a width, a list of instances, a list of bindings, the shared concept environment and the external outputs. **Flattening** is the union of the renamed instances followed by the bindings applied as §4 realization steps: the destination port is realized as $\text{declRef}\;\mathit{src}$ or $\text{sync}\;c\;\mathit{init}\;(\text{declRef}\;\mathit{src})$. The result is a design, consumed by every existing judgment unchanged.
+Instance $k$ of a component maps local identity $n$ to $\text{fresh}\;W\;k\;n = W\cdot(k{+}1) + n$, with $\text{decode}$ its inverse; distinct instances never share an identity (`inst_decl_disjoint`). The encoding is a device — any injective allocator would do. A **binding** realizes a destination port of one instance from a source — a port of another instance or a closed constant — with an optional transport: none for a direct reference in the same or an agnostic domain, $\text{some}\;\mathit{init}$ for $\text{sync}$ from the source's domain. A **system** is a width, a list of instances, a list of bindings, the shared concept environment and the external outputs. **Flattening** is the union of the renamed instances followed by the bindings applied as §4 realization steps: the destination port is realized as $\text{declRef}\;\mathit{src}$ or $\text{sync}\;\kappa\;\mathit{init}\;(\text{declRef}\;\mathit{src})$. The result is a design, consumed by every existing judgment unchanged.
 
 **Theorem 19 (Composition adds no machinery; `binding_satisfies`, `flatten_WF`, `flatten_causal`, `flatten_wellClocked`, `flatten_singleDriver`, `open_port_stays_open`).** Under $\text{ComposeWF}$ — every instance realizes its interface; every binding is well formed (types agree; a direct binding's source is in the destination's domain or agnostic; a transported binding's source has a domain); external outputs are driven by at most one instance — and with evidence that is monotone, equivariant and port-sound (a discharged commitment survives when a port copy is realized by a reference to a declaration of the same interface), the flattening is globally well formed, well clocked, single-driver, causal when the inter-instance graph is acyclic, and its open ports remain open.
 

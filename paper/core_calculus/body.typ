@@ -351,10 +351,10 @@ time, angle, mass, temperature in the development); dimensions form an
 abelian group under pointwise addition, which is the only structure the
 calculus uses.
 
-$  & C in upright("ConceptId") #h(2em) d in upright("Dim") #h(2em) c in upright("ClockId") #h(2em) delta in upright("DeclId") #h(2em) o in upright("OutputId")\
+$  & C in upright("ConceptId") #h(2em) d in upright("Dim") #h(2em) kappa in upright("ClockId") #h(2em) delta in upright("DeclId") #h(2em) o in upright("OutputId")\
 tau\,sigma thick upright("::=") thick & upright("bool") divides upright("nat") divides tau arrow.r sigma divides upright("sem") thick C divides upright("q") thick d divides upright("opt") thick tau divides upright("list") thick tau divides tau times sigma\
 e thick upright("::=") thick & x divides upright("true") divides upright("false") divides n divides lambda x : tau . thin e divides e thick e divides upright("declRef") thick delta divides upright("rep") thick e divides upright("mk") thick C thick e divides p\
-divides thick & upright("delay") thick e thick e divides upright("sync") thick c thick e thick e divides upright("fold") thick e thick e thick e\
+divides thick & upright("delay") thick e thick e divides upright("sync") thick kappa thick e thick e divides upright("fold") thick e thick e thick e\
 p thick upright("::=") thick & upright("lit")_d thin n divides upright("add")_d divides upright("sub")_d divides upright("mul")_(d_1 d_2) divides upright("div")_(d_1 d_2) divides upright("lt")_d divides upright("eq")_tau^(italic(p f)) divides not divides and divides or divides upright("ite")_tau\
 divides thick & upright("none")_tau divides upright("some")_tau divides upright("isSome")_tau divides upright("getD")_tau divides upright("nil")_tau divides upright("cons")_tau divides upright("length")_tau divides upright("take")_tau divides upright("drop")_tau divides upright("reverse")_tau divides upright("head")_tau\
 divides thick & upright("toList")_tau divides upright("pair")_(tau sigma) divides upright("fst")_(tau sigma) divides upright("snd")_(tau sigma) $
@@ -368,17 +368,19 @@ type.]
 appears, and is never rebound: $C$ a concept (a nominal type, the level
 of $upright("ConceptId")$), $delta$ a declaration identity and $h$ a
 declaration record (§3.2), $v\,w$ values --- a value of concept $C$ is
-$upright("sem") thick C thick v$ (§6) --- $c$ a clock domain, $o$ an
-output, $d$ a dimension, $tau\,sigma$ types, $R$ a representation (a
-concept-free data type), $e\,b$ terms, $x$ variables, $t$ a tick, $p$ a
-property. Environments: $Theta$ concepts, $Delta$ the design, $G$ the
-grant, $Gamma$ the context, $upright(K)$ clocks, $S$ the schedule, $I$
-the input, $rho$ the evaluation environment, $Omega$ outputs and $beta$
-drive edges (§3.2, §8); $cal(P) = chevron.l tau\,cal(K) chevron.r$ an
-interface with its commitment list (§4), $italic(e v)$ evidence, $eta$
-an erasure (§5.2), $cal(C)$ a component and $k$ an instance index (§9).
-The ladder of §2 reads, in these letters: $R$ is the type of a type, $C$
-is a type, $h$ (named $delta$) is one instance holding one $v$ per $t$.
+$upright("sem") thick C thick v$ (§6) --- $kappa$ a clock domain
+(lowercase $c$ is avoided, so that no letter reads as an instance of the
+concept $C$), $o$ an output, $d$ a dimension, $tau\,sigma$ types, $R$ a
+representation (a concept-free data type), $e\,b$ terms, $x$ variables,
+$t$ a tick, $p$ a property. Environments: $Theta$ concepts, $Delta$ the
+design, $G$ the grant, $Gamma$ the context, $upright(K)$ clocks, $S$ the
+schedule, $I$ the input, $rho$ the evaluation environment, $Omega$
+outputs and $beta$ drive edges (§3.2, §8);
+$cal(P) = chevron.l tau\,cal(K) chevron.r$ an interface with its
+commitment list (§4), $italic(e v)$ evidence, $eta$ an erasure (§5.2),
+$cal(C)$ a component and $k$ an instance index (§9). The ladder of §2
+reads, in these letters: $R$ is the type of a type, $C$ is a type, $h$
+(named $delta$) is one instance holding one $v$ per $t$.
 
 Terms are those of the λ-calculus plus five design-specific forms.
 $upright("declRef") thick delta$ refers to a relationship by the
@@ -389,9 +391,9 @@ observes the representation of a concept value and
 $upright("mk") thick C thick e$ constructs one.
 $upright("delay") thick i thick e$ is the value of $e$ at the previous
 activation of the current domain, $i$ before any;
-$upright("sync") thick c thick i thick e$ is the value of $e$ in domain
-$c$ at $c$'s last activation strictly before now, $i$ if none.
-$upright("fold") thick f thick z thick l$ is the list recursor,
+$upright("sync") thick kappa thick i thick e$ is the value of $e$ in
+domain $kappa$ at $kappa$'s last activation strictly before now, $i$ if
+none. $upright("fold") thick f thick z thick l$ is the list recursor,
 $upright("fold") thick f thick z thick\[x_1\,dots.h\,x_n\]= f thick x_1 thick\(dots.h.c\(f thick x_n thick z\)\)$.
 Registered operators $p$ are first-order constants with types; they
 never apply a closure.
@@ -481,7 +483,7 @@ $ frac(Theta thick C = upright("some") thick R quad Theta\;Delta\;G\;Gamma tack.
 
 $ frac(tau . upright("Data") quad Theta\;Delta\;G\;\[thin\]tack.r i : tau quad Theta\;Delta\;G\;\[thin\]tack.r e : tau, Theta\;Delta\;G\;\[thin\]tack.r upright("delay") thick i thick e : tau) med upright("(T-Delay)") $
 
-$ frac(tau . upright("Data") quad Theta\;Delta\;G\;\[thin\]tack.r i : tau quad Theta\;Delta\;G\;\[thin\]tack.r e : tau, Theta\;Delta\;G\;\[thin\]tack.r upright("sync") thick c thick i thick e : tau) med upright("(T-Sync)") $
+$ frac(tau . upright("Data") quad Theta\;Delta\;G\;\[thin\]tack.r i : tau quad Theta\;Delta\;G\;\[thin\]tack.r e : tau, Theta\;Delta\;G\;\[thin\]tack.r upright("sync") thick kappa thick i thick e : tau) med upright("(T-Sync)") $
 
 $ frac(Theta\;Delta\;G\;Gamma tack.r f : tau arrow.r sigma arrow.r sigma quad Theta\;Delta\;G\;Gamma tack.r z : sigma quad Theta\;Delta\;G\;Gamma tack.r l : upright("list") thick tau, Theta\;Delta\;G\;Gamma tack.r upright("fold") thick f thick z thick l : sigma) med upright("(T-Fold)") $
 
@@ -1007,9 +1009,10 @@ $ frac(rho scripts(tack.r)_t f arrow.b.double v_f quad rho scripts(tack.r)_t z a
  \[upright("list") thin italic(x s)\,thin v_z\,thin v_f\]scripts(tack.r)_t upright("fold") thick\#2 thick\#1 thick\#0 arrow.b.double r #h(2em)\[r\,thin x\,thin v_f\]scripts(tack.r)_t\#2 thick\#1 thick\#0 arrow.b.double v, rho scripts(tack.r)_t upright("fold") thick f thick z thick l arrow.b.double v) med upright("(E-FoldCons)") $
 
 #emph[Figure 4. Single-domain evaluation (`Ev`), with $Delta$ and $I$
-ambient. In one domain $upright("sync") thick c$ evaluates exactly as
-$upright("delay")$ (rules `syncZero`, `syncSucc`), which §6.7 justifies.
-Literals evaluate to themselves. $\#i$ is de Bruijn index $i$.]
+ambient. In one domain $upright("sync") thick kappa$ evaluates exactly
+as $upright("delay")$ (rules `syncZero`, `syncSucc`), which §6.7
+justifies. Literals evaluate to themselves. $\#i$ is de Bruijn index
+$i$.]
 
 Three points of Figure 4 deserve comment. An unrealized declaration is
 an #emph[input]: E-Input reads $I thick delta thick t$, the
@@ -1208,11 +1211,11 @@ $S : upright("ClockId") arrow.r bb(N) arrow.r upright("Bool")$ saying at
 which global ticks each domain activates. A period $n$ induces the
 schedule $t med mod med n = 0$ (`Sched.periodic`); the schedule lives
 outside the design. Domain-local time is not a separate counter but the
-sequence of a domain's activations. The last activation of $c$ strictly
-before $t$ is
-$ upright("prevAct") thick S thick c thick 0 = upright("none")\,#h(2em) upright("prevAct") thick S thick c thick\(t + 1\)= upright("if") thick S thick c thick t thick upright("then") thick upright("some") thick t thick upright("else") thick upright("prevAct") thick S thick c thick t\, $
+sequence of a domain's activations. The last activation of $kappa$
+strictly before $t$ is
+$ upright("prevAct") thick S thick kappa thick 0 = upright("none")\,#h(2em) upright("prevAct") thick S thick kappa thick\(t + 1\)= upright("if") thick S thick kappa thick t thick upright("then") thick upright("some") thick t thick upright("else") thick upright("prevAct") thick S thick kappa thick t\, $
 with
-$upright("prevAct") thick S thick c thick t = upright("some") thick t' arrow.r.double t' < t and S thick c thick t'$.
+$upright("prevAct") thick S thick kappa thick t = upright("some") thick t' arrow.r.double t' < t and S thick kappa thick t'$.
 
 Each declaration is assigned a domain by the clock environment
 $upright(K)$, or none if it is a domain-agnostic relationship usable
@@ -1223,16 +1226,16 @@ beside the interface, as a concept's representation is stored in $Theta$
 rather than in the type.
 
 The #strong[domain judgment]
-$upright("Clocked") thick upright(K) thick c thick e$, for
-$c : upright("Option") thick upright("ClockId")$, says that $e$ may be
-evaluated in domain $c$:
-$ upright("Clocked") thick upright(K) thick c thick\(upright("declRef") thick delta\)arrow.l.r.double & upright(K) thick delta = upright("none") thick or thick upright(K) thick delta = c\
-upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick\(upright("delay") thick i thick e\)arrow.l.r.double & upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick i and upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick e\
-upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick\(upright("sync") thick c' thick i thick e\)arrow.l.r.double & upright("Clocked") thick upright(K) thick\(upright("some") thick c\)thick i and upright("Clocked") thick upright(K) thick\(upright("some") thick c'\)thick e\
-upright("Clocked") thick upright(K) thick upright("none") thick\(upright("delay") thick i thick e\)arrow.l.r.double & upright("False") #h(2em) #h(2em) upright("Clocked") thick upright(K) thick upright("none") thick\(upright("sync") thick c' thick i thick e\)arrow.l.r.double upright("False") $
+$upright("Clocked") thick upright(K) thick kappa thick e$, for
+$kappa : upright("Option") thick upright("ClockId")$, says that $e$ may
+be evaluated in domain $kappa$:
+$ upright("Clocked") thick upright(K) thick kappa thick\(upright("declRef") thick delta\)arrow.l.r.double & upright(K) thick delta = upright("none") thick or thick upright(K) thick delta = kappa\
+upright("Clocked") thick upright(K) thick\(upright("some") thick kappa\)thick\(upright("delay") thick i thick e\)arrow.l.r.double & upright("Clocked") thick upright(K) thick\(upright("some") thick kappa\)thick i and upright("Clocked") thick upright(K) thick\(upright("some") thick kappa\)thick e\
+upright("Clocked") thick upright(K) thick\(upright("some") thick kappa\)thick\(upright("sync") thick kappa' thick i thick e\)arrow.l.r.double & upright("Clocked") thick upright(K) thick\(upright("some") thick kappa\)thick i and upright("Clocked") thick upright(K) thick\(upright("some") thick kappa'\)thick e\
+upright("Clocked") thick upright(K) thick upright("none") thick\(upright("delay") thick i thick e\)arrow.l.r.double & upright("False") #h(2em) #h(2em) upright("Clocked") thick upright(K) thick upright("none") thick\(upright("sync") thick kappa' thick i thick e\)arrow.l.r.double upright("False") $
 and homomorphically elsewhere. A reference stays in its domain or is
-agnostic; a delay needs a domain; $upright("sync") thick c'$ switches
-the domain of its operand. A design is well clocked when every
+agnostic; a delay needs a domain; $upright("sync") thick kappa'$
+switches the domain of its operand. A design is well clocked when every
 realization is clocked in its own declaration's domain. Typing is
 unchanged and blind to domains: the direct wire between two domains at
 the same value type is well typed and rejected only by
@@ -1243,24 +1246,25 @@ rejects is missed by the judgment.
 
 == Multi-domain evaluation
 <multi-domain-evaluation>
-The judgment $rho scripts(tack.r)_t^c e arrow.b.double v$ --- in domain $c$ at
-global tick $t$, with $S$, $Delta$, $I$ ambient --- is $upright("Ev")$
-with the two temporal rules replaced by four (`MEv`):
-$ frac(upright("prevAct") thick S thick c thick t = upright("none") quad rho scripts(tack.r)_t^c i arrow.b.double v, rho scripts(tack.r)_t^c upright("delay") thick i thick e arrow.b.double v) #h(2em) frac(upright("prevAct") thick S thick c thick t = upright("some") thick t' quad rho scripts(tack.r)_(t')^c e arrow.b.double v, rho scripts(tack.r)_t^c upright("delay") thick i thick e arrow.b.double v) $
-$ frac(upright("prevAct") thick S thick c' thick t = upright("none") quad rho scripts(tack.r)_t^c i arrow.b.double v, rho scripts(tack.r)_t^c upright("sync") thick c' thick i thick e arrow.b.double v) #h(2em) frac(upright("prevAct") thick S thick c' thick t = upright("some") thick t' quad rho scripts(tack.r)_(t')^(c') e arrow.b.double v, rho scripts(tack.r)_t^c upright("sync") thick c' thick i thick e arrow.b.double v) $
+The judgment $rho scripts(tack.r)_t^kappa e arrow.b.double v$ --- in domain
+$kappa$ at global tick $t$, with $S$, $Delta$, $I$ ambient --- is
+$upright("Ev")$ with the two temporal rules replaced by four (`MEv`):
+$ frac(upright("prevAct") thick S thick kappa thick t = upright("none") quad rho scripts(tack.r)_t^kappa i arrow.b.double v, rho scripts(tack.r)_t^kappa upright("delay") thick i thick e arrow.b.double v) #h(2em) frac(upright("prevAct") thick S thick kappa thick t = upright("some") thick t' quad rho scripts(tack.r)_(t')^kappa e arrow.b.double v, rho scripts(tack.r)_t^kappa upright("delay") thick i thick e arrow.b.double v) $
+$ frac(upright("prevAct") thick S thick kappa' thick t = upright("none") quad rho scripts(tack.r)_t^kappa i arrow.b.double v, rho scripts(tack.r)_t^kappa upright("sync") thick kappa' thick i thick e arrow.b.double v) #h(2em) frac(upright("prevAct") thick S thick kappa' thick t = upright("some") thick t' quad rho scripts(tack.r)_(t')^(kappa') e arrow.b.double v, rho scripts(tack.r)_t^kappa upright("sync") thick kappa' thick i thick e arrow.b.double v) $
 $upright("delay")$ reads the previous activation of the current domain;
-$upright("sync") thick c'$ reads the previous activation of $c'$ and
-evaluates its operand #emph[there], in $c'$. All other rules carry $c$
-unchanged.
+$upright("sync") thick kappa'$ reads the previous activation of $kappa'$
+and evaluates its operand #emph[there], in $kappa'$. All other rules
+carry $kappa$ unchanged.
 
 #strong[Proposition 13 (One temporal primitive; `delay_is_sync_own`,
 `clocked_delay_iff_sync_own`, `single_domain_embedding`).]
-$rho scripts(tack.r)_t^c upright("delay") thick i thick e arrow.b.double v$ iff
-$rho scripts(tack.r)_t^c upright("sync") thick c thick i thick e arrow.b.double v$,
-and $upright("delay") thick i thick e$ is clocked in $c$ iff
-$upright("sync") thick c thick i thick e$ is. Under the always-active
-schedule, $rho scripts(tack.r)_t^c e arrow.b.double v$ iff
-$rho scripts(tack.r)_t e arrow.b.double v$, for every $c$.
+$rho scripts(tack.r)_t^kappa upright("delay") thick i thick e arrow.b.double v$
+iff
+$rho scripts(tack.r)_t^kappa upright("sync") thick kappa thick i thick e arrow.b.double v$,
+and $upright("delay") thick i thick e$ is clocked in $kappa$ iff
+$upright("sync") thick kappa thick i thick e$ is. Under the
+always-active schedule, $rho scripts(tack.r)_t^kappa e arrow.b.double v$ iff
+$rho scripts(tack.r)_t e arrow.b.double v$, for every $kappa$.
 
 The kernel therefore has one temporal primitive --- read a domain at its
 previous activation --- and $upright("delay")$ is notation for its
@@ -1278,9 +1282,9 @@ expected type.
 
 The proof reuses the logical relation of §6.3 with the application
 relation
-$upright("MApply") thick S thick Delta thick I thick c thick t$, and the
-same lexicographic induction: a transport at $t$ evaluates its operand
-at $t' < t$ under any rank. Causality is the #emph[same]
+$upright("MApply") thick S thick Delta thick I thick kappa thick t$, and
+the same lexicographic induction: a transport at $t$ evaluates its
+operand at $t' < t$ under any rank. Causality is the #emph[same]
 $upright("Causal") thick Delta$: a transport's operand is never
 instantaneous, so no cross-domain cycle can be. An interpreter
 $upright("mevalF")$ is proved sound (`mevalF_sound`). Tag provenance
@@ -1735,7 +1739,7 @@ outputs. #strong[Flattening] is the union of the renamed instances
 followed by the bindings applied as §4 realization steps: the
 destination port is realized as $upright("declRef") thick italic(s r c)$
 or
-$upright("sync") thick c thick italic(i n i t) thick\(upright("declRef") thick italic(s r c)\)$.
+$upright("sync") thick kappa thick italic(i n i t) thick\(upright("declRef") thick italic(s r c)\)$.
 The result is a design, consumed by every existing judgment unchanged.
 
 #strong[Theorem 19 (Composition adds no machinery; `binding_satisfies`,
