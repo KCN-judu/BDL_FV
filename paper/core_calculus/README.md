@@ -1,4 +1,4 @@
-# A Core Calculus for Signature-First Reactive Design
+# Relation Before Realization — A Core Calculus of Persistent Typed Declarations for the Behavior of Physical Products
 
 The core-calculus paper: the kernel of `BDL/Core/` and its metatheory,
 written for a programming-languages audience around one thesis — *relation
@@ -10,7 +10,8 @@ client stability, nominal concepts with the construction grant, dimensions,
 clock domains with one temporal primitive, explicit outputs with a single
 driver, composition by renaming — with its typing, tick-indexed semantics,
 logical relation, and the mechanized counterexamples that fixed each choice.
-Every theorem is cited by its Lean name; Appendix A indexes them by section.
+Every result carries its proof in mathematical prose and is cited by its Lean
+name; Appendix A indexes them by section.
 
 The paper is derived from Part IV and Appendices A–B of the monograph in
 `../monograph/`, which remains the record: where the two differ in wording
@@ -23,8 +24,9 @@ boundary and hardware validation are named only as they bear on the kernel.
 ## Files
 
 - `paper.md` — the canonical source. Everything is edited here.
-- `main.typ` — the document chrome: a single-column journal-paper layout
-  (title block, running heads, numbered sections, numeric references).
+- `main.typ` — the document chrome (PACMPL-style single column, title block,
+  running heads); `env.typ` and `postprocess.py` are copies of
+  [`../template/`](../template/README.md), refreshed by `build.sh`.
 - `body.typ` — **generated** from `paper.md` by Pandoc; never edited by hand.
 - `BDL_core_calculus.pdf` — **generated** by Typst from `main.typ`.
 - `references.bib` — the bibliography.

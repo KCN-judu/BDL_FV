@@ -1,10 +1,12 @@
+#import "env.typ": *
+
 #heading(level: 1, numbering: none)[Abstract]
 <abstract>
 When the behavior of an interactive physical product is designed, the
 designer often knows #emph[that] one product quantity determines another
 before knowing #emph[how]: a lamp's brightness follows its tilt, and
 other parts of the design can be built on that relationship long before
-its formula is chosen. This paper presents $lambda_(upright(B D L))$,
+its formula is chosen. This paper presents $lambda_(upright("BDL"))$,
 the core calculus of the Behavior Design Language, in which a typed
 semantic relationship is the primary design object. A relationship is a
 persistent declaration --- a stable identity, a signature between
@@ -69,7 +71,7 @@ This is not an unfinished program. It is a complete design commitment at
 one level of detail, deliberately left open at the next.
 
 This paper is about giving that state a semantics. We present
-$lambda_(upright(B D L))$, the core calculus of the Behavior Design
+$lambda_(upright("BDL"))$, the core calculus of the Behavior Design
 Language (BDL), a language for designing the behavior of interactive
 physical products. Its organizing thesis is #strong[relation before
 realization]: the primary authored object is a typed semantic
@@ -87,7 +89,7 @@ every piece of the story: module signatures separate interface from
 implementation; abstract types hide representations; refinement and
 contract systems attach progressively stronger constraints; synchronous
 languages interpret definitions as clocked streams.
-$lambda_(upright(B D L))$ does not show that any of these cannot express
+$lambda_(upright("BDL"))$ does not show that any of these cannot express
 a declared-but-unrealized relationship. What it contributes is a direct,
 compositional semantics for a workflow in which #emph[concept identity,
 interface commitment, delayed realization, temporal structure and
@@ -261,20 +263,20 @@ as a design object.
 <unrealized-but-usable>
 The claim that an unrealized declaration is a complete design state is
 only worth making if the state is #emph[usable]. In
-$lambda_(upright(B D L))$ it is. Let the design $Delta_0$ contain
+$lambda_(upright("BDL"))$ it is. Let the design $Delta_0$ contain
 
-$ italic(d i m B y T i l t) = chevron.l delta_1\,med chevron.l sans(T i l t) arrow.r sans(B r i g h t n e s s)\,med\[thin\]chevron.r\,med sans(n o n e) chevron.r\,\
-italic(t i l t) = chevron.l delta_2\,med chevron.l sans(T i l t)\,med\[thin\]chevron.r\,med sans(n o n e) chevron.r\, $
+$ italic("dimByTilt") = chevron.l delta_1\,med chevron.l sans("Tilt") arrow.r sans("Brightness")\,med\[thin\]chevron.r\,med sans("none") chevron.r\,\
+italic("tilt") = chevron.l delta_2\,med chevron.l sans("Tilt")\,med\[thin\]chevron.r\,med sans("none") chevron.r\, $
 
 and let the designer now declare and #emph[realize] the light:
-$ italic(l i g h t) = chevron.l delta_3\,med chevron.l sans(B r i g h t n e s s)\,med\[thin\]chevron.r\,med sans(s o m e) thick\(\(delta_1\)thick\(delta_2\)\)chevron.r . $
+$ italic("light") = chevron.l delta_3\,med chevron.l sans("Brightness")\,med\[thin\]chevron.r\,med sans("some") thick\(\(delta_1\)thick\(delta_2\)\)chevron.r . $
 The realization of `light` is well typed in $Delta_0$, by T-Ref twice
 --- using only
-$Delta_0 in.rev delta_1 :\(sans(T i l t) arrow.r sans(B r i g h t n e s s)\)$
-and $Delta_0 in.rev delta_2 :\(sans(T i l t)\)$ --- and T-App once:
-$ upright("(T-Ref)") & Theta\;Delta_0\;\[thin\]scripts(tack.r)_G delta_1 : sans(T i l t) arrow.r sans(B r i g h t n e s s)\
-upright("(T-Ref)") & Theta\;Delta_0\;\[thin\]scripts(tack.r)_G delta_2 : sans(T i l t)\
-upright("(T-App)") & Theta\;Delta_0\;\[thin\]scripts(tack.r)_G\(delta_1\)thick\(delta_2\): sans(B r i g h t n e s s) $
+$Delta_0 in.rev delta_1 :\(sans("Tilt") arrow.r sans("Brightness")\)$
+and $Delta_0 in.rev delta_2 :\(sans("Tilt")\)$ --- and T-App once:
+$ upright("(T-Ref)") & Theta\;Delta_0\;\[thin\]scripts(tack.r)_G delta_1 : sans("Tilt") arrow.r sans("Brightness")\
+upright("(T-Ref)") & Theta\;Delta_0\;\[thin\]scripts(tack.r)_G delta_2 : sans("Tilt")\
+upright("(T-App)") & Theta\;Delta_0\;\[thin\]scripts(tack.r)_G\(delta_1\)thick\(delta_2\): sans("Brightness") $
 
 The derivation consults $Delta_0$ only through the #emph[type view]
 $Delta_0 in.rev delta : tau$ --- the expected type of each declared
@@ -337,7 +339,7 @@ the calculus promises nothing about them (§4.4).
 
 = The calculus
 <the-calculus>
-The term language of $lambda_(upright(B D L))$ is a simply typed
+The term language of $lambda_(upright("BDL"))$ is a simply typed
 λ-calculus with registered first-order operators. What makes it a
 calculus of relationships rather than of functions is not its terms but
 the environments they are typed and evaluated against, and the
@@ -351,32 +353,32 @@ Figure 1 gives the syntax. Types are those of a simply typed calculus
 with booleans, counts and arrows, extended by nominal base types --- the
 concepts $C$, type constants distinct by name --- physical quantities
 $sans(Q)_d$ over a dimension $d$, and the data formers
-$sans(O p t i o n)$, $sans(L i s t)$ and $times$. A dimension is an
+$sans("Option")$, $sans("List")$ and $times$. A dimension is an
 exponent vector over a fixed finite set of base dimensions (length,
 time, angle, mass, temperature in the development); dimensions form an
 abelian group under pointwise addition, which is the only structure the
 calculus uses.
 
-$  & C in sans(C o n c e p t I d) #h(2em) d in sans(D i m) #h(2em) kappa in sans(C l o c k I d) #h(2em) delta in sans(D e c l I d) #h(2em) o in sans(O u t p u t I d)\
-tau\,sigma thick upright("::=") thick & sans(B o o l) divides sans(N a t) divides tau arrow.r sigma divides C divides sans(Q)_d divides sans(O p t i o n) thick tau divides sans(L i s t) thick tau divides tau times sigma\
-e thick upright("::=") thick & x divides sans(t r u e) divides sans(f a l s e) divides n divides lambda x : tau . thin e divides e thick e divides delta divides sans(r e p) thick e divides sans(m k)_C thick e divides p\
-divides thick & sans(d e l a y) thick e thick e divides sans(s y n c)_kappa thick e thick e divides sans(f o l d) thick e thick e thick e\
-p thick upright("::=") thick & sans(l i t)_d thin n divides sans(a d d)_d divides sans(s u b)_d divides sans(m u l)_(d_1 d_2) divides sans(d i v)_(d_1 d_2) divides sans(l t)_d divides sans(e q)_tau^(italic(p f)) divides not divides and divides or divides sans(i t e)_tau\
-divides thick & sans(n o n e)_tau divides sans(s o m e)_tau divides sans(i s S o m e)_tau divides sans(g e t D)_tau divides sans(n i l)_tau divides sans(c o n s)_tau divides sans(l e n g t h)_tau divides sans(t a k e)_tau divides sans(d r o p)_tau divides sans(r e v e r s e)_tau divides sans(h e a d)_tau\
-divides thick & sans(t o L i s t)_tau divides sans(p a i r)_(tau sigma) divides sans(f s t)_(tau sigma) divides sans(s n d)_(tau sigma) $
+$  & C in sans("ConceptId") #h(2em) d in sans("Dim") #h(2em) kappa in sans("ClockId") #h(2em) delta in sans("DeclId") #h(2em) o in sans("OutputId")\
+tau\,sigma thick upright("::=") thick & sans("Bool") divides sans("Nat") divides tau arrow.r sigma divides C divides sans(Q)_d divides sans("Option") thick tau divides sans("List") thick tau divides tau times sigma\
+e thick upright("::=") thick & x divides sans("true") divides sans("false") divides n divides lambda x : tau . thin e divides e thick e divides delta divides sans("rep") thick e divides sans("mk")_C thick e divides p\
+divides thick & sans("delay") thick e thick e divides sans("sync")_kappa thick e thick e divides sans("fold") thick e thick e thick e\
+p thick upright("::=") thick & sans("lit")_d thin n divides sans("add")_d divides sans("sub")_d divides sans("mul")_(d_1 d_2) divides sans("div")_(d_1 d_2) divides sans("lt")_d divides sans("eq")_tau^(italic("pf")) divides not divides and divides or divides sans("ite")_tau\
+divides thick & sans("none")_tau divides sans("some")_tau divides sans("isSome")_tau divides sans("getD")_tau divides sans("nil")_tau divides sans("cons")_tau divides sans("length")_tau divides sans("take")_tau divides sans("drop")_tau divides sans("reverse")_tau divides sans("head")_tau\
+divides thick & sans("toList")_tau divides sans("pair")_(tau sigma) divides sans("fst")_(tau sigma) divides sans("snd")_(tau sigma) $
 
-#emph[Figure 1. Syntax of $lambda_(upright(B D L))$. Variables are de
-Bruijn indices in the development; the paper writes names. $italic(p f)$
-in $sans(e q)_tau^(italic(p f))$ is a proof that $tau$ is a data type.]
+#figcaption[Figure 1. Syntax of $lambda_(upright("BDL"))$. Variables are de
+Bruijn indices in the development; the paper writes names. $italic("pf")$
+in $sans("eq")_tau^(italic("pf"))$ is a proof that $tau$ is a data type.]
 
 #emph[Notation.] The conventions are those of type theory, and each
 letter is bound once, where its object first appears, and never rebound.
 Metavariables: $C$ a concept --- a nominal base type, the level of
-$sans(C o n c e p t I d)$\; $delta$ a constant name (a declaration
+$sans("ConceptId")$\; $delta$ a constant name (a declaration
 identity) and $h$ a declaration record (§3.2); $tau\,sigma$ types and
 $R$ a representation, a concept-free data type; $e\,b\,i$ terms, $x$
 variables, $v\,w$ values --- a value of concept $C$ is
-$sans(m k)_C thin v$ (§6); $kappa$ a clock domain (lowercase $c$ is
+$sans("mk")_C thin v$ (§6); $kappa$ a clock domain (lowercase $c$ is
 avoided, so that no letter reads as an inhabitant of the concept $C$),
 $o$ an output, $d$ a dimension, $t$ a tick, $p$ a property, $n$ a
 numeral. Environments: $Theta$ the signature of concepts
@@ -388,10 +390,10 @@ $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$), $upright(K)$ clocks, $S$ the
 schedule, $I$ the input, $rho$ the evaluation environment, $Omega$
 outputs and $beta$ drive edges (§3.2, §8);
 $cal(P) = chevron.l tau\,cal(K) chevron.r$ an interface with its
-commitment list (§4), $italic(e v)$ evidence, $eta$ an erasure (§5.2),
+commitment list (§4), $italic("ev")$ evidence, $eta$ an erasure (§5.2),
 $cal(C)$ a component and $k$ an instance index (§9). Keywords and named
-judgments are set in sans serif ($sans(m k)$, $sans(s y n c)_kappa$,
-$sans(G l o b a l W F)$). The ladder of §2 reads, in these letters: $R$
+judgments are set in sans serif ($sans("mk")$, $sans("sync")_kappa$,
+$sans("GlobalWF")$). The ladder of §2 reads, in these letters: $R$
 is the type of a type, $C$ is a type, $delta$ is one inhabitant holding
 one $v$ per $t$.
 
@@ -399,25 +401,25 @@ Terms are those of the λ-calculus plus five design-specific forms. A
 constant name $delta$ refers to a relationship by the identity of its
 declaration; nothing about the declaration's interface or realization is
 in the syntax, which is what lets a term refer to a relationship that
-has no realization yet. $sans(r e p) thick e$ observes the
-representation of a concept value and $sans(m k)_C thick e$ constructs
+has no realization yet. $sans("rep") thick e$ observes the
+representation of a concept value and $sans("mk")_C thick e$ constructs
 one --- the elimination and the introduction of the abstract type $C$\;
-$sans(m k)_C thin v$ is the value form.
-$sans(d e l a y) thick i thick e$ is the value of $e$ at the previous
+$sans("mk")_C thin v$ is the value form.
+$sans("delay") thick i thick e$ is the value of $e$ at the previous
 activation of the current domain, $i$ before any;
-$sans(s y n c)_kappa thick i thick e$ is the value of $e$ in domain
+$sans("sync")_kappa thick i thick e$ is the value of $e$ in domain
 $kappa$ at $kappa$'s last activation strictly before now, $i$ if none.
-$sans(f o l d) thick f thick z thick l$ is the list recursor,
-$sans(f o l d) thick f thick z thick\[x_1\,dots.h\,x_n\]= f thick x_1 thick\(dots.h.c\(f thick x_n thick z\)\)$.
+$sans("fold") thick f thick z thick l$ is the list recursor,
+$sans("fold") thick f thick z thick\[x_1\,dots.h\,x_n\]= f thick x_1 thick\(dots.h.c\(f thick x_n thick z\)\)$.
 Registered operators $p$ are first-order constants with types; they
 never apply a closure.
 
 Two predicates on types recur. A type is #strong[data],
-$tau . sans(D a t a)$, when no arrow occurs in it; a type is
-#strong[concept-free], $tau . sans(S e m F r e e)$, when no concept $C$
+$tau . sans("Data")$, when no arrow occurs in it; a type is
+#strong[concept-free], $tau . sans("SemFree")$, when no concept $C$
 occurs in it. Both are decidable by structural recursion, and
-$\(tau times sigma\). sans(D a t a) arrow.l.r.double tau . sans(D a t a) and sigma . sans(D a t a)$,
-$\(sans(L i s t) thick tau\). sans(D a t a) arrow.l.r.double tau . sans(D a t a)$
+$\(tau times sigma\). sans("Data") arrow.l.r.double tau . sans("Data") and sigma . sans("Data")$,
+$\(sans("List") thick tau\). sans("Data") arrow.l.r.double tau . sans("Data")$
 hold definitionally (`Ty.prod_data`, `Ty.list_data`).
 
 == Environments
@@ -430,45 +432,45 @@ never its realization, so the realization can change without the client
 noticing.
 
 - A #strong[declaration] is a triple
-  $ sans(D e s i g n D e c l) = chevron.l thin italic(i d) : sans(D e c l I d)\,med italic(i n t e r f a c e) : chevron.l italic(e x p e c t e d T y p e) : sans(T y)\,med italic(c o m m i t m e n t s) : sans(P r o p e r t y I d)^(*) chevron.r\,med italic(r e a l i z a t i o n) : sans(O p t i o n) thick sans(E x p r) thin chevron.r . $
+  $ sans("DesignDecl") = chevron.l thin italic("id") : sans("DeclId")\,med italic("interface") : chevron.l italic("expectedType") : sans("Ty")\,med italic("commitments") : sans("PropertyId")^(*) chevron.r\,med italic("realization") : sans("Option") thick sans("Expr") thin chevron.r . $
   A #strong[design] is a global environment $Delta$ of declarations, a
   partial map from constant names. Two projections of it are the only
   views a judgment may take: the #emph[type view]
   $Delta in.rev delta : tau$ (the constant $delta$ is declared at
   $tau$), which is all that typing sees, and the #emph[realization view]
   $Delta in.rev delta := b$ (its definiens is $b$), which is all that
-  evaluation sees; $delta in.not upright(d e f)\(Delta\)$ says the
+  evaluation sees; $delta in.not upright("def")\(Delta\)$ says the
   constant has no definiens. An #strong[unrealized] declaration is one
   without a definiens; nothing else distinguishes it. - A
   #strong[concept signature] $Theta$ binds each concept, write-once, to
   a representation, $Theta\(C\)= R$. It is well formed,
-  $Theta . sans(W F)$, when every bound representation is concept-free
+  $Theta . sans("WF")$, when every bound representation is concept-free
   and data:
-  $Theta\(C\)= R arrow.r.double R . sans(S e m F r e e) and R . sans(D a t a)$.
+  $Theta\(C\)= R arrow.r.double R . sans("SemFree") and R . sans("Data")$.
 - A #strong[grant] $G$ is a set of concepts a term may construct.
-  $diameter$ permits nothing; $upright(g r a n t) thick tau$ permits the
-  concepts in result position of $tau$, $sans(g r a n t)\(C\)=\[C\]$,
-  $sans(g r a n t)\(tau arrow.r sigma\)= sans(g r a n t)\(sigma\)$,
-  $sans(g r a n t)\(\_\)=\[thin\]$.
+  $diameter$ permits nothing; $upright("grant") thick tau$ permits the
+  concepts in result position of $tau$, $sans("grant")\(C\)=\[C\]$,
+  $sans("grant")\(tau arrow.r sigma\)= sans("grant")\(sigma\)$,
+  $sans("grant")\(\_\)=\[thin\]$.
 - A #strong[clock environment]
-  $upright(K) : sans(D e c l I d) arrow.r sans(O p t i o n) thick sans(C l o c k I d)$
-  assigns each declaration a domain; $sans(n o n e)$ marks a
+  $upright(K) : sans("DeclId") arrow.r sans("Option") thick sans("ClockId")$
+  assigns each declaration a domain; $sans("none")$ marks a
   domain-agnostic relationship usable in any domain. A #strong[schedule]
-  $S : sans(C l o c k I d) arrow.r bb(N) arrow.r sans(B o o l)$ says at
+  $S : sans("ClockId") arrow.r bb(N) arrow.r sans("Bool")$ says at
   which global ticks each domain activates. An #strong[input]
-  $I : sans(D e c l I d) arrow.r bb(N) arrow.r sans(V a l u e)$ supplies
+  $I : sans("DeclId") arrow.r bb(N) arrow.r sans("Value")$ supplies
   a value for every unrealized declaration at every tick --- the
   environment's realization of the design's inputs.
 - An #strong[output environment]
-  $Omega : sans(O u t p u t I d) arrow.r sans(O p t i o n) thick chevron.l italic(a c c e p t s) : sans(T y)\,italic(c l o c k) : sans(C l o c k I d) chevron.r$
+  $Omega : sans("OutputId") arrow.r sans("Option") thick chevron.l italic("accepts") : sans("Ty")\,italic("clock") : sans("ClockId") chevron.r$
   and the #strong[drive edges]
-  $beta : sans(D e c l I d) arrow.r sans(O p t i o n) thick sans(O u t p u t I d)$
+  $beta : sans("DeclId") arrow.r sans("Option") thick sans("OutputId")$
   are introduced in §8.
 
 Typing sees $Theta$, the type view of $Delta$ and $G$. Evaluation sees
 the realization view of $Delta$, $I$ and (in several domains) $S$. The
 domain judgment sees $upright(K)$. Outputs see $Omega$, $upright(K)$,
-$Delta^(upright(t y))$ and $beta$. Commitments and evidence are seen by
+$Delta^(upright("ty"))$ and $beta$. Commitments and evidence are seen by
 the satisfaction relation of §4 and by nothing else.
 
 == Typing
@@ -479,25 +481,25 @@ simply typed λ-calculus. T-Ref is the only rule that reads $Delta$, and
 it reads the type view. T-Rep and T-Mk read $Theta$ through the binding
 $Theta\(C\)= R$\; T-Mk additionally requires the grant. T-Prim assigns
 each registered operator its type; the dimension algebra is entirely in
-that table (Figure 3), so an application of $sans(m u l)_(d_1 d_2)$ is
+that table (Figure 3), so an application of $sans("mul")_(d_1 d_2)$ is
 checked by T-App like any other. T-Delay and T-Sync require the type to
 be data and the context to be empty; T-Fold types the recursor.
 
-$ frac(Gamma\(x\)= tau, Theta\;Delta\;Gamma scripts(tack.r)_G x : tau) med upright("(T-Var)") #h(2em) frac(, Theta\;Delta\;Gamma scripts(tack.r)_G b : sans(B o o l)) med upright("(T-Bool)") #h(2em) frac(, Theta\;Delta\;Gamma scripts(tack.r)_G n : sans(N a t)) med upright("(T-Nat)") $
+$ frac(Gamma\(x\)= tau, Theta\;Delta\;Gamma scripts(tack.r)_G x : tau) med upright("(T-Var)") #h(2em) frac(, Theta\;Delta\;Gamma scripts(tack.r)_G b : sans("Bool")) med upright("(T-Bool)") #h(2em) frac(, Theta\;Delta\;Gamma scripts(tack.r)_G n : sans("Nat")) med upright("(T-Nat)") $
 
 $ frac(Theta\;Delta\;Gamma\,x : tau scripts(tack.r)_G e : sigma, Theta\;Delta\;Gamma scripts(tack.r)_G lambda x : tau . thin e : tau arrow.r sigma) med upright("(T-Lam)") #h(2em) frac(Theta\;Delta\;Gamma scripts(tack.r)_G f : tau arrow.r sigma quad Theta\;Delta\;Gamma scripts(tack.r)_G a : tau, Theta\;Delta\;Gamma scripts(tack.r)_G f thick a : sigma) med upright("(T-App)") $
 
-$ frac(Delta in.rev delta : tau, Theta\;Delta\;Gamma scripts(tack.r)_G delta : tau) med upright("(T-Ref)") #h(2em) frac(, Theta\;Delta\;Gamma scripts(tack.r)_G p : sans(t y)\(p\)) med upright("(T-Prim)") $
+$ frac(Delta in.rev delta : tau, Theta\;Delta\;Gamma scripts(tack.r)_G delta : tau) med upright("(T-Ref)") #h(2em) frac(, Theta\;Delta\;Gamma scripts(tack.r)_G p : sans("ty")\(p\)) med upright("(T-Prim)") $
 
-$ frac(Theta\(C\)= R quad Theta\;Delta\;Gamma scripts(tack.r)_G e : C, Theta\;Delta\;Gamma scripts(tack.r)_G sans(r e p) thick e : R) med upright("(T-Rep)") #h(2em) frac(C in G quad Theta\(C\)= R quad Theta\;Delta\;Gamma scripts(tack.r)_G e : R, Theta\;Delta\;Gamma scripts(tack.r)_G sans(m k)_C thick e : C) med upright("(T-Mk)") $
+$ frac(Theta\(C\)= R quad Theta\;Delta\;Gamma scripts(tack.r)_G e : C, Theta\;Delta\;Gamma scripts(tack.r)_G sans("rep") thick e : R) med upright("(T-Rep)") #h(2em) frac(C in G quad Theta\(C\)= R quad Theta\;Delta\;Gamma scripts(tack.r)_G e : R, Theta\;Delta\;Gamma scripts(tack.r)_G sans("mk")_C thick e : C) med upright("(T-Mk)") $
 
-$ frac(tau . sans(D a t a) quad Theta\;Delta\;\[thin\]scripts(tack.r)_G i : tau quad Theta\;Delta\;\[thin\]scripts(tack.r)_G e : tau, Theta\;Delta\;\[thin\]scripts(tack.r)_G sans(d e l a y) thick i thick e : tau) med upright("(T-Delay)") $
+$ frac(tau . sans("Data") quad Theta\;Delta\;\[thin\]scripts(tack.r)_G i : tau quad Theta\;Delta\;\[thin\]scripts(tack.r)_G e : tau, Theta\;Delta\;\[thin\]scripts(tack.r)_G sans("delay") thick i thick e : tau) med upright("(T-Delay)") $
 
-$ frac(tau . sans(D a t a) quad Theta\;Delta\;\[thin\]scripts(tack.r)_G i : tau quad Theta\;Delta\;\[thin\]scripts(tack.r)_G e : tau, Theta\;Delta\;\[thin\]scripts(tack.r)_G sans(s y n c)_kappa thick i thick e : tau) med upright("(T-Sync)") $
+$ frac(tau . sans("Data") quad Theta\;Delta\;\[thin\]scripts(tack.r)_G i : tau quad Theta\;Delta\;\[thin\]scripts(tack.r)_G e : tau, Theta\;Delta\;\[thin\]scripts(tack.r)_G sans("sync")_kappa thick i thick e : tau) med upright("(T-Sync)") $
 
-$ frac(Theta\;Delta\;Gamma scripts(tack.r)_G f : tau arrow.r sigma arrow.r sigma quad Theta\;Delta\;Gamma scripts(tack.r)_G z : sigma quad Theta\;Delta\;Gamma scripts(tack.r)_G l : sans(L i s t) thick tau, Theta\;Delta\;Gamma scripts(tack.r)_G sans(f o l d) thick f thick z thick l : sigma) med upright("(T-Fold)") $
+$ frac(Theta\;Delta\;Gamma scripts(tack.r)_G f : tau arrow.r sigma arrow.r sigma quad Theta\;Delta\;Gamma scripts(tack.r)_G z : sigma quad Theta\;Delta\;Gamma scripts(tack.r)_G l : sans("List") thick tau, Theta\;Delta\;Gamma scripts(tack.r)_G sans("fold") thick f thick z thick l : sigma) med upright("(T-Fold)") $
 
-#emph[Figure 2. Typing (`HasType`). T-Ref is the only rule reading
+#figcaption[Figure 2. Typing (`HasType`). T-Ref is the only rule reading
 $Delta$\; T-Rep and T-Mk the only rules reading $Theta$\; T-Mk the only
 rule reading $G$.]
 
@@ -507,21 +509,21 @@ rule reading $G$.]
     align: (auto,auto,auto,auto,),
     table.header([operator], [type], [operator], [type],),
     table.hline(),
-    [$sans(l i t)_d thin n$], [$sans(Q)_d$], [$sans(e q)_tau^(italic(p f))$], [$tau arrow.r tau arrow.r sans(B o o l)$],
-    [$sans(a d d)_d\,med sans(s u b)_d$], [$sans(Q)_d arrow.r sans(Q)_d arrow.r sans(Q)_d$], [$sans(i t e)_tau$], [$sans(B o o l) arrow.r tau arrow.r tau arrow.r tau$],
-    [$sans(m u l)_(d_1 d_2)$], [$sans(Q)_(d_1) arrow.r sans(Q)_(d_2) arrow.r sans(Q)_(d_1 + d_2)$], [$sans(s o m e)_tau$], [$tau arrow.r sans(O p t i o n) thick tau$],
-    [$sans(d i v)_(d_1 d_2)$], [$sans(Q)_(d_1) arrow.r sans(Q)_(d_2) arrow.r sans(Q)_(d_1 - d_2)$], [$sans(g e t D)_tau$], [$sans(O p t i o n) thick tau arrow.r tau arrow.r tau$],
-    [$sans(l t)_d$], [$sans(Q)_d arrow.r sans(Q)_d arrow.r sans(B o o l)$], [$sans(t o L i s t)_tau$], [$sans(O p t i o n) thick tau arrow.r sans(L i s t) thick tau$],
-    [$sans(l e n g t h)_tau$], [$sans(L i s t) thick tau arrow.r sans(Q)_0$], [$sans(c o n s)_tau$], [$tau arrow.r sans(L i s t) thick tau arrow.r sans(L i s t) thick tau$],
-    [$sans(h e a d)_tau$], [$sans(L i s t) thick tau arrow.r sans(O p t i o n) thick tau$], [$sans(t a k e)_tau\,med sans(d r o p)_tau$], [$sans(Q)_0 arrow.r sans(L i s t) thick tau arrow.r sans(L i s t) thick tau$],
-    [$sans(f s t)_(tau sigma)$], [$tau times sigma arrow.r tau$], [$sans(p a i r)_(tau sigma)$], [$tau arrow.r sigma arrow.r tau times sigma$],
+    [$sans("lit")_d thin n$], [$sans(Q)_d$], [$sans("eq")_tau^(italic("pf"))$], [$tau arrow.r tau arrow.r sans("Bool")$],
+    [$sans("add")_d\,med sans("sub")_d$], [$sans(Q)_d arrow.r sans(Q)_d arrow.r sans(Q)_d$], [$sans("ite")_tau$], [$sans("Bool") arrow.r tau arrow.r tau arrow.r tau$],
+    [$sans("mul")_(d_1 d_2)$], [$sans(Q)_(d_1) arrow.r sans(Q)_(d_2) arrow.r sans(Q)_(d_1 + d_2)$], [$sans("some")_tau$], [$tau arrow.r sans("Option") thick tau$],
+    [$sans("div")_(d_1 d_2)$], [$sans(Q)_(d_1) arrow.r sans(Q)_(d_2) arrow.r sans(Q)_(d_1 - d_2)$], [$sans("getD")_tau$], [$sans("Option") thick tau arrow.r tau arrow.r tau$],
+    [$sans("lt")_d$], [$sans(Q)_d arrow.r sans(Q)_d arrow.r sans("Bool")$], [$sans("toList")_tau$], [$sans("Option") thick tau arrow.r sans("List") thick tau$],
+    [$sans("length")_tau$], [$sans("List") thick tau arrow.r sans(Q)_0$], [$sans("cons")_tau$], [$tau arrow.r sans("List") thick tau arrow.r sans("List") thick tau$],
+    [$sans("head")_tau$], [$sans("List") thick tau arrow.r sans("Option") thick tau$], [$sans("take")_tau\,med sans("drop")_tau$], [$sans(Q)_0 arrow.r sans("List") thick tau arrow.r sans("List") thick tau$],
+    [$sans("fst")_(tau sigma)$], [$tau times sigma arrow.r tau$], [$sans("pair")_(tau sigma)$], [$tau arrow.r sigma arrow.r tau times sigma$],
   )]
   , kind: table
   )
 
-#emph[Figure 3. Types of the registered operators (`Prim.ty`), abridged.
-Dimension algebra lives here and nowhere else. $sans(e q)$ is available
-at every data type and $sans(l t)$ at quantities only.]
+#figcaption[Figure 3. Types of the registered operators (`Prim.ty`), abridged.
+Dimension algebra lives here and nowhere else. $sans("eq")$ is available
+at every data type and $sans("lt")$ at quantities only.]
 
 Three features of Figure 2 carry the rest of the paper.
 
@@ -534,12 +536,12 @@ clients under later realization (Theorem 3) is a direct consequence.
 
 #emph[The construction boundary.] Client code is typed under
 $diameter$\; a declaration's realization is typed under
-$upright(g r a n t)$ its own expected type (§4.1). A value of $C$ is
+$upright("grant")$ its own expected type (§4.1). A value of $C$ is
 therefore constructed only inside a declaration whose signature
 announces $C$: the signature is the realization's authority, and §5
 shows what each weaker alternative admits.
 
-#emph[The temporal boundary.] $sans(d e l a y)$ and $sans(s y n c)$ are
+#emph[The temporal boundary.] $sans("delay")$ and $sans("sync")$ are
 typed only in the empty context and only at data types. Both
 restrictions were forced by the totality proof of §6, not chosen: a
 delayed closure would have to be transported across ticks, and a delay
@@ -553,37 +555,36 @@ functions @halbwachs1991lustre.
 == Inference, uniqueness and monotonicity
 <inference-uniqueness-and-monotonicity>
 Inference is syntax-directed. A function
-$sans(i n f e r) thick Theta thick Delta thick G thick Gamma thick e : sans(O p t i o n) thick sans(T y)$
+$sans("infer") thick Theta thick Delta thick G thick Gamma thick e : sans("Option") thick sans("Ty")$
 follows the rules of Figure 2 and needs only decidability of $G$, of
-type equality and of $tau . sans(D a t a)$.
+type equality and of $tau . sans("Data")$.
 
-#strong[Proposition 1 (Inference; `infer_sound`, `infer_complete`,
-`HasType.unique`).]
-$sans(i n f e r) thick Theta thick Delta thick G thick Gamma thick e = sans(s o m e) thick tau$
+#thm("Proposition", "1")[Inference; `infer_sound`, `infer_complete`,
+`HasType.unique`][$sans("infer") thick Theta thick Delta thick G thick Gamma thick e = sans("some") thick tau$
 iff $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$\; hence typing is decidable
-and every term has at most one type.
+and every term has at most one type.]
 
-#emph[Proof.] Define $sans(i n f e r)$ by structural recursion on $e$,
+#proof[Define $sans("infer")$ by structural recursion on $e$,
 reading each rule of Figure 2 as an equation: a variable looks up
 $Gamma$\; a constant $delta$ looks up $Delta in.rev delta : tau$\; an
 application infers $f$ and $a$ and requires the inferred type of $f$ to
 be an arrow $tau arrow.r sigma$ with $tau$ the inferred type of $a$\;
-$sans(r e p) thick e$ requires the inferred type to be a concept $C$ and
-returns $Theta\(C\)$\; $sans(m k)_C thick e$ requires $C in G$ and the
+$sans("rep") thick e$ requires the inferred type to be a concept $C$ and
+returns $Theta\(C\)$\; $sans("mk")_C thick e$ requires $C in G$ and the
 inferred type to be $Theta\(C\)$\; a primitive returns its registered
-type. #emph[Soundness] ($sans(i n f e r) = sans(s o m e) thick tau$
+type. #emph[Soundness] ($sans("infer") = sans("some") thick tau$
 implies a derivation) is by induction on $e$: in each case the
 equation's premises are exactly the rule's premises, and the induction
 hypotheses supply the sub-derivations. #emph[Completeness] (a derivation
-implies $sans(i n f e r)$ returns its type) is by induction on the
+implies $sans("infer")$ returns its type) is by induction on the
 derivation: each rule's premises determine the recursive calls, and the
-side conditions the rule checked are the ones $sans(i n f e r)$ tests.
+side conditions the rule checked are the ones $sans("infer")$ tests.
 Uniqueness follows from completeness: two derivations of $e : tau_1$ and
 $e : tau_2$ give
-$sans(i n f e r) thick e = sans(s o m e) thick tau_1 = sans(s o m e) thick tau_2$.
+$sans("infer") thick e = sans("some") thick tau_1 = sans("some") thick tau_2$.
 Decidability follows from soundness and completeness together, since
-$sans(i n f e r)$ is a total computable function whose result is
-compared with $tau$. $square.stroked.tiny$
+$sans("infer")$ is a total computable function whose result is
+compared with $tau$.]
 
 Uniqueness matters beyond decidability: it is why the surface language's
 polymorphism can be #emph[matching] rather than unification (§7.2), and
@@ -626,16 +627,16 @@ a decidable preorder, frozen on the type and growing on commitments
 What discharges a commitment is not the kernel's business; it is the
 validation layer's. The kernel abstracts it as an #strong[evidence]
 relation
-$italic(e v) : sans(D e c l E n v) arrow.r sans(E x p r) arrow.r sans(P r o p e r t y I d) arrow.r sans(P r o p)$.
+$italic("ev") : sans("DeclEnv") arrow.r sans("Expr") arrow.r sans("PropertyId") arrow.r sans("Prop")$.
 Evidence takes the environment because compositional discharge needs it
 --- "$A$ is monotone because $B$ is committed to be monotone" consults
 $B$'s interface. A realization $e$ #strong[satisfies] $cal(P)$ in
 $Theta\,Delta\,Gamma$ when it has the expected type under the grant of
 that type and every commitment is discharged:
-$ sans(S a t i s f i e s) thick italic(e v) thick Theta thick Delta thick Gamma thick e thick cal(P) thick := thick Theta\;Delta\;Gamma scripts(tack.r)_(upright(g r a n t)\(cal(P) . tau\)) e : cal(P) . tau thick and thick forall p in cal(P) . cal(K) . thick italic(e v) thick Delta thick e thick p . $
+$ sans("Satisfies") thick italic("ev") thick Theta thick Delta thick Gamma thick e thick cal(P) thick := thick Theta\;Delta\;Gamma scripts(tack.r)_(upright("grant")\(cal(P) . tau\)) e : cal(P) . tau thick and thick forall p in cal(P) . cal(K) . thick italic("ev") thick Delta thick e thick p . $
 A declaration is well formed when its body, if any, satisfies its
 interface; a design is #strong[globally well formed],
-$sans(G l o b a l W F) thick italic(e v) thick Theta thick Delta$, when
+$sans("GlobalWF") thick italic("ev") thick Theta thick Delta$, when
 every stored declaration sits under its own identity and is well formed
 in $Delta$ at top level. An unrealized declaration is always well
 formed.
@@ -652,7 +653,7 @@ body at a reference to a single declaration.
 Design progression is generated by three steps (`DeclRefines`), each
 preserving the identity by construction and each checked against the
 current environment $Delta$:
-$ frac(cal(P) subset.eq.sq cal(P)', chevron.l delta\,cal(P)\,sans(n o n e) chevron.r arrow.r.squiggly chevron.l delta\,cal(P)'\,sans(n o n e) chevron.r) #h(2em) frac(sans(S a t i s f i e s) thick italic(e v) thick Theta thick Delta thick Gamma thick e thick cal(P), chevron.l delta\,cal(P)\,sans(n o n e) chevron.r arrow.r.squiggly chevron.l delta\,cal(P)\,sans(s o m e) thick e chevron.r) #h(2em) frac(cal(P) subset.eq.sq cal(P)' quad sans(S a t i s f i e s) thick italic(e v) thick Theta thick Delta thick Gamma thick e thick cal(P)', chevron.l delta\,cal(P)\,sans(s o m e) thick e chevron.r arrow.r.squiggly chevron.l delta\,cal(P)'\,sans(s o m e) thick e chevron.r) $
+$ frac(cal(P) subset.eq.sq cal(P)', chevron.l delta\,cal(P)\,sans("none") chevron.r arrow.r.squiggly chevron.l delta\,cal(P)'\,sans("none") chevron.r) #h(2em) frac(sans("Satisfies") thick italic("ev") thick Theta thick Delta thick Gamma thick e thick cal(P), chevron.l delta\,cal(P)\,sans("none") chevron.r arrow.r.squiggly chevron.l delta\,cal(P)\,sans("some") thick e chevron.r) #h(2em) frac(cal(P) subset.eq.sq cal(P)' quad sans("Satisfies") thick italic("ev") thick Theta thick Delta thick Gamma thick e thick cal(P)', chevron.l delta\,cal(P)\,sans("some") thick e chevron.r arrow.r.squiggly chevron.l delta\,cal(P)'\,sans("some") thick e chevron.r) $
 An unrealized declaration may have its interface refined; an unrealized
 declaration may be realized by a satisfying computation; a realized
 declaration may have its interface strengthened provided the realization
@@ -661,43 +662,43 @@ re-verification breaks well-formedness, and the counterexample is
 mechanized (`naive_breaks_wellformedness`).
 
 Separately from the steps there is a purely structural order with no
-satisfaction condition: $sans(D e c l L e q) thick h thick h'$ requires
+satisfaction condition: $sans("DeclLeq") thick h thick h'$ requires
 the same identity, $h . cal(P) subset.eq.sq h' . cal(P)$, and a
 write-once realization
-($h . italic(r e a l i z a t i o n) = sans(s o m e) thick e arrow.r.double h' . italic(r e a l i z a t i o n) = sans(s o m e) thick e$);
-$sans(E n v R e f i n e s) thick Delta thick Delta'$ lifts it pointwise
+($h . italic("realization") = sans("some") thick e arrow.r.double h' . italic("realization") = sans("some") thick e$);
+$sans("EnvRefines") thick Delta thick Delta'$ lifts it pointwise
 and permits new declarations. Storing a refined declaration back under
 its identity is an environment refinement ---
-$Delta thick h . italic(i d) = sans(s o m e) thick h and sans(D e c l L e q) thick h thick h' arrow.r.double sans(E n v R e f i n e s) thick Delta thick\(Delta\[h'\]\)$
+$Delta thick h . italic("id") = sans("some") thick h and sans("DeclLeq") thick h thick h' arrow.r.double sans("EnvRefines") thick Delta thick\(Delta\[h'\]\)$
 (`EnvRefines_update`) --- and this is the one place identity does any
 work: it makes the update land on the slot every reference resolves to,
 which is what a name does in any environment semantics.
 
-#strong[Proposition 2 (The lifecycle is the structural order;
-`DeclRefinesStar_iff`).] The reflexive--transitive closure of the three
+#thm("Proposition", "2")[The lifecycle is the structural order;
+`DeclRefinesStar_iff`][The reflexive--transitive closure of the three
 steps, all side conditions checked in $Delta$, relates $h$ to $h'$ iff
-$sans(D e c l L e q) thick h thick h'$ and $h'$ is well formed in
-$Delta$.
+$sans("DeclLeq") thick h thick h'$ and $h'$ is well formed in
+$Delta$.]
 
-#emph[Proof.] ($arrow.r.double$) Each step preserves the identity,
+#proof[($arrow.r.double$) Each step preserves the identity,
 refines the interface (the type unchanged, the commitment list extended)
 and never removes a definiens --- so each step is below
-$sans(D e c l L e q)$, which is transitive, and each step's side
+$sans("DeclLeq")$, which is transitive, and each step's side
 condition is exactly that the target is well formed. ($arrow.l.double$)
-Given $sans(D e c l L e q) thick h thick h'$ and $h'$ well formed, write
+Given $sans("DeclLeq") thick h thick h'$ and $h'$ well formed, write
 $h = chevron.l delta\,cal(P)\,r chevron.r$ and
 $h' = chevron.l delta\,cal(P)'\,r' chevron.r$ with
-$cal(P) subset.eq.sq cal(P)'$. If $r = sans(n o n e)$ and
-$r' = sans(n o n e)$, one $sans(r e f i n e)$ step suffices. If
-$r = sans(n o n e)$ and $r' = sans(s o m e) thick e$, take a
-$sans(r e f i n e)$ to
-$chevron.l delta\,cal(P)'\,sans(n o n e) chevron.r$ followed by a
-$sans(r e a l i z e)$ with $e$, whose side condition --- $e$ satisfies
+$cal(P) subset.eq.sq cal(P)'$. If $r = sans("none")$ and
+$r' = sans("none")$, one $sans("refine")$ step suffices. If
+$r = sans("none")$ and $r' = sans("some") thick e$, take a
+$sans("refine")$ to
+$chevron.l delta\,cal(P)'\,sans("none") chevron.r$ followed by a
+$sans("realize")$ with $e$, whose side condition --- $e$ satisfies
 $cal(P)'$ --- is the well-formedness of $h'$. If
-$r = sans(s o m e) thick e$ then $r' = sans(s o m e) thick e$ (a
-definiens is never dropped), and one $sans(s t r e n g t h e n)$ step to
+$r = sans("some") thick e$ then $r' = sans("some") thick e$ (a
+definiens is never dropped), and one $sans("strengthen")$ step to
 $cal(P)'$ suffices, its side condition again being the well-formedness
-of $h'$. $square.stroked.tiny$
+of $h'$.]
 
 == Client stability
 <client-stability>
@@ -709,27 +710,26 @@ with deliberately different hypotheses, and together they are the
 paper's central result: progress in the design does not destroy the
 meaning of earlier design decisions.
 
-#strong[Theorem 3 (Clients survive realization --- typing;
-`local_refinement_preserves_global_typing`).] If
-$Delta thick B = sans(s o m e) thick h$ and
-$sans(D e c l L e q) thick h thick h'$, then every judgment
-$Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$ holds in $Delta\[h'\]$.
+#thm("Theorem", "3")[Clients survive realization --- typing;
+`local_refinement_preserves_global_typing`][If
+$Delta thick B = sans("some") thick h$ and
+$sans("DeclLeq") thick h thick h'$, then every judgment
+$Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$ holds in $Delta\[h'\]$.]
 
-#emph[Proof.] Let $Delta' = Delta\[h'\]$. For every constant $delta'$,
+#proof[Let $Delta' = Delta\[h'\]$. For every constant $delta'$,
 the type view agrees: if $delta' eq.not B$ then
 $Delta' thick delta' = Delta thick delta'$, and if $delta' = B$ then
 $Delta' in.rev B : tau$ exactly when $Delta in.rev B : tau$, because
-$sans(D e c l L e q) thick h thick h'$ keeps the expected type. Now
+$sans("DeclLeq") thick h thick h'$ keeps the expected type. Now
 proceed by induction on the derivation of
 $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$: T-Ref is the only rule that
 reads $Delta$, and it reads the type view, which is the same in
 $Delta'$\; every other rule is reproduced with the induction hypotheses.
 (This is the monotonicity lemma `HasType.mono_env`: typing is preserved
-by any change of $Delta$ that preserves the type view.)
-$square.stroked.tiny$
+by any change of $Delta$ that preserves the type view.)]
 
 The proof is one line: typing reads $Delta$ through the type view, and
-the type view is invariant under $sans(D e c l L e q)$. That the proof
+the type view is invariant under $sans("DeclLeq")$. That the proof
 is short is the point, not a weakness. The theorem says that the
 decision to let clients see a relationship's promise and never its
 realization is #emph[sufficient] for every client to survive every
@@ -740,33 +740,33 @@ $subset.eq.sq$ and why changing it is an edit (§4.4).
 
 The commitment half needs more.
 
-#strong[Definition (Monotone evidence).] $italic(e v)$ is
+#thm("Definition", "")[Monotone evidence][$italic("ev")$ is
 #strong[monotone] when
-$sans(E n v R e f i n e s) thick Delta_1 thick Delta_2 and italic(e v) thick Delta_1 thick e thick p arrow.r.double italic(e v) thick Delta_2 thick e thick p$.
+$sans("EnvRefines") thick Delta_1 thick Delta_2 and italic("ev") thick Delta_1 thick e thick p arrow.r.double italic("ev") thick Delta_2 thick e thick p$.
 Evidence that ignores the environment is monotone; evidence that
 consults only the #emph[presence] of commitments and realizations is
-monotone; evidence that consults their #emph[absence] is not.
+monotone; evidence that consults their #emph[absence] is not.]
 
-#strong[Theorem 4 (Clients survive realization --- commitments;
+#thm("Theorem", "4")[Clients survive realization --- commitments;
 `local_refinement_preserves_global_wf`,
-`local_lifecycle_preserves_global_wf`).] If $italic(e v)$ is monotone,
-$sans(G l o b a l W F) thick italic(e v) thick Theta thick Delta$,
-$Delta thick B = sans(s o m e) thick h$ and $h arrow.r.squiggly h'$ with
+`local_lifecycle_preserves_global_wf`][If $italic("ev")$ is monotone,
+$sans("GlobalWF") thick italic("ev") thick Theta thick Delta$,
+$Delta thick B = sans("some") thick h$ and $h arrow.r.squiggly h'$ with
 side conditions checked in $Delta$, then
-$sans(G l o b a l W F) thick italic(e v) thick Theta thick\(Delta\[h'\]\)$.
+$sans("GlobalWF") thick italic("ev") thick Theta thick\(Delta\[h'\]\)$.
 The same holds for a whole lifecycle $h arrow.r.squiggly^(*) h'$ checked
-against the original $Delta$.
+against the original $Delta$.]
 
-#emph[Proof.] Write $Delta' = Delta\[h'\]$ and note first that
+#proof[Write $Delta' = Delta\[h'\]$ and note first that
 $Delta subset.eq.sq Delta'$ pointwise (`EnvRefines`): every declaration
 of $Delta$ is below the corresponding one of $Delta'$, since only $B$
-changed and it moved up by $sans(D e c l L e q)$. Global well-formedness
+changed and it moved up by $sans("DeclLeq")$. Global well-formedness
 of $Delta'$ asks, for every $delta$ with $Delta' in.rev delta := b$,
 that $b$ satisfies $delta$'s interface #emph[in $Delta'$]. Two cases. If
 $delta = B$, the step's side condition gives that $h'$'s definiens
 satisfies $h'$'s interface in $Delta$\; satisfaction is a typing
 judgment plus evidence for each commitment, the typing transfers to
-$Delta'$ by Theorem 3, and the evidence transfers because $italic(e v)$
+$Delta'$ by Theorem 3, and the evidence transfers because $italic("ev")$
 is monotone along $Delta subset.eq.sq Delta'$. If $delta eq.not B$, the
 declaration is unchanged and was well formed in $Delta$ by hypothesis;
 the same two transfers move that fact to $Delta'$. For the lifecycle
@@ -775,31 +775,31 @@ environment refines $Delta$, is globally well formed, and still holds
 $B$'s record as the steps expect": each step is a single-step instance
 whose side conditions, checked in $Delta$, transfer to the current
 environment by monotonicity, and updating twice at one name is updating
-once. $square.stroked.tiny$
+once.]
 
-#strong[Theorem 5 (Monotonicity is necessary; `badEv_not_mono`).] There
-is an evidence relation $italic(e v)_(upright(b a d))$, a globally well
+#thm("Theorem", "5")[Monotonicity is necessary; `badEv_not_mono`][There
+is an evidence relation $italic("ev")_(upright("bad"))$, a globally well
 formed two-declaration design, and a valid realization step of one
 declaration after which the design is not globally well formed;
-consequently $italic(e v)_(upright(b a d))$ is not monotone.
+consequently $italic("ev")_(upright("bad"))$ is not monotone.]
 
-#emph[Proof.] Take two declarations
-$A : sans(N a t) arrow.r sans(B o o l)$, realized and committed to
-`total`, and $B : sans(N a t) arrow.r sans(N a t)$, unrealized, with
+#proof[Take two declarations
+$A : sans("Nat") arrow.r sans("Bool")$, realized and committed to
+`total`, and $B : sans("Nat") arrow.r sans("Nat")$, unrealized, with
 $A$'s definiens applying $B$. Let
-$italic(e v)_(upright(b a d)) thick Delta thick e thick p$ hold exactly
+$italic("ev")_(upright("bad")) thick Delta thick e thick p$ hold exactly
 when $p$ is `total`, $e$ is $A$'s definiens and $B$ has no definiens in
 $Delta$. The two-declaration design is globally well formed under
-$italic(e v)_(upright(b a d))$ (a finite check). Realizing $B$ with the
-identity function is a valid $sans(r e a l i z e)$ step: its side
+$italic("ev")_(upright("bad"))$ (a finite check). Realizing $B$ with the
+identity function is a valid $sans("realize")$ step: its side
 condition is checked in the original environment, where $B$ is
 unrealized. In the updated environment $B$ has a definiens, so
-$italic(e v)_(upright(b a d))$ no longer discharges `total` for $A$, and
+$italic("ev")_(upright("bad"))$ no longer discharges `total` for $A$, and
 the design is not globally well formed. Were
-$italic(e v)_(upright(b a d))$ monotone, Theorem 4 would contradict
-this; hence it is not. $square.stroked.tiny$
+$italic("ev")_(upright("bad"))$ monotone, Theorem 4 would contradict
+this; hence it is not.]
 
-The relation $italic(e v)_(upright(b a d))$ discharges "$A$ is total"
+The relation $italic("ev")_(upright("bad"))$ discharges "$A$ is total"
 whenever the declaration $A$ reads is still unrealized --- evidence from
 absence. Realizing that declaration is a perfectly valid step, and it
 destroys the discharge. The monotonicity hypothesis was not part of the
@@ -866,19 +866,19 @@ tool must reopen the validation of transitive dependents.
 Before time enters, the semantics of a design is #emph[unfolding]:
 replace each reference to a realized declaration by its realization,
 recursively, stopping at unrealized declarations
-($sans(U n f o l d s) thick Delta thick e thick e'$). Let
-$sans(D e p e n d s O n) thick Delta thick a thick b$ hold when the body
+($sans("Unfolds") thick Delta thick e thick e'$). Let
+$sans("DependsOn") thick Delta thick a thick b$ hold when the body
 of $a$ refers to $b$.
 
-#strong[Proposition 6 (Unfolding; `Unfolds.det`,
+#thm("Proposition", "6")[Unfolding; `Unfolds.det`,
 `Unfolds.exists_of_acyclic`, `Unfolds.not_of_cyclic`,
-`Unfolds.refFree_of_fullyRealized`).] Unfolding is deterministic; on the
+`Unfolds.refFree_of_fullyRealized`][Unfolding is deterministic; on the
 delay-free fragment it exists iff the reference graph is acyclic; a
 reference on a cycle through realized declarations has no unfolding at
 all; and a fully realized well-typed design unfolds to a reference-free
-program of the same type.
+program of the same type.]
 
-#emph[Proof.] Unfolding is the least relation that copies every
+#proof[Unfolding is the least relation that copies every
 syntactic form, leaves an unrealized constant in place, and replaces a
 realized constant by the unfolding of its definiens. #emph[Determinism]:
 induction on one unfolding derivation, inverting the other; at a
@@ -889,7 +889,7 @@ bound $n$, that every term whose referenced constants all have rank
 below $n$ unfolds --- the structural cases pass the bound to their
 subterms, and a realized constant $delta$ of rank below $n$ has a
 definiens whose references have rank below
-$italic(r a n k)\(delta\)< n$, so the inner induction hypothesis
+$italic("rank")\(delta\)< n$, so the inner induction hypothesis
 applies. #emph[No unfolding on a cycle]: an unfolding of $delta$ carries
 a derivation whose referenced constants are not on a cycle through
 $delta$ (proved by induction on the derivation: the only way to pass
@@ -900,13 +900,13 @@ reaching itself contradicts this. #emph[Reference-freeness]: if every
 constant is realized, no `refStuck` case can occur, so the result
 mentions no constant; its type is preserved because each unfolding step
 replaces a constant by a definiens of the same type, typed under the
-universal grant. $square.stroked.tiny$
+universal grant.]
 
 Acyclicity is witnessed by a rank that strictly decreases along edges,
-$sans(A c y c l i c) thick Delta := exists thin italic(r a n k) . thick forall a thin b . thick sans(D e p e n d s O n) thick Delta thick a thick b arrow.r italic(r a n k) thick b < italic(r a n k) thick a$,
+$sans("Acyclic") thick Delta := exists thin italic("rank") . thick forall a thin b . thick sans("DependsOn") thick Delta thick a thick b arrow.r italic("rank") thick b < italic("rank") thick a$,
 and excludes cycles (`Acyclic.not_cyclic`). The pure fragment has no
 fixpoints, so a cyclic definition denotes nothing; §6 shows which cycles
-become meaningful once $sans(d e l a y)$ exists, and that unfolding
+become meaningful once $sans("delay")$ exists, and that unfolding
 agrees with tick evaluation on the first-order fragment
 (`unfolds_preserves_eval`).
 
@@ -929,7 +929,7 @@ by, and the two are bound separately, later, and write-once.
 <nominal-identity-and-the-grant-as-realization-authority>
 #emph[Why not identify concepts by representation?] Suppose concepts
 were represented only by their representation types, so that `Tilt` and
-`MotorAngle` are both $sans(Q)_(sans(A n g l e))$. Then the wire
+`MotorAngle` are both $sans(Q)_(sans("Angle"))$. Then the wire
 `motorTarget := tiltSensor` is well typed and the design is globally
 well formed, because nothing in the model records the distinction the
 designer drew. Nominal types $C$ over an internal identity record it:
@@ -947,9 +947,9 @@ declaration of concept type (`no_semantic_value_without_declaration`).
 That is the right state #emph[before] a realization exists. To let a
 formula realize a relationship, representation must be observable and
 constructible, and the obvious way to add it destroys what identity just
-bought. With global $sans(r e p)_C : C arrow.r R$ and
-$sans(m k)_C : R arrow.r C$ available everywhere,
-$lambda x . thick sans(m k)_(upright(M o t o r))\(sans(r e p)_(upright(T i l t)) thick x\)$
+bought. With global $sans("rep")_C : C arrow.r R$ and
+$sans("mk")_C : R arrow.r C$ available everywhere,
+$lambda x . thick sans("mk")_(upright("Motor"))\(sans("rep")_(upright("Tilt")) thick x\)$
 is a well-typed `Tilt -> MotorAngle` in the empty environment with no
 declared relationship
 (`unrestricted_representation_binding_bypasses_semantic_identity`), and
@@ -959,41 +959,41 @@ cannot realize a mapping.
 
 The grant separates the two, and its design reading is #emph[realization
 authority]: the signature the designer wrote before any computation
-existed is what authorizes the computation's result. $sans(r e p)$ is
-typed everywhere (T-Rep); $sans(m k)_C$ is typed only where $C in G$
+existed is what authorizes the computation's result. $sans("rep")$ is
+typed everywhere (T-Rep); $sans("mk")_C$ is typed only where $C in G$
 (T-Mk); client code is typed under $diameter$ and a realization under
-$upright(g r a n t)$ of its own signature (the definition of
-$sans(S a t i s f i e s)$). A realization of `Tilt -> Brightness` may
+$upright("grant")$ of its own signature (the definition of
+$sans("Satisfies")$). A realization of `Tilt -> Brightness` may
 construct a `Brightness` and nothing else --- not a `MotorAngle`, not an
 `Opacity`, whatever their representations. Let
-$e . sans(c o n s t r u c t s) thick C$ hold when $sans(m k)_C$ occurs
+$e . sans("constructs") thick C$ hold when $sans("mk")_C$ occurs
 in $e$.
 
-#strong[Theorem 7 (Realization authority;
-`HasType.constructs_granted`).] If
+#thm("Theorem", "7")[Realization authority;
+`HasType.constructs_granted`][If
 $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$ and
-$e . sans(c o n s t r u c t s) thick C$, then $C in G$. Under
-$upright(g r a n t) thick tau$: a value of $C$ is built only inside a
-realization whose signature announces $C$.
+$e . sans("constructs") thick C$, then $C in G$. Under
+$upright("grant") thick tau$: a value of $C$ is built only inside a
+realization whose signature announces $C$.]
 
-#emph[Proof.] By induction on the typing derivation, with
-$e . sans(c o n s t r u c t s) thick C$ meaning that $sans(m k)_C$
-occurs somewhere in $e$. The only rule that introduces $sans(m k)_C$ is
+#proof[By induction on the typing derivation, with
+$e . sans("constructs") thick C$ meaning that $sans("mk")_C$
+occurs somewhere in $e$. The only rule that introduces $sans("mk")_C$ is
 T-Mk, whose premise is $C in G$\; every other rule leaves the grant
 unchanged for its subterms, so an occurrence inside a subterm is handled
 by the induction hypothesis at the same $G$. Under
-$G = upright(g r a n t)\(tau\)$ for a definiens of type $tau$,
-$C in upright(g r a n t)\(tau\)$ says that $C$ is the result concept of
-$tau$, i.e.~that the signature announces it. $square.stroked.tiny$
+$G = upright("grant")\(tau\)$ for a definiens of type $tau$,
+$C in upright("grant")\(tau\)$ says that $C$ is the result concept of
+$tau$, i.e.~that the signature announces it.]
 
 The hidden crossing above is rejected under the grant of an unrelated
 declaration and becomes legal, and visible, once `tiltToMotor` is
 declared (`hidden_crossing_rejected_under_grant`,
 `representation_binding_does_not_enable_hidden_semantic_mapping`).
 
-Two constraints on representations in $Theta . sans(W F)$ were not
+Two constraints on representations in $Theta . sans("WF")$ were not
 anticipated. Representations must be concept-free: if `Tilt` may be
-represented #emph[by] `MotorAngle`, then $sans(r e p)$ itself is a
+represented #emph[by] `MotorAngle`, then $sans("rep")$ itself is a
 hidden mapping under every policy including observation-only. And they
 must be data, a requirement that arrived from the reactive semantics: a
 concept value may be delayed, and a function-typed representation would
@@ -1012,28 +1012,27 @@ executable.
 
 == Representation is not meaning: erasure
 <representation-is-not-meaning-erasure>
-Let $eta : sans(C o n c e p t I d) arrow.r sans(T y)$ map each concept
+Let $eta : sans("ConceptId") arrow.r sans("Ty")$ map each concept
 to a data type, agreeing with $Theta$ on bound concepts. Erasure
 $tau^eta$ replaces $C$ by $eta thick C$ throughout a type; on terms,
-$sans(r e p) thick e$ and $sans(m k)_C thick e$ erase to $e^eta$, and
+$sans("rep") thick e$ and $sans("mk")_C thick e$ erase to $e^eta$, and
 the type indices of operators are erased.
 
-#strong[Proposition 8 (Erasure is sound; `HasType.erase`).] If
-$Theta . sans(W F)$, $eta$ agrees with $Theta$, and
+#thm("Proposition", "8")[Erasure is sound; `HasType.erase`][If
+$Theta . sans("WF")$, $eta$ agrees with $Theta$, and
 $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$, then
 $Theta\;Delta^eta\;Gamma^eta scripts(tack.r)_(G') e^eta : tau^eta$ for every
-grant $G'$.
+grant $G'$.]
 
-#emph[Proof.] By induction on the derivation. Erasure maps each concept
+#proof[By induction on the derivation. Erasure maps each concept
 $C$ to $eta\(C\)$, agreeing with $Theta$ where the latter is defined,
-and replaces $sans(m k)_C thick e$ by $e^eta$ and $sans(r e p) thick e$
+and replaces $sans("mk")_C thick e$ by $e^eta$ and $sans("rep") thick e$
 by $e^eta$. In the T-Mk case the premise types $e$ at $Theta\(C\)= R$\;
 since $Theta$ is well formed, $R$ is concept-free, so
 $R^eta = R = eta\(C\)= C^eta$, and the erased term $e^eta$ has the
 erased type. The T-Rep case is symmetric. T-Ref uses the erased type
 view $Delta^eta$, and no rule needs the grant after erasure, so any $G'$
-serves. All remaining rules commute with erasure syntactically.
-$square.stroked.tiny$
+serves. All remaining rules commute with erasure syntactically.]
 
 Erasure is not injective --- `Tilt` and `MotorAngle` erase to the same
 type (`erase_not_injective`) --- and the untyped baseline is exactly
@@ -1052,7 +1051,7 @@ concept as an ordinary declaration admits category errors: the concept
 becomes usable as a value and can be realized by a number. Keeping
 identity out of the type as interface metadata checked by a direct-wire
 rule is evaded by η-expansion, since
-$\(lambda x . thin x\)thick italic(t i l t)$ has the same flow with no
+$\(lambda x . thin x\)thick italic("tilt")$ has the same flow with no
 direct wire (`bweak_evaded_by_eta`); a compositional role judgment
 strong enough to close that gap has the rule shapes of typing over the
 concept types and duplicates it.
@@ -1060,13 +1059,13 @@ concept types and duplicates it.
 == Dimensions: coherent arithmetic on representations
 <dimensions-coherent-arithmetic-on-representations>
 Dimensions play a narrower role than concept identity. Once a concept is
-observed through $sans(r e p)$, the arithmetic on its representation
+observed through $sans("rep")$, the arithmetic on its representation
 must remain physically coherent, and that is all dimensions do. A
 physical quantity has type $sans(Q)_d$. There is no dimension-specific
 typing rule:
-$sans(a d d)_d : sans(Q)_d arrow.r sans(Q)_d arrow.r sans(Q)_d$,
-$sans(m u l)_(d_1 d_2) : sans(Q)_(d_1) arrow.r sans(Q)_(d_2) arrow.r sans(Q)_(d_1 + d_2)$
-and $sans(d i v)_(d_1 d_2)$ with $d_1 - d_2$ are registered operators,
+$sans("add")_d : sans(Q)_d arrow.r sans(Q)_d arrow.r sans(Q)_d$,
+$sans("mul")_(d_1 d_2) : sans(Q)_(d_1) arrow.r sans(Q)_(d_2) arrow.r sans(Q)_(d_1 + d_2)$
+and $sans("div")_(d_1 d_2)$ with $d_1 - d_2$ are registered operators,
 and an application is checked by T-App. `length + time` is ill typed
 (`dimension_mismatch_rejected`); erasing every dimension to the zero
 vector is a sound translation that accepts it
@@ -1076,11 +1075,11 @@ that it is the erasure of nominal typing.
 
 Dimension and identity are orthogonal, and the orthogonality is what the
 relationship-first reading needs: `Tilt` and `MotorAngle` both bound to
-$sans(Q)_(sans(A n g l e))$ remain distinct types
+$sans(Q)_(sans("Angle"))$ remain distinct types
 (`same_dimension_does_not_imply_same_semantic_identity`); a relationship
 realized by the dimensioned formula
-$lambda x . thick sans(m k) thick sans(B r i g h t n e s s) thick\(sans(r e p) thick x dot.op italic(g a i n)\)$
-with $italic(g a i n) : sans(Q)_(0 - sans(A n g l e))$ is typed, a
+$lambda x . thick sans("mk") thick sans("Brightness") thick\(sans("rep") thick x dot.op italic("gain")\)$
+with $italic("gain") : sans(Q)_(0 - sans("Angle"))$ is typed, a
 dimension error inside it is caught by the same typing, and the formula
 cannot manufacture a `MotorAngle` despite the shared dimension
 (`explicit_semantic_mapping_uses_dimensioned_formula`). The association
@@ -1089,9 +1088,9 @@ identity and not in the type constructor: the designer says #emph[tilt
 to brightness] first and #emph[tilt is an angle] separately.
 
 Units are not in the calculus at all. A literal `90 deg` elaborates to
-$sans(l i t)_(sans(A n g l e))$ of a scaled magnitude; a coordinate
-$sans(i n U n i t)\(q\,u\)$ is $q$ divided by a scale constant and has
-dimension zero; $sans(w i t h U n i t)\(x\,u\)$ is the converse; a
+$sans("lit")_(sans("Angle"))$ of a scaled magnitude; a coordinate
+$sans("inUnit")\(q\,u\)$ is $q$ divided by a scale constant and has
+dimension zero; $sans("withUnit")\(x\,u\)$ is the converse; a
 conversion is their composition. Each is elaboration, none is a kernel
 construct, and a unit choice never reaches a type: `1 m` and `100 cm`
 are equal values of one type. The unit laws are proved above the kernel
@@ -1120,36 +1119,36 @@ domains is the one that keeps the designer's temporal structure intact.
 <declarations-as-streams>
 Values are booleans, naturals (which also carry every $sans(Q)_d$\; the
 executable kernel's magnitudes are naturals), tagged concept values
-$sans(m k)_C thin v$, $sans(n o n e)$, $sans(s o m e) thick v$, lists,
-pairs, closures $sans(c l o) thick rho thick e$ over a value
+$sans("mk")_C thin v$, $sans("none")$, $sans("some") thick v$, lists,
+pairs, closures $sans("clo") thick rho thick e$ over a value
 environment, and partially applied operators
-$sans(p r i m) thick p thick arrow(v)$. An operator is computed when
-saturated: $sans(a p p l y P r i m) thick p thick arrow(v)$ is
-$sans(c o m p u t e) thick p thick arrow(v)$ if $\|arrow(v)\|$ equals
-$p$'s arity and $sans(p r i m) thick p thick arrow(v)$ otherwise.
+$sans("prim") thick p thick arrow(v)$. An operator is computed when
+saturated: $sans("applyPrim") thick p thick arrow(v)$ is
+$sans("compute") thick p thick arrow(v)$ if $\|arrow(v)\|$ equals
+$p$'s arity and $sans("prim") thick p thick arrow(v)$ otherwise.
 
 The judgment $rho scripts(tack.r)_t e arrow.b.double v$ --- the value of $e$ at
 tick $t$ under local environment $rho$, with the design $Delta$ and the
 input $I$ ambient --- is defined in Figure 4 (`Ev`).
 
-$ frac(rho\(x\)= v, rho scripts(tack.r)_t x arrow.b.double v) #h(2em) frac(, rho scripts(tack.r)_t lambda x : tau . thin e arrow.b.double sans(c l o) thick rho thick e) #h(2em) frac(, rho scripts(tack.r)_t p arrow.b.double sans(a p p l y P r i m) thick p thick\[thin\]) $
+$ frac(rho\(x\)= v, rho scripts(tack.r)_t x arrow.b.double v) #h(2em) frac(, rho scripts(tack.r)_t lambda x : tau . thin e arrow.b.double sans("clo") thick rho thick e) #h(2em) frac(, rho scripts(tack.r)_t p arrow.b.double sans("applyPrim") thick p thick\[thin\]) $
 
-$ frac(rho scripts(tack.r)_t f arrow.b.double sans(c l o) thick rho' thick b quad rho scripts(tack.r)_t a arrow.b.double w quad w thin upright("::") thin rho' scripts(tack.r)_t b arrow.b.double v, rho scripts(tack.r)_t f thick a arrow.b.double v) #h(2em) frac(rho scripts(tack.r)_t f arrow.b.double sans(p r i m) thick p thick arrow(u) quad rho scripts(tack.r)_t a arrow.b.double w, rho scripts(tack.r)_t f thick a arrow.b.double sans(a p p l y P r i m) thick p thick\(arrow(u) + #h(-0.167em) #h(-0.167em) +\[w\]\)) $
+$ frac(rho scripts(tack.r)_t f arrow.b.double sans("clo") thick rho' thick b quad rho scripts(tack.r)_t a arrow.b.double w quad w thin upright("::") thin rho' scripts(tack.r)_t b arrow.b.double v, rho scripts(tack.r)_t f thick a arrow.b.double v) #h(2em) frac(rho scripts(tack.r)_t f arrow.b.double sans("prim") thick p thick arrow(u) quad rho scripts(tack.r)_t a arrow.b.double w, rho scripts(tack.r)_t f thick a arrow.b.double sans("applyPrim") thick p thick\(arrow(u) + #h(-0.167em) #h(-0.167em) +\[w\]\)) $
 
-$ frac(Delta in.rev delta := b quad\[thin\]scripts(tack.r)_t b arrow.b.double v, rho scripts(tack.r)_t delta arrow.b.double v) med upright("(E-Real)") #h(2em) frac(delta in.not upright(d e f)\(Delta\), rho scripts(tack.r)_t delta arrow.b.double I thick delta thick t) med upright("(E-Input)") $
+$ frac(Delta in.rev delta := b quad\[thin\]scripts(tack.r)_t b arrow.b.double v, rho scripts(tack.r)_t delta arrow.b.double v) med upright("(E-Real)") #h(2em) frac(delta in.not upright("def")\(Delta\), rho scripts(tack.r)_t delta arrow.b.double I thick delta thick t) med upright("(E-Input)") $
 
-$ frac(rho scripts(tack.r)_t e arrow.b.double sans(m k)_C thin w, rho scripts(tack.r)_t sans(r e p) thick e arrow.b.double w) #h(2em) frac(rho scripts(tack.r)_t e arrow.b.double w, rho scripts(tack.r)_t sans(m k)_C thick e arrow.b.double sans(m k)_C thin w) $
+$ frac(rho scripts(tack.r)_t e arrow.b.double sans("mk")_C thin w, rho scripts(tack.r)_t sans("rep") thick e arrow.b.double w) #h(2em) frac(rho scripts(tack.r)_t e arrow.b.double w, rho scripts(tack.r)_t sans("mk")_C thick e arrow.b.double sans("mk")_C thin w) $
 
-$ frac(rho scripts(tack.r)_0 i arrow.b.double v, rho scripts(tack.r)_0 sans(d e l a y) thick i thick e arrow.b.double v) med upright("(E-Delay0)") #h(2em) frac(rho scripts(tack.r)_t e arrow.b.double v, rho scripts(tack.r)_(t + 1) sans(d e l a y) thick i thick e arrow.b.double v) med upright("(E-DelayS)") $
+$ frac(rho scripts(tack.r)_0 i arrow.b.double v, rho scripts(tack.r)_0 sans("delay") thick i thick e arrow.b.double v) med upright("(E-Delay0)") #h(2em) frac(rho scripts(tack.r)_t e arrow.b.double v, rho scripts(tack.r)_(t + 1) sans("delay") thick i thick e arrow.b.double v) med upright("(E-DelayS)") $
 
-$ frac(rho scripts(tack.r)_t f arrow.b.double v_f quad rho scripts(tack.r)_t z arrow.b.double v_z quad rho scripts(tack.r)_t l arrow.b.double sans(l i s t) thin\[thin\], rho scripts(tack.r)_t sans(f o l d) thick f thick z thick l arrow.b.double v_z) med upright("(E-FoldNil)") $
+$ frac(rho scripts(tack.r)_t f arrow.b.double v_f quad rho scripts(tack.r)_t z arrow.b.double v_z quad rho scripts(tack.r)_t l arrow.b.double sans("list") thin\[thin\], rho scripts(tack.r)_t sans("fold") thick f thick z thick l arrow.b.double v_z) med upright("(E-FoldNil)") $
 
-$ frac(rho scripts(tack.r)_t f arrow.b.double v_f quad rho scripts(tack.r)_t z arrow.b.double v_z quad rho scripts(tack.r)_t l arrow.b.double sans(l i s t) thin\(x thin upright("::") thin italic(x s)\)\
- \[sans(l i s t) thin italic(x s)\,thin v_z\,thin v_f\]scripts(tack.r)_t sans(f o l d) thick\#2 thick\#1 thick\#0 arrow.b.double r #h(2em)\[r\,thin x\,thin v_f\]scripts(tack.r)_t\#2 thick\#1 thick\#0 arrow.b.double v, rho scripts(tack.r)_t sans(f o l d) thick f thick z thick l arrow.b.double v) med upright("(E-FoldCons)") $
+$ frac(rho scripts(tack.r)_t f arrow.b.double v_f quad rho scripts(tack.r)_t z arrow.b.double v_z quad rho scripts(tack.r)_t l arrow.b.double sans("list") thin\(x thin upright("::") thin italic("xs")\)\
+ \[sans("list") thin italic("xs")\,thin v_z\,thin v_f\]scripts(tack.r)_t sans("fold") thick\#2 thick\#1 thick\#0 arrow.b.double r #h(2em)\[r\,thin x\,thin v_f\]scripts(tack.r)_t\#2 thick\#1 thick\#0 arrow.b.double v, rho scripts(tack.r)_t sans("fold") thick f thick z thick l arrow.b.double v) med upright("(E-FoldCons)") $
 
-#emph[Figure 4. Single-domain evaluation (`Ev`), with $Delta$ and $I$
-ambient. In one domain $sans(s y n c)_kappa$ evaluates exactly as
-$sans(d e l a y)$ (rules `syncZero`, `syncSucc`), which §6.7 justifies.
+#figcaption[Figure 4. Single-domain evaluation (`Ev`), with $Delta$ and $I$
+ambient. In one domain $sans("sync")_kappa$ evaluates exactly as
+$sans("delay")$ (rules `syncZero`, `syncSucc`), which §6.7 justifies.
 Literals evaluate to themselves. $\#i$ is de Bruijn index $i$.]
 
 Three points of Figure 4 deserve comment. An unrealized declaration is
@@ -1159,67 +1158,66 @@ evaluated from its realization at the current tick in the #emph[empty]
 environment (E-Real): a reference's value never depends on the local
 environment of the reader, which is what makes a relationship a stream
 the design observes rather than a function of its call site
-(`Ev.declRef_env_irrelevant`). And $sans(d e l a y)$ shifts the tick:
+(`Ev.declRef_env_irrelevant`). And $sans("delay")$ shifts the tick:
 read at $t + 1$, it evaluates its operand at $t$\; at $0$ it evaluates
 the initial value.
 
 The recursor's rule unrolls syntactically. Rather than a recursive
 definition of a fold on values, the rule evaluates the syntactic term
-$sans(f o l d) thick\#2 thick\#1 thick\#0$ in an environment holding the
+$sans("fold") thick\#2 thick\#1 thick\#0$ in an environment holding the
 tail, the seed and the function, and then the term
 $\#2 thick\#1 thick\#0$ in an environment holding the result, the head
-and the function. This keeps $sans(E v)$ an ordinary inductive relation
-with no mutual recursion, so every proof by induction on $sans(E v)$
+and the function. This keeps $sans("Ev")$ an ordinary inductive relation
+with no mutual recursion, so every proof by induction on $sans("Ev")$
 that predated the recursor extends by one case, and totality is a
 separate lemma by induction on the list (§7.1).
 
-#strong[Theorem 9 (Determinism; `Ev.det`).] If
+#thm("Theorem", "9")[Determinism; `Ev.det`][If
 $rho scripts(tack.r)_t e arrow.b.double v_1$ and
-$rho scripts(tack.r)_t e arrow.b.double v_2$ then $v_1 = v_2$.
+$rho scripts(tack.r)_t e arrow.b.double v_2$ then $v_1 = v_2$.]
 
-#emph[Proof.] By induction on the first derivation, inverting the
+#proof[By induction on the first derivation, inverting the
 second: each syntactic form has at most one applicable rule per tick
-(for $sans(d e l a y)$ and $sans(s y n c)$ the tick decides between the
+(for $sans("delay")$ and $sans("sync")$ the tick decides between the
 initial and the successor rule, and for a constant the presence of a
 definiens decides between E-Real and E-Input), the environment lookup,
 the input and the definiens are functions, and the induction hypotheses
-identify the values of the premises. $square.stroked.tiny$
+identify the values of the premises.]
 
 Evaluation is a partial function with no hidden evaluation order ---
 there are no effects to order --- and this holds unconditionally.
 
-An executable interpreter $sans(e v a l F)$ with a fuel parameter is
+An executable interpreter $sans("evalF")$ with a fuel parameter is
 proved sound for the relation (`evalF_sound`, `Ev.of_evalF`). Every
 trace in the development and in this paper was computed by it inside the
 proof checker.
 
 == Cycles and causality
 <cycles-and-causality>
-Let $e . sans(i n s t R e f s)$ be the declarations $e$ refers to
+Let $e . sans("instRefs")$ be the declarations $e$ refers to
 #emph[instantaneously]: those not under the delayed operand of a
-$sans(d e l a y)$ or $sans(s y n c)$ (the initial value is read at tick
+$sans("delay")$ or $sans("sync")$ (the initial value is read at tick
 $0$ and counts as instantaneous).
-$sans(I n s t D e p e n d s O n) thick Delta thick a thick b$ holds when
-$b in sans(i n s t R e f s)$ of $a$'s body.
+$sans("InstDependsOn") thick Delta thick a thick b$ holds when
+$b in sans("instRefs")$ of $a$'s body.
 
-#strong[Definition (Causal).]
-$sans(C a u s a l) thick Delta := exists thin italic(r a n k) thin R . thick\(forall delta . thick italic(r a n k) thick delta < R\)and forall a thin b . thick sans(I n s t D e p e n d s O n) thick Delta thick a thick b arrow.r italic(r a n k) thick b < italic(r a n k) thick a$.
+#thm("Definition", "")[Causal][$sans("Causal") thick Delta := exists thin italic("rank") thin R . thick\(forall delta . thick italic("rank") thick delta < R\)and forall a thin b . thick sans("InstDependsOn") thick Delta thick a thick b arrow.r italic("rank") thick b < italic("rank") thick a$.]
 
-On the delay-free fragment $sans(I n s t D e p e n d s O n)$ is
-$sans(D e p e n d s O n)$, so causality is exactly bounded acyclicity
+On the delay-free fragment $sans("InstDependsOn")$ is
+$sans("DependsOn")$, so causality is exactly bounded acyclicity
 (`Causal_iff_acyclic_of_delayFree`): the earlier condition is the
 timeless special case rather than a replaced requirement. A structural
 cycle every path of which passes through a delayed operand ---
 `A := delay 0 B; B := A`, or a self-delayed accumulator --- is causal. A
 cycle that is partly delayed is not.
 
-#strong[Proposition 10 (Strict cycles have no value;
-`Ev.not_of_strictCyclic`).] If $a$ lies on a cycle of references passing
+#thm("Proposition", "10")[Strict cycles have no value;
+`Ev.not_of_strictCyclic`][If $a$ lies on a cycle of references passing
 through neither a delayed operand nor a lambda, then for every tick and
 environment there is no $v$ with
-$rho scripts(tack.r)_t sans(d e c l R e f) thick a arrow.b.double v$.
+$rho scripts(tack.r)_t sans("declRef") thick a arrow.b.double v$.]
 
-#emph[Proof.] Every derivation of $rho scripts(tack.r)_t e arrow.b.double v$
+#proof[Every derivation of $rho scripts(tack.r)_t e arrow.b.double v$
 carries the invariant that no #emph[strict] reference of $e$ --- a
 reference not under a delayed operand or a lambda --- lies on a strict
 cycle: E-Real passes from $delta$ to the strict references of its
@@ -1227,37 +1225,37 @@ definiens, so a strict path from $delta$ back to $delta$ would yield a
 strictly smaller derivation of the same conclusion, which is impossible
 by induction; the delay rules read their operand at an earlier tick and
 do not count as strict; a lambda's body is not evaluated. A constant on
-a strict cycle violates the invariant at the root. $square.stroked.tiny$
+a strict cycle violates the invariant at the root.]
 
 Not "some default", not "one of several": no derivation exists. A gap
 should be recorded. A cycle guarded by a lambda, `A := λx. A x`, is
-rejected by $sans(C a u s a l)$ yet `declRef A` does evaluate --- to a
-closure; only applying it diverges. $sans(C a u s a l)$ is conservative
+rejected by $sans("Causal")$ yet `declRef A` does evaluate --- to a
+closure; only applying it diverges. $sans("Causal")$ is conservative
 for lambda-guarded cycles and Proposition 10 covers strict cycles only.
 
 == The logical relation and totality
 <the-logical-relation-and-totality>
 Totality is proved by a logical relation indexed by the tick. The
 relation is stated generically in an #emph[application relation]
-$A : sans(V a l u e) arrow.r sans(V a l u e) arrow.r sans(V a l u e) arrow.r sans(P r o p)$
+$A : sans("Value") arrow.r sans("Value") arrow.r sans("Value") arrow.r sans("Prop")$
 --- how a function value applied to an argument yields a result --- so
 that the single-domain and multi-domain semantics share one relation. At
-a fixed tick, $A$ is $sans(A p p l y) thick Delta thick I thick t$:
+a fixed tick, $A$ is $sans("Apply") thick Delta thick I thick t$:
 $v_f$ applied to $w$ yields $v$ when $v_f$ is a closure whose body
 evaluates to $v$ at $t$ under $w$, or a partial operator whose
 saturation is $v$.
 
-$ cal(R)_Theta^A\[sans(B o o l)\]thick v arrow.l.r.double & exists b . thick v = sans(B o o l) thick b\
-cal(R)_Theta^A\[sans(N a t)\]thick v thick = thick cal(R)_Theta^A\[sans(Q)_d\]thick v arrow.l.r.double & exists n . thick v = sans(N a t) thick n\
-cal(R)_Theta^A\[sans(O p t i o n) thick tau\]thick v arrow.l.r.double & v = sans(n o n e) thick or thick exists w . thick v = sans(s o m e) thick w and cal(R)_Theta^A\[tau\]thick w\
-cal(R)_Theta^A\[sans(L i s t) thick tau\]thick v arrow.l.r.double & exists arrow(w) . thick v = sans(L i s t) thick arrow(w) and forall w in arrow(w) . thick cal(R)_Theta^A\[tau\]thick w\
-cal(R)_Theta^A\[tau times sigma\]thick v arrow.l.r.double & exists x thin y . thick v = sans(p a i r) thick x thick y and cal(R)_Theta^A\[tau\]thick x and cal(R)_Theta^A\[sigma\]thick y\
+$ cal(R)_Theta^A\[sans("Bool")\]thick v arrow.l.r.double & exists b . thick v = sans("Bool") thick b\
+cal(R)_Theta^A\[sans("Nat")\]thick v thick = thick cal(R)_Theta^A\[sans(Q)_d\]thick v arrow.l.r.double & exists n . thick v = sans("Nat") thick n\
+cal(R)_Theta^A\[sans("Option") thick tau\]thick v arrow.l.r.double & v = sans("none") thick or thick exists w . thick v = sans("some") thick w and cal(R)_Theta^A\[tau\]thick w\
+cal(R)_Theta^A\[sans("List") thick tau\]thick v arrow.l.r.double & exists arrow(w) . thick v = sans("List") thick arrow(w) and forall w in arrow(w) . thick cal(R)_Theta^A\[tau\]thick w\
+cal(R)_Theta^A\[tau times sigma\]thick v arrow.l.r.double & exists x thin y . thick v = sans("pair") thick x thick y and cal(R)_Theta^A\[tau\]thick x and cal(R)_Theta^A\[sigma\]thick y\
 cal(R)_Theta^A\[tau arrow.r sigma\]thick v arrow.l.r.double & forall w . thick cal(R)_Theta^A\[tau\]thick w arrow.r exists v' . thick A thick v thick w thick v' and cal(R)_Theta^A\[sigma\]thick v'\
-cal(R)_Theta^A\[C\]thick v arrow.l.r.double & exists w . thick v = sans(m k)_C thin w and forall R . thick Theta\(C\)= R arrow.r cal(R)^A\[R\]thick w $
+cal(R)_Theta^A\[C\]thick v arrow.l.r.double & exists w . thick v = sans("mk")_C thin w and forall R . thick Theta\(C\)= R arrow.r cal(R)^A\[R\]thick w $
 
 The concept clause says that a concept value is a tagged representation
 value. Its inner use of the relation at the representation $R$ is the
-concept-free relation $sans(R e d S F)$\; because $Theta . sans(W F)$
+concept-free relation $sans("RedSF")$\; because $Theta . sans("WF")$
 makes $R$ concept-free, the definition is well founded on the type
 without appeal to $Theta$ (`Red_semFree`). At data types the relation is
 independent of $A$ (`Red_data`), which is what allows a delayed value to
@@ -1265,26 +1263,26 @@ be transported between ticks. Registered operators are related at their
 types for any $A$ that saturates them (`Red_prim`).
 
 Well-typed inputs are inputs related to the type view:
-$Delta in.rev delta : tau and delta in.not upright(d e f)\(Delta\)arrow.r.double cal(R)_Theta^(sans(A p p l y) thick Delta thick I thick t)\[tau\]thick\(I thick delta thick t\)$
+$Delta in.rev delta : tau and delta in.not upright("def")\(Delta\)arrow.r.double cal(R)_Theta^(sans("Apply") thick Delta thick I thick t)\[tau\]thick\(I thick delta thick t\)$
 for every $t$.
 
-#strong[Theorem 11 (Totality under causality; `fundamental`,
-`reactive_total`, `Ev.red`).] Let $Theta . sans(W F)$, let
-$italic(r a n k)\,R$ witness $sans(C a u s a l) thick Delta$, let
-$sans(G l o b a l W F) thick italic(e v) thick Theta thick Delta$ and
+#thm("Theorem", "11")[Totality under causality; `fundamental`,
+`reactive_total`, `Ev.red`][Let $Theta . sans("WF")$, let
+$italic("rank")\,R$ witness $sans("Causal") thick Delta$, let
+$sans("GlobalWF") thick italic("ev") thick Theta thick Delta$ and
 let $I$ be well typed. Then for every tick $t$, bound $r$, grant $G$,
 and $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$, and every $rho$ related to
 $Gamma$ such that every instantaneous reference of $e$ has rank below
 $r$, there is $v$ with $rho scripts(tack.r)_t e arrow.b.double v$ and
-$cal(R)_Theta^(sans(A p p l y) thick Delta thick I thick t)\[tau\]thick v$.
+$cal(R)_Theta^(sans("Apply") thick Delta thick I thick t)\[tau\]thick v$.]
 
 #emph[Proof.] Let $cal(R)_Theta\[tau\]thick v$ be the logical relation
 of §6.3 at the application relation of the single-domain semantics:
-booleans and numbers are related at $sans(B o o l)$, $sans(N a t)$ and
+booleans and numbers are related at $sans("Bool")$, $sans("Nat")$ and
 $sans(Q)_d$\; optionals, lists and pairs componentwise; a value at
 $tau arrow.r sigma$ is related when applying it to any value related at
 $tau$ yields a value related at $sigma$\; a value at a concept $C$ is
-$sans(m k)_C thin w$ with $w$ related at the representation $Theta\(C\)$
+$sans("mk")_C thin w$ with $w$ related at the representation $Theta\(C\)$
 through the concept-free relation. Prove the stronger statement:
 #emph[for every tick $t$ and bound $r$, every well-typed $e$ whose
 instantaneous references have rank below $r$ evaluates, in every
@@ -1296,11 +1294,11 @@ need.
 
 #emph[Constant] (T-Ref). If $delta$ has no definiens, its value is the
 input $I thick delta thick t$, related by the hypothesis on inputs.
-Otherwise its definiens $b$ is typed under $upright(g r a n t)\(tau\)$
+Otherwise its definiens $b$ is typed under $upright("grant")\(tau\)$
 at top level by global well-formedness; causality gives
-$italic(r a n k)\(delta'\)< italic(r a n k)\(delta\)< r$ for every
+$italic("rank")\(delta'\)< italic("rank")\(delta\)< r$ for every
 instantaneous reference $delta'$ of $b$, so the inner induction
-hypothesis at bound $italic(r a n k)\(delta\)$ evaluates $b$ in the
+hypothesis at bound $italic("rank")\(delta\)$ evaluates $b$ in the
 empty environment, and E-Real lifts the result to $delta$.
 
 #emph[Delay] (T-Delay). At tick $0$ the initial value's derivation gives
@@ -1331,14 +1329,14 @@ inputs, every declared relationship has a value at every tick, and that
 value --- unique by Theorem 9 --- is related to its expected type.
 
 #emph[Proof sketch.] Lexicographic induction on
-$\(t\,r\,sans(d e r i v a t i o n)\)$. A delayed operand at tick $t + 1$
+$\(t\,r\,sans("derivation")\)$. A delayed operand at tick $t + 1$
 is evaluated at tick $t$ under #emph[any] rank (the first component
 decreases); an instantaneous reference to a realized declaration $delta$
 is evaluated at the same tick under the smaller bound
-$italic(r a n k) thick delta$ (the second decreases), and its
+$italic("rank") thick delta$ (the second decreases), and its
 realization is well typed under the grant of its own signature by
-$sans(G l o b a l W F)$\; every other case is the induction on the
-derivation. The $sans(f o l d)$ case uses `fold_total` (§7.1).
+$sans("GlobalWF")$\; every other case is the induction on the
+derivation. The $sans("fold")$ case uses `fold_total` (§7.1).
 $square.stroked.tiny$
 
 The relation is a step-indexed logical relation in the sense of Appel
@@ -1354,7 +1352,7 @@ T-Delay and T-Sync restrict their type to data and their context to
 empty. Neither restriction was a design decision; each is what the
 induction of Theorem 11 needs. A delayed closure would be a value at
 tick $t$ related by
-$cal(R)^(sans(A p p l y) thick Delta thick I thick t)$ that must be
+$cal(R)^(sans("Apply") thick Delta thick I thick t)$ that must be
 transported to tick $t + 1$, and the arrow clause is tick-indexed and
 cannot be transported; `Red_data` is exactly the statement that data
 clauses can. A delay under a binder would evaluate its operand at the
@@ -1367,7 +1365,7 @@ therefore belongs to declarations --- a relationship may remember, a
 function may not --- and a reusable stateful behavior is instantiated
 into fresh declarations (§9) rather than abstracted over.
 
-Initialization is semantic, not validation. Every $sans(d e l a y)$
+Initialization is semantic, not validation. Every $sans("delay")$
 carries an explicit initial value. Two toy relations without one show
 why: the first tick is either undefined
 (`first_tick_undefined_without_init`) or nondeterministic
@@ -1376,17 +1374,17 @@ why: the first tick is either undefined
 == Provenance through time
 <provenance-through-time>
 State carries semantic tags; it never creates them. Let
-$v . sans(T a i n t s) thick C$ hold when the tag $C$ occurs anywhere
+$v . sans("Taints") thick C$ hold when the tag $C$ occurs anywhere
 inside $v$ --- including inside closures' environments and bodies.
 
-#strong[Theorem 12 (Semantic integrity over time; `Ev.tag_provenance`,
-`temporal_state_preserves_semantic_identity`).] If no realization in
+#thm("Theorem", "12")[Semantic integrity over time; `Ev.tag_provenance`,
+`temporal_state_preserves_semantic_identity`][If no realization in
 $Delta$ constructs $C$, no input value is tainted by $C$, $e$ does not
 construct $C$ and $rho$ is clean, then every value
 $rho scripts(tack.r)_t e arrow.b.double v$ is clean. In particular a delayed
-value carries exactly the tag of the value delayed.
+value carries exactly the tag of the value delayed.]
 
-#emph[Proof.] Say a value is #emph[tainted] by $C$ when a $sans(m k)_C$
+#proof[Say a value is #emph[tainted] by $C$ when a $sans("mk")_C$
 tag occurs inside it --- including inside a closure's environment, and
 counting a closure whose body could construct $C$. Prove by induction on
 the evaluation derivation that if $e$ does not construct $C$ and the
@@ -1396,20 +1394,19 @@ closure is clean because its body does not construct $C$ and its
 environment is clean. Application evaluates a clean closure's body in a
 clean environment. A constant with a definiens is evaluated from that
 definiens, clean by hypothesis on $Delta$\; a constant without one
-yields an input, clean by hypothesis on $I$. $sans(d e l a y)$ and
-$sans(s y n c)$ evaluate either the initial value or the operand at an
-earlier tick, both covered by the induction. $sans(r e p)$ strips a tag
-and $sans(m k)_(C')$ with $C' eq.not C$ adds a foreign one; neither
+yields an input, clean by hypothesis on $I$. $sans("delay")$ and
+$sans("sync")$ evaluate either the initial value or the operand at an
+earlier tick, both covered by the induction. $sans("rep")$ strips a tag
+and $sans("mk")_(C')$ with $C' eq.not C$ adds a foreign one; neither
 introduces $C$. The statement about a delayed value carrying exactly the
-tag of the value delayed is the successor case read directly.
-$square.stroked.tiny$
+tag of the value delayed is the successor case read directly.]
 
 Combined with Theorem 7 this is the runtime half of semantic integrity:
 a concept appears in a value only if some signature announces it or some
 input carries it, at every tick. The typing rule
-$sans(d e l a y) : tau arrow.r tau arrow.r tau$ at data $tau$ gives the
+$sans("delay") : tau arrow.r tau arrow.r tau$ at data $tau$ gives the
 static half --- a delayed tilt is a tilt, and a backward difference over
-a time step has dimension $sans(L e n g t h) - sans(T i m e)$ with no
+a time step has dimension $sans("Length") - sans("Time")$ with no
 derivative primitive.
 
 On the first-order fragment a compiler cares about --- #emph[wiring]
@@ -1428,15 +1425,15 @@ A clock domain is part of a relationship's design context: it says
 designer authors it as an identity --- "moves with the interaction",
 "moves with the environment" --- before any rate is known. The time
 model is one global base tick and a schedule
-$S : sans(C l o c k I d) arrow.r bb(N) arrow.r sans(B o o l)$ saying at
+$S : sans("ClockId") arrow.r bb(N) arrow.r sans("Bool")$ saying at
 which global ticks each domain activates. A period $n$ induces the
 schedule $t med mod med n = 0$ (`Sched.periodic`); the schedule lives
 outside the design. Domain-local time is not a separate counter but the
 sequence of a domain's activations. The last activation of $kappa$
 strictly before $t$ is
-$ sans(p r e v A c t) thick S thick kappa thick 0 = sans(n o n e)\,#h(2em) sans(p r e v A c t) thick S thick kappa thick\(t + 1\)= sans(i f) thick S thick kappa thick t thick sans(t h e n) thick sans(s o m e) thick t thick sans(e l s e) thick sans(p r e v A c t) thick S thick kappa thick t\, $
+$ sans("prevAct") thick S thick kappa thick 0 = sans("none")\,#h(2em) sans("prevAct") thick S thick kappa thick\(t + 1\)= sans("if") thick S thick kappa thick t thick sans("then") thick sans("some") thick t thick sans("else") thick sans("prevAct") thick S thick kappa thick t\, $
 with
-$sans(p r e v A c t) thick S thick kappa thick t = sans(s o m e) thick t' arrow.r.double t' < t and S thick kappa thick t'$.
+$sans("prevAct") thick S thick kappa thick t = sans("some") thick t' arrow.r.double t' < t and S thick kappa thick t'$.
 
 Each declaration is assigned a domain by the clock environment
 $upright(K)$, or none if it is a domain-agnostic relationship usable
@@ -1447,19 +1444,19 @@ beside the interface, as a concept's representation is stored in $Theta$
 rather than in the type.
 
 The #strong[domain judgment]
-$sans(C l o c k e d) thick upright(K) thick kappa thick e$, for
-$kappa : sans(O p t i o n) thick sans(C l o c k I d)$, says that $e$ may
+$sans("Clocked") thick upright(K) thick kappa thick e$, for
+$kappa : sans("Option") thick sans("ClockId")$, says that $e$ may
 be evaluated in domain $kappa$:
-$ sans(C l o c k e d) thick upright(K) thick kappa thick\(delta\)arrow.l.r.double & upright(K) thick delta = sans(n o n e) thick or thick upright(K) thick delta = kappa\
-sans(C l o c k e d) thick upright(K) thick\(sans(s o m e) thick kappa\)thick\(sans(d e l a y) thick i thick e\)arrow.l.r.double & sans(C l o c k e d) thick upright(K) thick\(sans(s o m e) thick kappa\)thick i and sans(C l o c k e d) thick upright(K) thick\(sans(s o m e) thick kappa\)thick e\
-sans(C l o c k e d) thick upright(K) thick\(sans(s o m e) thick kappa\)thick\(sans(s y n c)_(kappa') thick i thick e\)arrow.l.r.double & sans(C l o c k e d) thick upright(K) thick\(sans(s o m e) thick kappa\)thick i and sans(C l o c k e d) thick upright(K) thick\(sans(s o m e) thick kappa'\)thick e\
-sans(C l o c k e d) thick upright(K) thick sans(n o n e) thick\(sans(d e l a y) thick i thick e\)arrow.l.r.double & sans(F a l s e) #h(2em) #h(2em) sans(C l o c k e d) thick upright(K) thick sans(n o n e) thick\(sans(s y n c)_(kappa') thick i thick e\)arrow.l.r.double sans(F a l s e) $
+$ sans("Clocked") thick upright(K) thick kappa thick\(delta\)arrow.l.r.double & upright(K) thick delta = sans("none") thick or thick upright(K) thick delta = kappa\
+sans("Clocked") thick upright(K) thick\(sans("some") thick kappa\)thick\(sans("delay") thick i thick e\)arrow.l.r.double & sans("Clocked") thick upright(K) thick\(sans("some") thick kappa\)thick i and sans("Clocked") thick upright(K) thick\(sans("some") thick kappa\)thick e\
+sans("Clocked") thick upright(K) thick\(sans("some") thick kappa\)thick\(sans("sync")_(kappa') thick i thick e\)arrow.l.r.double & sans("Clocked") thick upright(K) thick\(sans("some") thick kappa\)thick i and sans("Clocked") thick upright(K) thick\(sans("some") thick kappa'\)thick e\
+sans("Clocked") thick upright(K) thick sans("none") thick\(sans("delay") thick i thick e\)arrow.l.r.double & sans("False") #h(2em) #h(2em) sans("Clocked") thick upright(K) thick sans("none") thick\(sans("sync")_(kappa') thick i thick e\)arrow.l.r.double sans("False") $
 and homomorphically elsewhere. A reference stays in its domain or is
-agnostic; a delay needs a domain; $sans(s y n c)_(kappa')$ switches the
+agnostic; a delay needs a domain; $sans("sync")_(kappa')$ switches the
 domain of its operand. A design is well clocked when every realization
 is clocked in its own declaration's domain. Typing is unchanged and
 blind to domains: the direct wire between two domains at the same value
-type is well typed and rejected only by $sans(C l o c k e d)$. Placing
+type is well typed and rejected only by $sans("Clocked")$. Placing
 the domain in the type instead was tried and set aside: every
 domain-agnostic relationship would then need clock polymorphism
 (`clocked_type_forces_polymorphism`), and nothing the type rejects is
@@ -1469,73 +1466,72 @@ missed by the judgment.
 <multi-domain-evaluation>
 The judgment $rho scripts(tack.r)_t^kappa e arrow.b.double v$ --- in domain
 $kappa$ at global tick $t$, with $S$, $Delta$, $I$ ambient --- is
-$sans(E v)$ with the two temporal rules replaced by four (`MEv`):
-$ frac(sans(p r e v A c t) thick S thick kappa thick t = sans(n o n e) quad rho scripts(tack.r)_t^kappa i arrow.b.double v, rho scripts(tack.r)_t^kappa sans(d e l a y) thick i thick e arrow.b.double v) #h(2em) frac(sans(p r e v A c t) thick S thick kappa thick t = sans(s o m e) thick t' quad rho scripts(tack.r)_(t')^kappa e arrow.b.double v, rho scripts(tack.r)_t^kappa sans(d e l a y) thick i thick e arrow.b.double v) $
-$ frac(sans(p r e v A c t) thick S thick kappa' thick t = sans(n o n e) quad rho scripts(tack.r)_t^kappa i arrow.b.double v, rho scripts(tack.r)_t^kappa sans(s y n c)_(kappa') thick i thick e arrow.b.double v) #h(2em) frac(sans(p r e v A c t) thick S thick kappa' thick t = sans(s o m e) thick t' quad rho scripts(tack.r)_(t')^(kappa') e arrow.b.double v, rho scripts(tack.r)_t^kappa sans(s y n c)_(kappa') thick i thick e arrow.b.double v) $
-$sans(d e l a y)$ reads the previous activation of the current domain;
-$sans(s y n c)_(kappa')$ reads the previous activation of $kappa'$ and
+$sans("Ev")$ with the two temporal rules replaced by four (`MEv`):
+$ frac(sans("prevAct") thick S thick kappa thick t = sans("none") quad rho scripts(tack.r)_t^kappa i arrow.b.double v, rho scripts(tack.r)_t^kappa sans("delay") thick i thick e arrow.b.double v) #h(2em) frac(sans("prevAct") thick S thick kappa thick t = sans("some") thick t' quad rho scripts(tack.r)_(t')^kappa e arrow.b.double v, rho scripts(tack.r)_t^kappa sans("delay") thick i thick e arrow.b.double v) $
+$ frac(sans("prevAct") thick S thick kappa' thick t = sans("none") quad rho scripts(tack.r)_t^kappa i arrow.b.double v, rho scripts(tack.r)_t^kappa sans("sync")_(kappa') thick i thick e arrow.b.double v) #h(2em) frac(sans("prevAct") thick S thick kappa' thick t = sans("some") thick t' quad rho scripts(tack.r)_(t')^(kappa') e arrow.b.double v, rho scripts(tack.r)_t^kappa sans("sync")_(kappa') thick i thick e arrow.b.double v) $
+$sans("delay")$ reads the previous activation of the current domain;
+$sans("sync")_(kappa')$ reads the previous activation of $kappa'$ and
 evaluates its operand #emph[there], in $kappa'$. All other rules carry
 $kappa$ unchanged.
 
-#strong[Proposition 13 (One temporal primitive; `delay_is_sync_own`,
-`clocked_delay_iff_sync_own`, `single_domain_embedding`).]
-$rho scripts(tack.r)_t^kappa sans(d e l a y) thick i thick e arrow.b.double v$
+#thm("Proposition", "13")[One temporal primitive; `delay_is_sync_own`,
+`clocked_delay_iff_sync_own`, `single_domain_embedding`][$rho scripts(tack.r)_t^kappa sans("delay") thick i thick e arrow.b.double v$
 iff
-$rho scripts(tack.r)_t^kappa sans(s y n c)_kappa thick i thick e arrow.b.double v$,
-and $sans(d e l a y) thick i thick e$ is clocked in $kappa$ iff
-$sans(s y n c)_kappa thick i thick e$ is. Under the always-active
+$rho scripts(tack.r)_t^kappa sans("sync")_kappa thick i thick e arrow.b.double v$,
+and $sans("delay") thick i thick e$ is clocked in $kappa$ iff
+$sans("sync")_kappa thick i thick e$ is. Under the always-active
 schedule, $rho scripts(tack.r)_t^kappa e arrow.b.double v$ iff
-$rho scripts(tack.r)_t e arrow.b.double v$, for every $kappa$.
+$rho scripts(tack.r)_t e arrow.b.double v$, for every $kappa$.]
 
-#emph[Proof.] The two multi-domain rules for $sans(d e l a y)$ read the
+#proof[The two multi-domain rules for $sans("delay")$ read the
 operand at the previous activation of the current domain $kappa$ (or the
 initial value if there is none), and the two rules for
-$sans(s y n c)_kappa$ read the operand at the previous activation of
+$sans("sync")_kappa$ read the operand at the previous activation of
 $kappa$\; with the source domain equal to the current one the premises
 coincide, so each derivation converts into the other by renaming the
 rule. The clock judgment agrees for the same reason. The single-domain
 semantics of §6 is the multi-domain one under the schedule that
 activates one domain at every tick, since then the previous activation
-of that domain is always the previous tick. $square.stroked.tiny$
+of that domain is always the previous tick.]
 
 The kernel therefore has one temporal primitive --- read a domain at its
-previous activation --- and $sans(d e l a y)$ is notation for its
-diagonal; a $sans(d e l a y)$ in a slow domain reads three global ticks
-back where a $sans(d e l a y)$ in a fast one reads one, with the same
+previous activation --- and $sans("delay")$ is notation for its
+diagonal; a $sans("delay")$ in a slow domain reads three global ticks
+back where a $sans("delay")$ in a fast one reads one, with the same
 syntax. The single-domain semantics of §6.1 is the one-domain special
 case of this one rather than a replaced machine.
 
-#strong[Theorem 14 (Determinism and totality in every domain; `MEv.det`,
-`mfundamental`, `multi_domain_total`).] Multi-domain evaluation is a
+#thm("Theorem", "14")[Determinism and totality in every domain; `MEv.det`,
+`mfundamental`, `multi_domain_total`][Multi-domain evaluation is a
 partial function, for every schedule. In a causal, globally well formed
 design with inputs well typed in every domain, every declared
 relationship has a value in every domain at every tick, related to its
-expected type.
+expected type.]
 
-#emph[Proof.] Determinism is the argument of Theorem 9 with the
+#proof[Determinism is the argument of Theorem 9 with the
 multi-domain rules: the previous activation of a domain at a tick is a
 function of the schedule, so the two temporal forms are deterministic
 given determinism at the earlier tick. Totality is the argument of
 Theorem 11 with the application relation of the multi-domain semantics
-and one change in the temporal cases: a $sans(s y n c)_(kappa')$ reads
+and one change in the temporal cases: a $sans("sync")_(kappa')$ reads
 its operand at the last activation of $kappa'$ strictly before $t$, a
 tick $t' < t$, so the outer strong induction on the global tick still
 applies, and the initial value covers a domain that has not activated
 yet. The value at the first activation of a domain is therefore the
-explicit initial value of every transport into it. $square.stroked.tiny$
+explicit initial value of every transport into it.]
 
 The proof reuses the logical relation of §6.3 with the application
 relation
-$sans(M A p p l y) thick S thick Delta thick I thick kappa thick t$, and
+$sans("MApply") thick S thick Delta thick I thick kappa thick t$, and
 the same lexicographic induction: a transport at $t$ evaluates its
 operand at $t' < t$ under any rank. Causality is the #emph[same]
-$sans(C a u s a l) thick Delta$: a transport's operand is never
+$sans("Causal") thick Delta$: a transport's operand is never
 instantaneous, so no cross-domain cycle can be. An interpreter
-$sans(m e v a l F)$ is proved sound (`mevalF_sound`). Tag provenance
+$sans("mevalF")$ is proved sound (`mevalF_sound`). Tag provenance
 holds across domains (`MEv.tag_provenance`): transport changes timing,
 not identity, and a crossing from `Tilt@fast` to `Tilt@slow` authorizes
 neither `Tilt -> MotorAngle` nor
-$sans(Q)_(sans(L e n g t h)) arrow.r sans(Q)_(sans(T i m e))$, by the
+$sans(Q)_(sans("Length")) arrow.r sans(Q)_(sans("Time"))$, by the
 typing rule.
 
 == Strictly before: preserving the authored temporal structure
@@ -1548,25 +1544,25 @@ designer never authored, namely which of two simultaneously active
 domains the implementation happens to run first. That is a choice with
 an observable alternative, and the alternative was built.
 
-#strong[Theorem 15 (Same-tick visibility exposes the scheduler;
-`scheduling_order_observable`).] Let $sans(M E v)_lt.eq$ be the
+#thm("Theorem", "15")[Same-tick visibility exposes the scheduler;
+`scheduling_order_observable`][Let $sans("MEv")_lt.eq$ be the
 semantics in which a transport may also see a simultaneously active
 source, resolved by a priority between domains. There is a two-domain
 design, a schedule and an input such that two priorities give two
-different values to the same declaration at the same tick.
+different values to the same declaration at the same tick.]
 
-#emph[Proof.] Take two domains, `fast` and `other`, both active at tick
+#proof[Take two domains, `fast` and `other`, both active at tick
 $1$ and `other` for the first time; an input $x$ in `other` with
 $x thick 1 = 1$\; and
-$a := sans(s y n c)_(upright(o t h e r)) thick 0 thick x$ in `fast`.
-Under $sans(M E v)_lt.eq$ with `other` ordered first the transport sees
+$a := sans("sync")_(upright("other")) thick 0 thick x$ in `fast`.
+Under $sans("MEv")_lt.eq$ with `other` ordered first the transport sees
 the simultaneous activation and $a$ evaluates to $1$\; with `fast`
 ordered first there is no earlier activation of `other` and $a$
 evaluates to the initial value $0$. Both are derivations of the same
 judgment form, differing only in the order parameter; so the semantics
 depends on the order --- which the design never authored. Under
 strict-before there is no simultaneous case, and $a$ is $0$ regardless
-of order. $square.stroked.tiny$
+of order.]
 
 At tick 1 both domains are active for the first time; with the source
 first the transport delivers the source's current value, with the
@@ -1601,9 +1597,9 @@ the lossless cross-domain window.
 
 == The recursor, products and equality
 <the-recursor-products-and-equality>
-$sans(f o l d) thick f thick z thick l$ is a #emph[term former], not a
+$sans("fold") thick f thick z thick l$ is a #emph[term former], not a
 registered operator. The kernel has no recursion, deliberately; a total
-language needs an eliminator for its inductive data, and $sans(f o l d)$
+language needs an eliminator for its inductive data, and $sans("fold")$
 is the one construct that applies a function value in the course of
 evaluation. Registered operators never apply closures. The alternative
 of one primitive per collection operation was rejected because a
@@ -1613,28 +1609,28 @@ rule; the alternative of bounded unrolling was rejected because lists
 
 The recursor is total on related values (`fold_total`, `mfold_total`),
 by an induction on the list separate from Theorem 11, which invokes it
-in its $sans(f o l d)$ case. Every collection operation --- `map`,
+in its $sans("fold")$ case. Every collection operation --- `map`,
 `filter`, `any`, `all`, `contains`, `append`, `sum`, `zip`, and through
-$sans(t o L i s t)$ the option eliminators --- is a definition over
-$sans(f o l d)$, and each is proved to compute the mathematical function
+$sans("toList")$ the option eliminators --- is a definition over
+$sans("fold")$, and each is proved to compute the mathematical function
 it names through one general lemma: the recursor computes
 $sans(L i s t . f o l d r) thick g$ whenever the step closure implements
 $g$ on the reachable accumulators (`fold_spec`\; then `any_spec`,
 `all_spec`, `map_spec`, `filter_spec`, `min_spec`, `clamp_spec`, …).
 Finite quantification is a fold ---
-$forall x in italic(x s) . thin P thin x$ iff `all xs P` evaluates to
+$forall x in italic("xs") . thin P thin x$ iff `all xs P` evaluates to
 true (`forall_in_list`, `exists_in_list`) --- and a finite-set literal
 means membership with duplicates irrelevant (`oneOf_mem`,
 `oneOf_dup_irrelevant`), so there is no `Set` type and no uniqueness
 convention.
 
-$tau times sigma$ with $sans(p a i r)$, $sans(f s t)$, $sans(s n d)$
+$tau times sigma$ with $sans("pair")$, $sans("fst")$, $sans("snd")$
 entered the kernel after the Church encoding was tried and refuted
 twice. A Church pair is an arrow, and arrows are not data: nothing of
 function type can be delayed or transported (`arrow_not_delayable`), so
 paired #emph[state] --- a delayed reading with its timestamp --- needs a
 data product. And a Church pair used as a first-class value needs rank-2
-types: in a toy System F with a rank measure, the type of $sans(f s t)$
+types: in a toy System F with a rank measure, the type of $sans("fst")$
 on Church pairs has rank 2 (`church_fst_rank`), and in the prenex
 fragment a pair instantiated at one result type serves only one
 projection (`church_pair_prenex_one_projection`). Products are value
@@ -1642,10 +1638,10 @@ composition only; they are never a component interface or an output
 bundle (§9 shows what a tuple-returning declaration does to the
 dependency graph).
 
-$sans(e q)_tau^(italic(p f))$ is structural equality at every data type
---- booleans, numbers, $sans(n o n e)$/$sans(s o m e)$, pairs and lists
+$sans("eq")_tau^(italic("pf"))$ is structural equality at every data type
+--- booleans, numbers, $sans("none")$/$sans("some")$, pairs and lists
 componentwise, concept values by tag and representation --- with the
-proof $h : tau . sans(D a t a)$ carried #emph[in the syntax]. This is
+proof $h : tau . sans("Data")$ carried #emph[in the syntax]. This is
 the kernel's only capability evidence: an equality on a function type is
 unwritable rather than ill typed, which keeps T-Prim unconditional. On
 first-order values structural equality is equality (`Value.beq_iff`, by
@@ -1656,12 +1652,12 @@ structural meaning at every data type --- booleans, options, pairs and
 lists lexicographically --- and it was formally consistent. An audit
 rejected it on the grounds that no such order has a design meaning:
 `mode1 < mode2` would order modes by a constructor tag, `None < Some x`
-is an artifact. The structural order was deleted and $sans(l t)_d$
-restored to quantities only. So $sans(D a t a) arrow.r.double sans(E q)$
-holds (`Cap.eq_iff_data`) but $sans(E q) ⇏ sans(O r d)$\; order on a
+is an artifact. The structural order was deleted and $sans("lt")_d$
+restored to quantities only. So $sans("Data") arrow.r.double sans("Eq")$
+holds (`Cap.eq_iff_data`) but $sans("Eq") ⇏ sans("Ord")$\; order on a
 #emph[concept] is a surface capability --- a concept the designer
-declared ordered and represented by a quantity compares as $sans(l t)_d$
-on $sans(r e p)$, a term the kernel already admits
+declared ordered and represented by a quantity compares as $sans("lt")_d$
+on $sans("rep")$, a term the kernel already admits
 (`lt_only_on_quantities`, `lt_rejected`, `min_mode_rejected`).
 Enumerations follow the same rule: equality is natural, declaration
 order is never silently behavioral order.
@@ -1671,8 +1667,8 @@ order is never silently behavioral order.
 Five models of polymorphism were compared: a monomorphic kernel;
 per-type duplication; rank-1 parametric polymorphism; System F; higher
 rank. The one adopted is rank-1 #emph[as definitional families]: every
-library entry is a function $sans(T y) arrow.r sans(E x p r)$ (or
-$sans(D i m) arrow.r sans(E x p r)$) in the metalanguage, and a scheme
+library entry is a function $sans("Ty") arrow.r sans("Expr")$ (or
+$sans("Dim") arrow.r sans("Expr")$) in the metalanguage, and a scheme
 is a pattern over type and dimension variables with capability
 constraints. The kernel sees only the instances
 (`instances_are_monomorphic`: three uses of `min` are three kernel
@@ -1711,7 +1707,7 @@ closed term.
 
 Every library entry is a #strong[combinator]: variables, literals,
 lambdas, applications, registered operators, the recursor and
-$sans(r e p)$ --- no reference, no state, no transport, no $sans(m k)$.
+$sans("rep")$ --- no reference, no state, no transport, no $sans("mk")$.
 For combinators four facts are proved once and combine into an inlining
 statement (`lib_expansion`): typing is independent of the design and the
 grant and reads $Theta$ only through write-once bindings
@@ -1729,32 +1725,32 @@ pairs, with higher-order functions and one list recursor; generic
 definitions instantiated at closed types; no general recursion, no type
 abstraction in terms, no sums (an enumeration with a payload is encoded
 as a tag paired with an optional payload, and a kernel sum would cost
-one more eliminator term former exactly like $sans(f o l d)$), no
+one more eliminator term former exactly like $sans("fold")$), no
 unbounded quantification. This is a design conclusion backed by executed
 cases and the proved library; it is not a minimality theorem.
 
 == The window: a negative design result
 <the-window-a-negative-design-result>
 Within one domain an occurrence is a stream of optional type (§7.4).
-Across domains this fails: $sans(s y n c)$ is a zero-order hold, so a
+Across domains this fails: $sans("sync")$ is a zero-order hold, so a
 slow consumer of a fast event source sees the last value only. Two fast
 events at ticks 1 and 2 and one event at tick 2 are indistinguishable at
 the slow activation at tick 3, and a single event at tick 1 followed by
 a quiet fast tick is dropped outright
 (`opt_loses_multiplicity_under_sync`). The counterexample is against
-$sans(s y n c)$ as an #emph[event transport], not against optional
+$sans("sync")$ as an #emph[event transport], not against optional
 types; it says that multiplicity and order are observable across domains
 and that keeping them requires buffering.
 
 What the destination should see is the source's activations since the
 destination's own previous activation --- the #emph[window],
-$sans(w i n d o w T i c k s) thick S thick italic(s r c) thick italic(d s t) thick t$,
+$sans("windowTicks") thick S thick italic("src") thick italic("dst") thick t$,
 the source ticks in
-$\[sans(p r e v A c t) thick S thick italic(d s t) thick t\,med t\)$.
+$\[sans("prevAct") thick S thick italic("dst") thick t\,med t\)$.
 The window equals the source's accumulated log read at the current tick
 minus its length at the previous destination activation
 (`buffer_from_log_and_cursor`): two single-instant reads, a
-$sans(s y n c)$ of a source-side accumulator and a $sans(d e l a y)$ of
+$sans("sync")$ of a source-side accumulator and a $sans("delay")$ of
 a cursor. With list data this is five ordinary declarations:
 
 ```
@@ -1765,13 +1761,13 @@ cursor  @dst :  delay 0 seen                         -- log length at the previo
 window  @dst :  reverse (take (seen - cursor) logD)  -- the new entries, oldest first
 ```
 
-#strong[Theorem 16 (The window is derivable;
-`buffer_window_correspondence`).] For every schedule, input, destination
+#thm("Theorem", "16")[The window is derivable;
+`buffer_window_correspondence`][For every schedule, input, destination
 domain and tick, if the five declarations are realized as above and
-$italic(s r c)$ is an input, then
-$\[thin\]scripts(tack.r)_t^(italic(d s t)) sans(w i n d o w) arrow.b.double sans(l i s t) thin\(sans(m a p) thin\(I thin italic(s r c)\)thin\(sans(w i n d o w T i c k s) thick S thick italic(s r c) thick italic(d s t) thick t\)\)$.
+$italic("src")$ is an input, then
+$\[thin\]scripts(tack.r)_t^(italic("dst")) sans("window") arrow.b.double sans("list") thin\(sans("map") thin\(I thin italic("src")\)thin\(sans("windowTicks") thick S thick italic("src") thick italic("dst") thick t\)\)$.]
 
-#emph[Proof.] The five declarations are: a log of every source
+#proof[The five declarations are: a log of every source
 activation (a list in the source domain, extended by one element at each
 activation), a count of source activations, the count as seen at the
 destination's previous activation, the difference of the two, and the
@@ -1785,9 +1781,8 @@ operators' equations, to the reversal of the first (length now minus
 length then) elements of the reversed log --- that is, the source values
 at exactly the source activations since the destination's previous
 activation, in order and with multiplicity, which is the definition of
-$sans(w i n d o w T i c k s)$. No hypothesis on the schedules is used;
-at a non-activation tick the equations hold with the previous values.
-$square.stroked.tiny$
+$sans("windowTicks")$. No hypothesis on the schedules is used;
+at a non-activation tick the equations hold with the previous values.]
 
 The elaboration is well typed and well clocked
 (`buffer_elaboration_well_typed`, `buffer_elaboration_well_clocked`);
@@ -1818,7 +1813,7 @@ over `window`.
 == Derived temporal operators
 <derived-temporal-operators>
 Every temporal operator a surface language offers reduces to
-$sans(d e l a y)$ and registered operators. Table 2 lists the
+$sans("delay")$ and registered operators. Table 2 lists the
 elaborations; each is a declaration referring to itself --- a
 self-delayed cycle, the class that structural acyclicity forbade and
 causality licenses --- and each was typed, checked causal, and run on a
@@ -1832,16 +1827,16 @@ has the intended trace.
     align: (auto,auto,),
     table.header([surface], [declaration body],),
     table.hline(),
-    [`previous x`], [$sans(d e l a y) thick italic(i n i t) thick x$],
+    [`previous x`], [$sans("delay") thick italic("init") thick x$],
     [`previous x` without an initial
-    value], [$sans(d e l a y) thick sans(n o n e) thick\(sans(s o m e) thick x\)$\;
+    value], [$sans("delay") thick sans("none") thick\(sans("some") thick x\)$\;
     the absence is pushed to consumers],
-    [`hold init e`], [$sans(g e t D) thick e thick\(sans(d e l a y) thick italic(i n i t) thick italic(s e l f)\)$],
-    [`count e`], [$sans(i t e) thick\(sans(i s S o m e) thick e\)thick\(1 + sans(d e l a y) thick 0 thick italic(s e l f)\)thick\(sans(d e l a y) thick 0 thick italic(s e l f)\)$],
-    [`since e`], [$sans(i t e) thick\(sans(i s S o m e) thick e\)thick 0 thick\(1 + sans(d e l a y) thick 0 thick italic(s e l f)\)$],
-    [`once e`], [$sans(d e l a y) thick sans(f a l s e) thick italic(s e l f) or sans(i s S o m e) thick e$],
-    [`every n`], [a modulo-$n$ counter over $sans(d e l a y)$],
-    [`rise b`], [$b and not thin sans(d e l a y) thick sans(f a l s e) thick b$,
+    [`hold init e`], [$sans("getD") thick e thick\(sans("delay") thick italic("init") thick italic("self")\)$],
+    [`count e`], [$sans("ite") thick\(sans("isSome") thick e\)thick\(1 + sans("delay") thick 0 thick italic("self")\)thick\(sans("delay") thick 0 thick italic("self")\)$],
+    [`since e`], [$sans("ite") thick\(sans("isSome") thick e\)thick 0 thick\(1 + sans("delay") thick 0 thick italic("self")\)$],
+    [`once e`], [$sans("delay") thick sans("false") thick italic("self") or sans("isSome") thick e$],
+    [`every n`], [a modulo-$n$ counter over $sans("delay")$],
+    [`rise b`], [$b and not thin sans("delay") thick sans("false") thick b$,
     as an optional Boolean],
   )]
   , kind: table
@@ -1850,16 +1845,16 @@ has the intended trace.
 #emph[Table 3. Derived temporal operators
 (`Experiments/ReactiveAlternatives.lean`).]
 
-There is no signal type in $sans(T y)$: under this semantics a signal
+There is no signal type in $sans("Ty")$: under this semantics a signal
 type would be inhabited by exactly the terms of the underlying type and
 would reject nothing. There is no event type: within one domain an input
 delivers at most one value per tick by construction, so an occurrence is
 a stream of optional type, and the streams of type
-$sans(O p t i o n) thick tau$ are exactly the streams of multiplicity at
+$sans("Option") thick tau$ are exactly the streams of multiplicity at
 most one. What separates an occurrence from an optional value can only
 be seen when a source ticks faster than its observer, which is the
 cross-domain question of §7.3. State has no identity of its own: a cell
-is a $sans(d e l a y)$ in a declaration body, consumers refer to the
+is a $sans("delay")$ in a declaration body, consumers refer to the
 declaration, and there is consequently no notion of two writers to one
 cell.
 
@@ -1876,14 +1871,14 @@ different sort from both concepts and declarations: "the desired
 steering angle" --- a declaration of concept type, one instance of the
 concept --- is a value; "the steering motor" is a resource.
 
-- $Omega : sans(O u t p u t I d) arrow.r sans(O p t i o n) thick chevron.l italic(a c c e p t s)\,italic(c l o c k) chevron.r$
+- $Omega : sans("OutputId") arrow.r sans("Option") thick chevron.l italic("accepts")\,italic("clock") chevron.r$
   --- each output's accepted type and domain;
-- $beta : sans(D e c l I d) arrow.r sans(O p t i o n) thick sans(O u t p u t I d)$
+- $beta : sans("DeclId") arrow.r sans("Option") thick sans("OutputId")$
   --- the drive edges, a write-once per-declaration projection of the
   same shape as $upright(K)$\;
-- $sans(D r i v e W F) thick Omega thick upright(K) thick Delta thick beta := forall delta thin o . thick beta thick delta = sans(s o m e) thick o arrow.r exists italic(s p e c) . thick Omega thick o = sans(s o m e) thick italic(s p e c) and Delta in.rev delta : italic(s p e c) . italic(a c c e p t s) and upright(K) thick delta = sans(s o m e) thick italic(s p e c) . italic(c l o c k)$\;
-- $sans(S i n g l e D r i v e r) thick beta := forall delta_1 thin delta_2 thin o . thick beta thick delta_1 = sans(s o m e) thick o arrow.r beta thick delta_2 = sans(s o m e) thick o arrow.r delta_1 = delta_2$\;
-- $sans(C o m p l e t e O u t p u t s) thick beta thick italic(r e q)$
+- $sans("DriveWF") thick Omega thick upright(K) thick Delta thick beta := forall delta thin o . thick beta thick delta = sans("some") thick o arrow.r exists italic("spec") . thick Omega thick o = sans("some") thick italic("spec") and Delta in.rev delta : italic("spec") . italic("accepts") and upright(K) thick delta = sans("some") thick italic("spec") . italic("clock")$\;
+- $sans("SingleDriver") thick beta := forall delta_1 thin delta_2 thin o . thick beta thick delta_1 = sans("some") thick o arrow.r beta thick delta_2 = sans("some") thick o arrow.r delta_1 = delta_2$\;
+- $sans("CompleteOutputs") thick beta thick italic("req")$
   --- every required output is driven.
 
 Nothing was added to types, typing, the domain judgment, evaluation or
@@ -1891,33 +1886,33 @@ the grant. The edge neither coerces nor converts nor synchronizes: the
 driver's type #emph[equals] the accepted type and its domain #emph[is]
 the output's. A declaration typed `Tilt` cannot drive a `MotorAngle`
 output; an output that accepts a representation type needs an explicit
-$sans(r e p)$-typed declaration in front of it; a slow driver reading a
-fast value must $sans(s y n c)$ it upstream. A driver of a
+$sans("rep")$-typed declaration in front of it; a slow driver reading a
+fast value must $sans("sync")$ it upstream. A driver of a
 concept-accepting output is necessarily a value, not a function
 (`driver_is_unit_domain`).
 
 #strong[Definition.]
-$sans(P h y s i c a l O u t p u t) thick S thick Delta thick I thick Omega thick beta thick o thick t thick v := exists delta thin italic(s p e c) . thick beta thick delta = sans(s o m e) thick o and Omega thick o = sans(s o m e) thick italic(s p e c) and\[thin\]scripts(tack.r)_t^(italic(s p e c) . italic(c l o c k)) delta arrow.b.double v$.
+$sans("PhysicalOutput") thick S thick Delta thick I thick Omega thick beta thick o thick t thick v := exists delta thin italic("spec") . thick beta thick delta = sans("some") thick o and Omega thick o = sans("some") thick italic("spec") and\[thin\]scripts(tack.r)_t^(italic("spec") . italic("clock")) delta arrow.b.double v$.
 
-#strong[Theorem 17 (One driver, one output;
+#thm("Theorem", "17")[One driver, one output;
 `single_driver_output_deterministic`,
-`multiple_direct_drivers_rejected`).] Under
-$sans(S i n g l e D r i v e r) thick beta$,
-$sans(P h y s i c a l O u t p u t)$ is a partial function of $o$ and
+`multiple_direct_drivers_rejected`][Under
+$sans("SingleDriver") thick beta$,
+$sans("PhysicalOutput")$ is a partial function of $o$ and
 $t$. Two declarations driving one output --- each well typed, well
 clocked, causal and individually well formed --- violate
-$sans(S i n g l e D r i v e r)$ and nothing else, and there is a tick at
-which the output receives two values.
+$sans("SingleDriver")$ and nothing else, and there is a tick at
+which the output receives two values.]
 
-#emph[Proof.] A physical output value at $o$ and $t$ is the value of
+#proof[A physical output value at $o$ and $t$ is the value of
 some driver $delta$ with $beta thick delta = o$, evaluated in the domain
 the output specifies. Given two such values from drivers $delta_1$ and
-$delta_2$, $sans(S i n g l e D r i v e r) thick beta$ gives
+$delta_2$, $sans("SingleDriver") thick beta$ gives
 $delta_1 = delta_2$, the specification of $o$ is unique, and Theorem 14
 identifies the two values. The rejection of two direct drivers is a
 finite check on the design of Counterexample A: both edges pass typing,
 clocks, causality and the per-edge condition, and only the global count
-fails. $square.stroked.tiny$
+fails.]
 
 #emph[Why not hide output arbitration?] The principle is #emph[many
 contributors, one explicit final driver]. Contributors are dependencies:
@@ -1928,7 +1923,7 @@ shown rather than argued: first-wins, last-wins and maximum over the
 same value graph give three different physical outputs
 (`hidden_arbitration_observable`). Binding an unbound declaration to an
 undriven output is a refinement and preserves
-$sans(S i n g l e D r i v e r)$ (`first_output_binding_is_monotone`);
+$sans("SingleDriver")$ (`first_output_binding_is_monotone`);
 binding to a driven output is invalid; retargeting, renaming or
 detaching an edge invalidates an unchanged design.
 
@@ -1975,20 +1970,20 @@ composition adds no semantic machinery.
 A renaming $r$ bundles four maps --- on declaration, concept, clock and
 output identities. Renaming acts on types (through the concepts $C$ they
 mention), on terms, on interfaces, on declarations and pointwise on
-environments; $Delta . sans(R e n a m e d B y) thick r thick Delta'$
+environments; $Delta . sans("RenamedBy") thick r thick Delta'$
 says $Delta'$ stores the renamed declaration of $Delta$ at the renamed
 identity.
 
-#strong[Proposition 18 (Equivariance; `HasType.rename`,
-`Satisfies.rename`, `Clocked.rename`).] If
+#thm("Proposition", "18")[Equivariance; `HasType.rename`,
+`Satisfies.rename`, `Clocked.rename`][If
 $Theta\;Delta\;Gamma scripts(tack.r)_G e : tau$ and $Theta'\,Delta'\,G'$ are the
 images of $Theta\,Delta\,G$ under $r$ (agreement on the image, with no
 injectivity required), then
 $Theta'\;Delta'\;G'\;Gamma^r tack.r e^r : tau^r$\; likewise for
 satisfaction, and for the domain judgment under a clock environment that
-agrees on the declared identities.
+agrees on the declared identities.]
 
-#emph[Proof.] By induction on the derivation. Renaming acts
+#proof[By induction on the derivation. Renaming acts
 homomorphically on types, terms, contexts and environments; each rule of
 Figure 2 is closed under it provided the environments agree on the image
 --- T-Ref because $Delta'$ holds the renamed declaration at the renamed
@@ -1997,7 +1992,7 @@ renamed representation and the grant is transported, and the remaining
 rules syntactically. No injectivity is used: two names sent to one are
 consistent with every rule. Satisfaction and the clock judgment follow
 by the same induction, with equivariance of evidence as the hypothesis
-for the commitment half. $square.stroked.tiny$
+for the commitment half.]
 
 Evidence must be equivariant as well (`Evidence.Equivariant`), an
 abstract condition beside monotonicity. Nothing else is new in the
@@ -2013,35 +2008,35 @@ data-typed declarations bound to closed constants at instantiation) and
 clock parameters. A #strong[component] is an interface, a template
 design over local identities below a width $W$, and a partition of its
 concepts and outputs into private (freshened per instance) and shared.
-$sans(R e a l i z e s) thick italic(e v) thick cal(C)$ is a predicate
+$sans("Realizes") thick italic("ev") thick cal(C)$ is a predicate
 over the existing judgments: the template is a well-formed design
-(`Design.WF`: $sans(G l o b a l W F)$, $Theta . sans(W F)$, well
-clocked, causal, $sans(D r i v e W F)$,
-$sans(S i n g l e D r i v e r)$), every required port is an unrealized
+(`Design.WF`: $sans("GlobalWF")$, $Theta . sans("WF")$, well
+clocked, causal, $sans("DriveWF")$,
+$sans("SingleDriver")$), every required port is an unrealized
 declaration of the stated interface, every provided port is declared
 with it, parameters are unrealized, data-typed and clock-free.
 
 Instance $k$ of a component maps local identity $n$ to
-$sans(f r e s h) thick W thick k thick n = W dot.op\(k + 1\)+ n$, with
-$sans(d e c o d e)$ its inverse; distinct instances never share an
+$sans("fresh") thick W thick k thick n = W dot.op\(k + 1\)+ n$, with
+$sans("decode")$ its inverse; distinct instances never share an
 identity (`inst_decl_disjoint`). The encoding is a device --- any
 injective allocator would do. A #strong[binding] realizes a destination
 port of one instance from a source --- a port of another instance or a
 closed constant --- with an optional transport: none for a direct
 reference in the same or an agnostic domain,
-$sans(s o m e) thick italic(i n i t)$ for $sans(s y n c)$ from the
+$sans("some") thick italic("init")$ for $sans("sync")$ from the
 source's domain. A #strong[system] is a width, a list of instances, a
 list of bindings, the shared concept environment and the external
 outputs. #strong[Flattening] is the union of the renamed instances
 followed by the bindings applied as §4 realization steps: the
-destination port is realized as $italic(s r c)$ or
-$sans(s y n c)_kappa thick italic(i n i t) thick\(italic(s r c)\)$. The
+destination port is realized as $italic("src")$ or
+$sans("sync")_kappa thick italic("init") thick\(italic("src")\)$. The
 result is a design, consumed by every existing judgment unchanged.
 
-#strong[Theorem 19 (Composition adds no machinery; `binding_satisfies`,
+#thm("Theorem", "19")[Composition adds no machinery; `binding_satisfies`,
 `flatten_WF`, `flatten_causal`, `flatten_wellClocked`,
-`flatten_singleDriver`, `open_port_stays_open`).] Under
-$sans(C o m p o s e W F)$ --- every instance realizes its interface;
+`flatten_singleDriver`, `open_port_stays_open`][Under
+$sans("ComposeWF")$ --- every instance realizes its interface;
 every binding is well formed (types agree; a direct binding's source is
 in the destination's domain or agnostic; a transported binding's source
 has a domain); external outputs are driven by at most one instance ---
@@ -2049,9 +2044,9 @@ and with evidence that is monotone, equivariant and port-sound (a
 discharged commitment survives when a port copy is realized by a
 reference to a declaration of the same interface), the flattening is
 globally well formed, well clocked, single-driver, causal when the
-inter-instance graph is acyclic, and its open ports remain open.
+inter-instance graph is acyclic, and its open ports remain open.]
 
-#emph[Proof.] Flattening first takes the disjoint union of the
+#proof[Flattening first takes the disjoint union of the
 instances, each template renamed by a fresh injective renaming, and then
 realizes every bound port with a binding body --- a constant name, a
 transport of one, or a closed constant. Establish an invariant along the
@@ -2065,7 +2060,7 @@ interface refines the required one, with the transport's initial value
 typed under the empty grant; a constant binding is closed and typed at
 the port's type; the commitments transfer by port-soundness of the
 evidence. Realizing an unrealized port with a satisfying body is a
-$sans(r e a l i z e)$ step, so Theorem 4 preserves global
+$sans("realize")$ step, so Theorem 4 preserves global
 well-formedness and the invariant. Causality of the result: order
 instances by the acyclic inter-instance graph and, within an instance,
 by the template's own rank; a direct binding creates an instantaneous
@@ -2074,15 +2069,15 @@ transport creates none. Clocks: bindings connect ports of equal domain
 or through a transport whose source domain is the provided port's.
 Single driver: each instance's drive edges are renamed injectively and
 external sinks have at most one driving instance. An unbound port keeps
-no definiens, since only bindings realize ports. $square.stroked.tiny$
+no definiens, since only bindings realize ports.]
 
-#strong[Theorem 20 (Modular semantics, restricted; `eval_flat_to_inst`,
-`eval_inst_to_flat`, `modular_iff_flat`).] For wiring designs with
+#thm("Theorem", "20")[Modular semantics, restricted; `eval_flat_to_inst`,
+`eval_inst_to_flat`, `modular_iff_flat`][For wiring designs with
 closure-free inputs and direct bindings, in one domain, the value of a
 declaration in an instance evaluated alone with a consistent modular
-input equals its value in the flattened system.
+input equals its value in the flattened system.]
 
-#emph[Proof.] In the modular semantics an instance evaluates its own
+#proof[In the modular semantics an instance evaluates its own
 declarations with an input that supplies, for each of its bound ports,
 the value the binding delivers; #emph[consistent] means that input
 equals the flattened value of the port's source. Forward direction, by
@@ -2097,23 +2092,23 @@ value and consistency to identify it. Closure-freeness of inputs keeps
 every value first-order, so no environment of a closure can differ
 between the two sides; direct bindings keep every reference within one
 tick. The equivalence for a declaration $delta$ owned by instance $k$ is
-both directions at $e = delta$. $square.stroked.tiny$
+both directions at $e = delta$.]
 
 The restriction is exact and recorded: transported bindings under
-$sans(M E v)$ need a domain-indexed input for the transported port, and
+$sans("MEv")$ need a domain-indexed input for the transported port, and
 higher-order bodies are not covered --- the same obstacle in both
 directions. Substitutability follows the usual contravariance: $B$ may
 replace $A$ when every port $A$ provides, $B$ provides at the same type
 and clock, and every port $B$ requires, $A$ required; replacing an
-instance by a refining component preserves $sans(C o m p o s e W F)$
+instance by a refining component preserves $sans("ComposeWF")$
 (`substitute_composeWF`).
 
 The counterexamples that fixed the design
 (`Experiments/BehaviorAlternatives.lean`): a name-based identity
 collides on double instantiation; a shared clock captured inside a
 template cannot be re-bound; a binding across domains without transport
-is rejected by $sans(C l o c k e d)$\; two instances driving one
-external output violate $sans(S i n g l e D r i v e r)$.
+is rejected by $sans("Clocked")$\; two instances driving one
+external output violate $sans("SingleDriver")$.
 
 == Groups are the identity, and extraction is a system
 <groups-are-the-identity-and-extraction-is-a-system>
@@ -2124,10 +2119,10 @@ untouched, so every kernel judgment of the design is the #emph[same
 proposition] before and after, each proved by reflexivity
 (`group_is_identity_on_design`). A group's boundary is a projection over
 a finite enumeration: the non-members some member depends on
-($sans(c r o s s I n)$), the members some non-member depends on
-($sans(c r o s s O u t)$); the aggregate socket a collapsed group shows
+($sans("crossIn")$), the members some non-member depends on
+($sans("crossOut")$); the aggregate socket a collapsed group shows
 is these lists, none of which is a declaration, and
-$a in sans(c r o s s I n)$ says #emph[some] member depends on $a$ and
+$a in sans("crossIn")$ says #emph[some] member depends on $a$ and
 nothing about the others (`socket_no_fanout`). Two encodings of a socket
 as a declaration were refuted: as a declaration every member reads, a
 member acquires an instantaneous dependency it never had; as a
@@ -2169,8 +2164,8 @@ through function extensionality and the choice-free rational quotient
 used by the unit laws; classical choice is absent, and the whole
 development was re-audited for it at every phase.
 
-Three proof-engineering choices carried the metatheory. $sans(E v)$ and
-$sans(M E v)$ are ordinary inductive relations with no mutual recursion,
+Three proof-engineering choices carried the metatheory. $sans("Ev")$ and
+$sans("MEv")$ are ordinary inductive relations with no mutual recursion,
 because the recursor's rule unrolls through the environment (§6.1);
 every induction on evaluation extends by one case when a construct is
 added, and the transport primitive and the recursor entered this way
@@ -2181,7 +2176,7 @@ that parameter at data types (`Red_data`), which is the fact that lets a
 value cross a tick. Every rejected alternative is a theorem whose
 content is a rejection, stated on a concrete design and discharged by
 `decide` or by running the interpreters
-$sans(e v a l F)$/$sans(m e v a l F)$ --- proved sound for the relations
+$sans("evalF")$/$sans("mevalF")$ --- proved sound for the relations
 --- inside the checker; there is no test suite beside the proofs.
 Several results are recorded as trivial by definition and reported as
 such. Extraction is not part of the development; the production
@@ -2193,7 +2188,7 @@ against the interpreter's traces, a tested claim and not a theorem.
 #emph[Modules and signatures.] ML-style module systems separate an
 interface from its implementation, and a signature may be written,
 checked and depended upon before a structure matches it
-@leroy1994manifest@harper1994modules. $lambda_(upright(B D L))$ does not
+@leroy1994manifest@harper1994modules. $lambda_(upright("BDL"))$ does not
 claim that such systems cannot express an unrealized relationship. The
 difference is one of organization: here an unrealized declaration is an
 ordinary inhabitant of the #emph[design environment] rather than a
@@ -2233,7 +2228,7 @@ modal types. In all of these the central authored unit is a computation
 --- a node, a stream definition, a signal function --- and clocks are
 inferred from how it samples
 @colaco2003clocks@biernacki2008clock@caspi1996kahn. In
-$lambda_(upright(B D L))$ the authored unit is a declared relationship,
+$lambda_(upright("BDL"))$ the authored unit is a declared relationship,
 and the temporal machinery exists to interpret it in an authored domain:
 there is no signal type because a declaration already is a stream; the
 domain is a nominal identity chosen before any rate is known; and the
@@ -2269,7 +2264,7 @@ declaration is where a design is deliberately open.
 model-based design and systems-modeling languages @harel1987statecharts
 also let a designer connect named quantities before every block is
 defined, and we do not claim that they lack relationships. What
-$lambda_(upright(B D L))$ adds is a small mechanized calculus for the
+$lambda_(upright("BDL"))$ adds is a small mechanized calculus for the
 progressive-relationship model with explicit metatheory: what a client
 may depend on, what a realization may construct, when a value belongs to
 the design, and how reuse is derived --- each as a theorem, and each
@@ -2296,7 +2291,7 @@ paper claims none. What is higher-order in the calculus is ordinary:
 functions over data, and the one recursor.
 
 #emph[Design versus program.] A program describes one computation. A
-design in $lambda_(upright(B D L))$ may contain decisions at different
+design in $lambda_(upright("BDL"))$ may contain decisions at different
 levels of commitment --- a relationship with a signature only, one with
 commitments, one with a realization, one with a clock and an output ---
 and the calculus preserves that partially committed structure rather
@@ -2317,11 +2312,11 @@ The paper's formal claims are further bounded by the following, each
 recorded in the development.
 
 - #emph[Causality is conservative for lambda-guarded cycles.]
-  `A := λx. A x` is rejected by $sans(C a u s a l)$ although `declRef A`
+  `A := λx. A x` is rejected by $sans("Causal")$ although `declRef A`
   evaluates to a closure; Proposition 10 covers strict cycles only.
 - #emph[Modular semantics is proved for a fragment.] Theorem 20 holds
   for single-domain wiring designs with direct or constant bindings;
-  transported bindings under $sans(M E v)$ and higher-order realizations
+  transported bindings under $sans("MEv")$ and higher-order realizations
   are open.
 - #emph[Evidence is abstract.] The kernel imposes monotonicity,
   equivariance and port-soundness on the validation layer's evidence and
@@ -2342,7 +2337,7 @@ recorded in the development.
 
 = Conclusion
 <conclusion>
-$lambda_(upright(B D L))$ is not interesting because it makes every
+$lambda_(upright("BDL"))$ is not interesting because it makes every
 implementation detail first-class. It is interesting because a typed
 semantic relationship can be declared, connected to concepts, depended
 upon by other parts of a product, placed in time and bound to a physical
