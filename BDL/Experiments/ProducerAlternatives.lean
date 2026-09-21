@@ -1,4 +1,5 @@
 import BDL.Surface.SourceBoundary
+import BDL.Core.Producer
 import BDL.Surface.Stdlib
 import BDL.Experiments.OutputAlternatives
 import BDL.Experiments.BehaviorAlternatives
@@ -100,76 +101,28 @@ theorem sigProducesB_iff (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : sigProdu
 instance (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : Decidable (SigProduces Δ d C) :=
   decidable_of_iff _ (sigProducesB_iff Δ d C)
 
-/-- `constructs` as a Boolean, for decisions on concrete designs. -/
-def constructsB (s : SemanticId) : Expr → Bool
-  | .lam _ b => constructsB s b
-  | .app f a => constructsB s f || constructsB s a
-  | .rep e => constructsB s e
-  | .mk s' e => decide (s' = s) || constructsB s e
-  | .delay i e => constructsB s i || constructsB s e
-  | .sync _ i e => constructsB s i || constructsB s e
-  | .fold f z l => constructsB s f || constructsB s z || constructsB s l
-  | _ => false
-
-theorem constructsB_iff (s : SemanticId) : ∀ e : Expr, constructsB s e = true ↔ e.constructs s
-  | .var _ | .boolLit _ | .natLit _ | .declRef _ | .prim _ => by simp [constructsB, Expr.constructs]
-  | .lam _ b => by simp [constructsB, Expr.constructs, constructsB_iff s b]
-  | .app f a => by simp [constructsB, Expr.constructs, constructsB_iff s f, constructsB_iff s a]
-  | .rep e => by simp [constructsB, Expr.constructs, constructsB_iff s e]
-  | .mk s' e => by simp [constructsB, Expr.constructs, constructsB_iff s e]
-  | .delay i e => by simp [constructsB, Expr.constructs, constructsB_iff s i, constructsB_iff s e]
-  | .sync _ i e => by simp [constructsB, Expr.constructs, constructsB_iff s i, constructsB_iff s e]
-  | .fold f z l => by
-    simp [constructsB, Expr.constructs, constructsB_iff s f, constructsB_iff s z, constructsB_iff s l, or_assoc]
-
-instance (s : SemanticId) (e : Expr) : Decidable (e.constructs s) :=
-  decidable_of_iff _ (constructsB_iff s e)
-
-/-- `d` *originates* a `C`: its realization constructs one, or it is an
-    unresolved declaration announcing `C` (a Source).  A wire, a transport,
-    a memory or a selection of `C` values does not originate. -/
-def MkProduces (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : Prop :=
-  ∃ h, Δ d = some h ∧
-    ((∃ b, h.realization = some b ∧ b.constructs C) ∨
-     (h.realization = none ∧ C ∈ h.interface.expectedType.grant))
-
-/-- At most one origin per concept — Model B. -/
-def MkUnique (Δ : DeclEnv) : Prop :=
-  ∀ C d₁ d₂, MkProduces Δ d₁ C → MkProduces Δ d₂ C → d₁ = d₂
-
-def mkProducesB (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : Bool :=
-  match Δ d with
-  | some h => (match h.realization with
-    | some b => constructsB C b
-    | none => decide (C ∈ h.interface.expectedType.grant))
-  | none => false
-
-theorem mkProducesB_iff (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : mkProducesB Δ d C = true ↔ MkProduces Δ d C := by
-  unfold mkProducesB MkProduces
-  cases hd : Δ d with
-  | none => simp
-  | some h =>
-    cases hr : h.realization with
-    | none => simp [hr]
-    | some b => simp [hr, constructsB_iff]
-
-instance (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : Decidable (MkProduces Δ d C) :=
-  decidable_of_iff _ (mkProducesB_iff Δ d C)
+/-- Phase 19's names for the notions Phase 20 moved into `Core/Producer`:
+    `MkProduces` is `Produces` (an origin: a `mk C` in the body, or an
+    unresolved announcer of `C`), `MkUnique` is `ProducerUnique`. -/
+abbrev MkProduces := Produces
+abbrev MkUnique := ProducerUnique
 
 theorem SigUnique.toMkUnique {Θ : ConceptEnv} {ev : Evidence} {Δ : DeclEnv} (g : GlobalWF ev Θ Δ)
     (h : SigUnique Δ) : MkUnique Δ := by
   intro C d₁ d₂ h₁ h₂
   refine h C d₁ d₂ ?_ ?_
-  · obtain ⟨h, hd, hp⟩ := h₁
+  · exact granted g h₁
+  · exact granted g h₂
+where
+  granted {Θ : ConceptEnv} {ev : Evidence} {Δ : DeclEnv} (g : GlobalWF ev Θ Δ) {d : DeclId} {C : SemanticId}
+      (h : Produces Δ d C) : SigProduces Δ d C := by
+    obtain ⟨h, hd, hp⟩ := h
     refine ⟨h, hd, ?_⟩
-    rcases hp with ⟨b, hb, hc⟩ | ⟨_, hg⟩
-    · exact ((g.wellFormed hd) b hb).1.constructs_granted C hc
-    · exact hg
-  · obtain ⟨h, hd, hp⟩ := h₂
-    refine ⟨h, hd, ?_⟩
-    rcases hp with ⟨b, hb, hc⟩ | ⟨_, hg⟩
-    · exact ((g.wellFormed hd) b hb).1.constructs_granted C hc
-    · exact hg
+    cases hr : h.realization with
+    | none => simpa [DesignDecl.origins, hr] using hp
+    | some b =>
+      simp only [DesignDecl.origins, hr] at hp
+      exact ((g.wellFormed hd) b hr).1.constructs_granted C (Expr.constructs_of_mem_originSet C b hp)
 
 /-! ## The current fact: two declarations of one concept, well formed -/
 
@@ -204,7 +157,7 @@ theorem witness_two_values : GlobalWF (fun _ _ _ => True) Θ Δxy ∧ Causal Δx
     have := hu C x y ⟨_, rfl, by decide⟩ ⟨_, rfl, by decide⟩
     exact absurd this (by decide)
   · intro hu
-    have := hu C x y ⟨_, rfl, Or.inl ⟨_, rfl, by decide⟩⟩ ⟨_, rfl, Or.inl ⟨_, rfl, by decide⟩⟩
+    have := hu C x y (by decide) (by decide)
     exact absurd this (by decide)
 
 theorem witness_two_arrows : GlobalWF (fun _ _ _ => True) Θ Δfg ∧ ¬ SigUnique Δfg := by
@@ -234,7 +187,7 @@ theorem phase6_not_sigUnique : ¬ SigUnique BDL.Experiments.Output.ΔB := by
 theorem phase6_not_mkUnique : ¬ MkUnique BDL.Experiments.Output.ΔB := by
   intro hu
   have := hu BDL.Experiments.Semantic.cMotor BDL.Experiments.Output.baseAngle BDL.Experiments.Output.finalAngle
-    ⟨_, rfl, Or.inr ⟨rfl, by decide⟩⟩ ⟨_, rfl, Or.inl ⟨_, rfl, by decide⟩⟩
+    (by decide) (by decide)
   exact absurd this (by decide)
 
 /-! ## Consumers reference declarations -/
@@ -284,7 +237,7 @@ theorem transport_second_signature :
     -- the transport's body constructs only its initial value's concept — the same `C`, from the init
     (Expr.constructs C (.sync c1 (.mk C (lit 0)) (.declRef x))) ∧
     ¬ Expr.constructs C (.sync c1 (lit 0) (.declRef x)) := by
-  refine ⟨WellClocked.ofList (by decide), fun hu => ?_, ⟨_, rfl, Or.inl ⟨_, rfl, by decide⟩⟩, by decide, by decide⟩
+  refine ⟨WellClocked.ofList (by decide), fun hu => ?_, by decide, by decide, by decide⟩
   have := hu C x xS ⟨_, rfl, by decide⟩ ⟨_, rfl, by decide⟩
   exact absurd this (by decide)
 
@@ -296,35 +249,8 @@ theorem transport_second_signature :
     is therefore counted already.  `MkUnique` is preserved by every
     refinement that adds no declaration. -/
 theorem mkUnique_refine {Θ : ConceptEnv} {ev : Evidence} {Δ₁ Δ₂ : DeclEnv} (g₂ : GlobalWF ev Θ Δ₂)
-    (er : EnvRefines Δ₁ Δ₂) (dom : ∀ d, Δ₂ d ≠ none → Δ₁ d ≠ none) (hu : MkUnique Δ₁) : MkUnique Δ₂ := by
-  intro C d₁ d₂ h₁ h₂
-  refine hu C d₁ d₂ (back g₂ er dom h₁) (back g₂ er dom h₂)
-where
-  back {Θ : ConceptEnv} {ev : Evidence} {Δ₁ Δ₂ : DeclEnv} (g₂ : GlobalWF ev Θ Δ₂) (er : EnvRefines Δ₁ Δ₂)
-      (dom : ∀ d, Δ₂ d ≠ none → Δ₁ d ≠ none) {d : DeclId} {C : SemanticId}
-      (h : MkProduces Δ₂ d C) : MkProduces Δ₁ d C := by
-    obtain ⟨h₂, hd₂, hp⟩ := h
-    cases hd₁ : Δ₁ d with
-    | none => exact absurd hd₁ (dom d (by rw [hd₂]; exact fun e => nomatch e))
-    | some h₁ =>
-      obtain ⟨h₂', hd₂', hle⟩ := er d h₁ hd₁
-      rw [hd₂] at hd₂'; cases hd₂'
-      have hty : h₁.interface.expectedType = h₂.interface.expectedType := hle.2.1.1
-      refine ⟨h₁, hd₁, ?_⟩
-      cases hr₁ : h₁.realization with
-      | none =>
-        -- unresolved in `Δ₁`: it announces whatever its body may construct in `Δ₂`
-        refine Or.inr ⟨rfl, ?_⟩
-        rw [hty]
-        rcases hp with ⟨b, hb, hc⟩ | ⟨_, hg⟩
-        · exact ((g₂.wellFormed hd₂) b hb).1.constructs_granted C hc
-        · exact hg
-      | some b₁ =>
-        have hb₂ : h₂.realization = some b₁ := hle.2.2 b₁ hr₁
-        rcases hp with ⟨b, hb, hc⟩ | ⟨hn, _⟩
-        · rw [hb₂] at hb; cases hb
-          exact Or.inl ⟨b₁, rfl, hc⟩
-        · rw [hb₂] at hn; exact nomatch hn
+    (er : EnvRefines Δ₁ Δ₂) (dom : ∀ d, Δ₂ d ≠ none → Δ₁ d ≠ none) (hu : MkUnique Δ₁) : MkUnique Δ₂ :=
+  ProducerUnique.refine g₂ er dom hu
 
 /-! ## Model B under composition -/
 
@@ -431,17 +357,7 @@ theorem sensors_rewriting_same_trace :
 
 /-- Model C's sensor design is origin-unique: every origin of any concept is
     the one declaration that announces it. -/
-theorem sensorsC_mkUnique : MkUnique ΔsensC := by
-  intro C d₁ d₂ h₁ h₂
-  have key : ∀ d C', MkProduces ΔsensC d C' →
-      (d = tA ∧ C' = SensorA) ∨ (d = tB ∧ C' = SensorB) ∨ (d = temp ∧ C' = Temperature) := by
-    intro d C' ⟨hd, hΔ, hp⟩
-    obtain ⟨hmem, hid⟩ := DeclEnv.ofList_some hΔ
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hmem
-    rcases hmem with rfl | rfl | rfl | rfl | rfl <;> simp only at hid <;> subst hid <;>
-      simp [Ty.grant, Expr.constructs, iteE, app3, ltE, app2, lit, Q0] at hp <;> simp [hp]
-  rcases key d₁ C h₁ with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;>
-    rcases key d₂ _ h₂ with ⟨rfl, h⟩ | ⟨rfl, h⟩ | ⟨rfl, h⟩ <;> first | rfl | (exact absurd h (by decide))
+theorem sensorsC_mkUnique : MkUnique ΔsensC := ProducerUnique.ofList (by decide)
 
 /-- Manual/automatic override — Model A with one `Brightness` for both
     and Model C with `ManualBrightness`, `AutoBrightness` and one resolver. -/
@@ -505,16 +421,6 @@ theorem one_origin_two_outputs :
   refine ⟨GlobalWF.ofList (by decide), DriveWF.ofList (by decide), SingleDriver.ofList (by decide),
     by decide, by decide, by decide, by decide, by decide, by decide⟩
 
-theorem driver_not_origin : MkUnique Δ2out := by
-  intro C' d₁ d₂ h₁ h₂
-  have key : ∀ d C', MkProduces Δ2out d C' → d = x ∧ C' = C := by
-    intro d C' ⟨hd, hΔ, hp⟩
-    obtain ⟨hmem, hid⟩ := DeclEnv.ofList_some hΔ
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hmem
-    rcases hmem with rfl | rfl | rfl <;> simp only at hid <;> subst hid <;>
-      simp [Ty.grant, Expr.constructs, lit] at hp <;> simp [hp]
-  obtain ⟨rfl, _⟩ := key d₁ C' h₁
-  obtain ⟨rfl, _⟩ := key d₂ C' h₂
-  rfl
+theorem driver_not_origin : MkUnique Δ2out := ProducerUnique.ofList (by decide)
 
 end BDL.Experiments.Producers
