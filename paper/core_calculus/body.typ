@@ -89,7 +89,7 @@ contract systems attach progressively stronger constraints; synchronous
 languages interpret definitions as clocked streams.
 $lambda_(upright(B D L))$ does not show that any of these cannot express
 a declared-but-unrealized relationship. What it contributes is a direct,
-compositional semantics for a workflow in which #emph[semantic identity,
+compositional semantics for a workflow in which #emph[concept identity,
 interface commitment, delayed realization, temporal structure and
 physical effect coexist as facts about one object], together with
 mechanized proofs that they interact as the workflow needs. A
@@ -115,7 +115,7 @@ each is a constraint on the same object:
   signature's result concept is the only concept its realization may
   construct.
 - #strong[Dimensions] govern the arithmetic of representations once a
-  concept is observed, and are orthogonal to semantic identity (§5.3).
+  concept is observed, and are orthogonal to concept identity (§5.3).
 - #strong[Clock domains] govern #emph[when] a relationship's value
   belongs to the design (§6). A relationship participates in an authored
   temporal structure, and the semantics must respect it without exposing
@@ -230,6 +230,25 @@ whether a realization is present. That an input is "a relationship
 realized by the world" is not a metaphor here --- it is exactly how the
 semantics of §6 reads it.
 
+The levels are worth naming once, because the words #emph[concept] and
+#emph[value] are easy to conflate. A #strong[concept] is a #emph[type]:
+`Brightness` names a nominal type
+$upright("sem") thick italic(B r i g h t n e s s)$ (§5) and is a
+template that has no value of its own. A declaration of that type,
+`light : Brightness`, is an #emph[instance] of the concept --- one value
+at each tick --- and its realization, when present, is the one thing
+that produces that value. A relationship with inputs is a template of
+another kind: a function applied wherever a declaration's realization
+names it. Several declarations of one concept are ordinary
+(`sensorA : Temperature`, `sensorB : Temperature`,
+`roomTemp : Temperature := if available then sensorA else sensorB`); a
+term refers to a declaration by identity and never to a concept, so
+nothing is ever resolved "by concept". In the product this ladder is
+spoken as concept (the template), #emph[Sem block] (an instance) and
+#emph[mapping block] (its realization); the calculus needs only
+#emph[concept] and #emph[declaration], and the identity of a concept is
+a $upright("ConceptId")$.
+
 == Unrealized but usable
 <unrealized-but-usable>
 The claim that an unrealized declaration is a complete design state is
@@ -332,7 +351,7 @@ time, angle, mass, temperature in the development); dimensions form an
 abelian group under pointwise addition, which is the only structure the
 calculus uses.
 
-$  & s in upright("SemanticId") #h(2em) d in upright("Dim") #h(2em) c in upright("ClockId") #h(2em) delta in upright("DeclId") #h(2em) o in upright("OutputId")\
+$  & s in upright("ConceptId") #h(2em) d in upright("Dim") #h(2em) c in upright("ClockId") #h(2em) delta in upright("DeclId") #h(2em) o in upright("OutputId")\
 tau\,sigma thick upright("::=") thick & upright("bool") divides upright("nat") divides tau arrow.r sigma divides upright("sem") thick s divides upright("q") thick d divides upright("opt") thick tau divides upright("list") thick tau divides tau times sigma\
 e thick upright("::=") thick & x divides upright("true") divides upright("false") divides n divides lambda x : tau . thin e divides e thick e divides upright("declRef") thick delta divides upright("rep") thick e divides upright("mk") thick s thick e divides p\
 divides thick & upright("delay") thick e thick e divides upright("sync") thick c thick e thick e divides upright("fold") thick e thick e thick e\
@@ -389,12 +408,12 @@ noticing.
   is all that evaluation sees. An #strong[unrealized] declaration is one
   whose realization is $upright("none")$\; nothing else distinguishes
   it. - A #strong[concept environment]
-  $Theta : upright("SemanticId") arrow.r upright("Option") thick upright("Ty")$
+  $Theta : upright("ConceptId") arrow.r upright("Option") thick upright("Ty")$
   binds each concept to a representation. It is well formed,
   $Theta . upright("WF")$, when every bound representation is
   concept-free and data:
   $Theta thick s = upright("some") thick R arrow.r.double R . upright("SemFree") and R . upright("Data")$.
-- A #strong[grant] $G : upright("SemanticId") arrow.r upright("Prop")$
+- A #strong[grant] $G : upright("ConceptId") arrow.r upright("Prop")$
   says which concepts a term may construct. $upright("Grant.none")$
   permits nothing; $upright("Grant.of") thick tau$ permits the concepts
   in result position of $tau$,
@@ -781,7 +800,7 @@ conversion.
 #emph[Why not let any realization construct any concept of matching
 representation?] Nominal identity alone leaves concept values opaque:
 under T-Ref and T-App only, a value of $upright("sem") thick s$ can
-originate only in a declaration of semantic type
+originate only in a declaration of concept type
 (`no_semantic_value_without_declaration`). That is the right state
 #emph[before] a realization exists. To let a formula realize a
 relationship, representation must be observable and constructible, and
@@ -843,7 +862,7 @@ executable.
 
 == Representation is not meaning: erasure
 <representation-is-not-meaning-erasure>
-Let $rho : upright("SemanticId") arrow.r upright("Ty")$ map each concept
+Let $rho : upright("ConceptId") arrow.r upright("Ty")$ map each concept
 to a data type, agreeing with $Theta$ on bound concepts. Erasure
 $tau^rho$ replaces $upright("sem") thick s$ by $rho thick s$ throughout
 a type; on terms, $upright("rep") thick e$ and
@@ -880,11 +899,11 @@ $upright("sem")$ and duplicates it.
 
 == Dimensions: coherent arithmetic on representations
 <dimensions-coherent-arithmetic-on-representations>
-Dimensions play a narrower role than semantic identity. Once a concept
-is observed through $upright("rep")$, the arithmetic on its
-representation must remain physically coherent, and that is all
-dimensions do. A physical quantity has type $upright("q") thick d$.
-There is no dimension-specific typing rule:
+Dimensions play a narrower role than concept identity. Once a concept is
+observed through $upright("rep")$, the arithmetic on its representation
+must remain physically coherent, and that is all dimensions do. A
+physical quantity has type $upright("q") thick d$. There is no
+dimension-specific typing rule:
 $upright("add")_d : upright("q") thick d arrow.r upright("q") thick d arrow.r upright("q") thick d$,
 $upright("mul")_(d_1 d_2) : upright("q") thick d_1 arrow.r upright("q") thick d_2 arrow.r upright("q") thick\(d_1 + d_2\)$
 and $upright("div")_(d_1 d_2)$ with $d_1 - d_2$ are registered
@@ -1558,7 +1577,8 @@ move hardware. Physical effect happens only through an explicit
 #strong[drive edge] from a declaration to a nominally identified
 #strong[output] --- a logical actuator channel, a resource in a
 different sort from both concepts and declarations: "the desired
-steering angle" is a value, "the steering motor" is a resource.
+steering angle" --- a declaration of concept type, one instance of the
+concept --- is a value; "the steering motor" is a resource.
 
 - $Omega : upright("OutputId") arrow.r upright("Option") thick chevron.l italic(a c c e p t s)\,italic(c l o c k) chevron.r$
   --- each output's accepted type and domain;

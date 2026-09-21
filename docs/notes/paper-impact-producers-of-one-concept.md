@@ -39,6 +39,21 @@ only revision the papers need is vocabulary, when they are next revised: _Sem
 block_ / _mapping block_ for the canvas objects (monograph Parts III and VI),
 the concept as a template (III.1), and no concept node.
 
+## Amendment (2026-09-21, Phase 22 — the revision made)
+
+Both papers were revised after FVD-0164: `\text{SemanticId}` →
+`\text{ConceptId}`; "semantic identity/type/value" → "concept identity/type",
+"Sem value" where the type level was meant (the sense "semantic vs.
+representation" kept); core-calculus §2.1 gains the ladder paragraph (concept =
+type, a declaration of concept type = an instance with one value, rule =
+template; the product words _Sem block_ / _mapping block_ named once) and §8's
+"the desired steering angle is a value" says it is a declaration of concept
+type; the monograph gains §IV.2 "The concept ladder (Phases 19–22)", the III.1
+sentence, the FVD-0159 … FVD-0164 rows, the Phase 19–22 index rows, and a note
+in §VI.6 that production's canvas at the snapshot still draws the concept node.
+§VI.5/VI.6's description of the canvas is otherwise unchanged until production
+ships the Sem-block projection.
+
 ## 1. The core-calculus paper (`paper/core_calculus/paper.md`)
 
 No theorem statement in the paper becomes false under the result; the changes
