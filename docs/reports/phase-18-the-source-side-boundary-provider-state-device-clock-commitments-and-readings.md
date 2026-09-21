@@ -171,7 +171,8 @@ sampled through `chLatest` and by a scalar provider through the identity channel
 has one `fb`, `settled` and `doneM` trace.
 
 64 theorem-like declarations added (40 + 24); every one on
-`propext`/`Quot.sound`; no `sorry`; the whole development 1 545 across 68 files;
+`propext`/`Quot.sound`; no `sorry`; the whole development ~~1 545 across 68
+files~~ 1 544 across 68 files — corrected in Phase 19 (the same grep);
 `lake build` 71 jobs, clean, no warnings.
 
 ## 18.8 Models tried
