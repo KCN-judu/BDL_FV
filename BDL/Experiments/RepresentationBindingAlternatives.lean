@@ -4,7 +4,7 @@ import BDL.Experiments.SemanticTypeAlternatives
 # Phase 3, part 1 — representation binding
 
 Question: what is the smallest representation-binding mechanism that lets
-semantic values participate in formulas without letting representation-level
+Sem values participate in formulas without letting representation-level
 operations bypass explicit semantic mappings?
 
 Everything here is a *local* extended language (`RExpr`, `RHasType`) so the
@@ -18,7 +18,7 @@ by a **construction policy**, covers all candidate models:
 | `.grant G`     | C / D | everywhere        | only for `s ∈ G`   |
 
 The representation binding itself is Model D's *witness*: a write-once
-concept environment `Θ : SemanticId → Option Ty`, and both `rep` and `mk`
+concept environment `Θ : ConceptId → Option Ty`, and both `rep` and `mk`
 require `Θ s = some R`.  Model C is `.grant` with `G` taken from the
 signature of the declaration being realized (`Ty.grant`).
 
@@ -31,7 +31,7 @@ Results (claim strength in brackets):
 * Model B is safe (provenance theorem) but cannot realize any mapping by a
   formula [formally proved limitation].
 * Model C/D: construction is possible exactly inside a declaration whose
-  signature announces the semantic type; hidden crossings inside unrelated
+  signature announces the Sem type; hidden crossings inside unrelated
   bodies are rejected; provenance holds for every ungranted concept
   [formally proved].  Binding a representation is monotone; changing one is
   an edit [formally proved / counterexample].
@@ -50,15 +50,15 @@ promoted to `BDL.Core.Decl` after this experiment; they are used from there. -/
 inductive Policy where
   | free
   | none
-  | grant (G : List SemanticId)
+  | grant (G : List ConceptId)
   deriving DecidableEq, Repr
 
-def Policy.allows : Policy → SemanticId → Prop
+def Policy.allows : Policy → ConceptId → Prop
   | .free, _ => True
   | .none, _ => False
   | .grant G, s => s ∈ G
 
-instance : ∀ (P : Policy) (s : SemanticId), Decidable (P.allows s)
+instance : ∀ (P : Policy) (s : ConceptId), Decidable (P.allows s)
   | .free, _ => inferInstanceAs (Decidable True)
   | .none, _ => inferInstanceAs (Decidable False)
   | .grant G, s => inferInstanceAs (Decidable (s ∈ G))
@@ -73,7 +73,7 @@ inductive RExpr where
   | app (f a : RExpr)
   | declRef (d : DeclId)
   | rep (e : RExpr)                 -- observe the representation
-  | mk (s : SemanticId) (e : RExpr) -- construct a semantic value
+  | mk (s : ConceptId) (e : RExpr) -- construct a Sem value
   deriving DecidableEq, Repr
 
 inductive RHasType (Θ : ConceptEnv) (Δ : DeclEnv) (P : Policy) : Ctx → RExpr → Ty → Prop where
@@ -228,7 +228,7 @@ theorem RHasType.mono_policy {Θ : ConceptEnv} {Δ : DeclEnv} {P₁ P₂ : Polic
   | mk hp' hΘ _ ih => exact .mk (hp _ hp') hΘ ih
 
 /-- Does `mk s` occur anywhere in the term? -/
-def RExpr.constructs (s : SemanticId) : RExpr → Prop
+def RExpr.constructs (s : ConceptId) : RExpr → Prop
   | .lam _ b => b.constructs s
   | .app f a => f.constructs s ∨ a.constructs s
   | .rep e => e.constructs s
@@ -237,7 +237,7 @@ def RExpr.constructs (s : SemanticId) : RExpr → Prop
 
 /-- **Syntactic invariant (Model E, occurrence form).**  A well-typed term
     constructs `s` only if the policy grants `s`.  Under `.grant τ.grant`
-    this reads: a semantic value of `s` is constructed only inside the
+    this reads: a Sem value of `s` is constructed only inside the
     realization of a declaration whose signature announces `sem s`. -/
 theorem mk_requires_grant {Θ : ConceptEnv} {Δ : DeclEnv} {P : Policy} {Γ : Ctx} {e : RExpr} {τ : Ty}
     (h : RHasType Θ Δ P Γ e τ) : ∀ s, e.constructs s → P.allows s := by
@@ -259,7 +259,7 @@ A type is a *`t`-source* iff its interpretation is empty; a closed term of a
 `t`-source type can then only exist if some declaration has one — unless
 the policy grants `t`. -/
 
-def _root_.BDL.Ty.isSourceB (t : SemanticId) : Ty → Bool
+def _root_.BDL.Ty.isSourceB (t : ConceptId) : Ty → Bool
   | .bool => false
   | .nat => false
   | .q _ => false
@@ -273,12 +273,12 @@ def _root_.BDL.Ty.isSourceB (t : SemanticId) : Ty → Bool
     not a `t`-source and whose codomain is.  (`mk_t : R → sem t` and
     `f : Tilt → MotorAngle` are motor-sources; `rep_t : sem t → R` and
     `id : sem t → sem t` are not.) -/
-def _root_.BDL.Ty.IsSource (t : SemanticId) (τ : Ty) : Prop := τ.isSourceB t = true
+def _root_.BDL.Ty.IsSource (t : ConceptId) (τ : Ty) : Prop := τ.isSourceB t = true
 
-instance (t : SemanticId) (τ : Ty) : Decidable (τ.IsSource t) :=
+instance (t : ConceptId) (τ : Ty) : Decidable (τ.IsSource t) :=
   inferInstanceAs (Decidable (τ.isSourceB t = true))
 
-def _root_.BDL.Ty.tdenote (t : SemanticId) : Ty → Type
+def _root_.BDL.Ty.tdenote (t : ConceptId) : Ty → Type
   | .bool => Bool
   | .nat => Nat
   | .q _ => Nat
@@ -289,11 +289,11 @@ def _root_.BDL.Ty.tdenote (t : SemanticId) : Ty → Type
   | .sem s => PLift (s ≠ t)
 
 /-- Inhabitants for non-sources, emptiness for sources. -/
-structure TInfo (t : SemanticId) (τ : Ty) where
+structure TInfo (t : ConceptId) (τ : Ty) where
   inh : ¬ τ.IsSource t → τ.tdenote t
   emp : τ.IsSource t → τ.tdenote t → False
 
-def _root_.BDL.Ty.tinfo (t : SemanticId) : ∀ τ : Ty, TInfo t τ
+def _root_.BDL.Ty.tinfo (t : ConceptId) : ∀ τ : Ty, TInfo t τ
   | .bool => ⟨fun _ => (show Bool from true), fun h => by simp [Ty.IsSource, Ty.isSourceB] at h⟩
   | .nat => ⟨fun _ => (show Nat from 0), fun h => by simp [Ty.IsSource, Ty.isSourceB] at h⟩
   | .q _ => ⟨fun _ => (show Nat from 0), fun h => by simp [Ty.IsSource, Ty.isSourceB] at h⟩
@@ -325,7 +325,7 @@ def _root_.BDL.Ty.tinfo (t : SemanticId) : ∀ τ : Ty, TInfo t τ
       h'.elim (fun ha => ia.emp ha (show a.tdenote t × b.tdenote t from x).1)
               (fun hb => ib.emp hb (show a.tdenote t × b.tdenote t from x).2)⟩
 
-theorem _root_.BDL.Ty.SemFree.not_source {t : SemanticId} : ∀ {τ : Ty}, τ.SemFree → ¬ τ.IsSource t
+theorem _root_.BDL.Ty.SemFree.not_source {t : ConceptId} : ∀ {τ : Ty}, τ.SemFree → ¬ τ.IsSource t
   | .bool, _ => by simp [Ty.IsSource, Ty.isSourceB]
   | .nat, _ => by simp [Ty.IsSource, Ty.isSourceB]
   | .q _, _ => by simp [Ty.IsSource, Ty.isSourceB]
@@ -342,11 +342,11 @@ theorem _root_.BDL.Ty.SemFree.not_source {t : SemanticId} : ∀ {τ : Ty}, τ.Se
     simp [Ty.IsSource, Ty.isSourceB] at this ⊢
     intro _; exact this
 
-def CtxInterp (t : SemanticId) (Γ : Ctx) : Type := ∀ (i : Nat) (τ : Ty), Γ[i]? = some τ → τ.tdenote t
+def CtxInterp (t : ConceptId) (Γ : Ctx) : Type := ∀ (i : Nat) (τ : Ty), Γ[i]? = some τ → τ.tdenote t
 
-def CtxInterp.nil (t : SemanticId) : CtxInterp t [] := fun _ _ h => absurd h (by simp)
+def CtxInterp.nil (t : ConceptId) : CtxInterp t [] := fun _ _ h => absurd h (by simp)
 
-def CtxInterp.cons {t : SemanticId} {Γ : Ctx} {dom : Ty} (x : dom.tdenote t) (γ : CtxInterp t Γ) :
+def CtxInterp.cons {t : ConceptId} {Γ : Ctx} {dom : Ty} (x : dom.tdenote t) (γ : CtxInterp t Γ) :
     CtxInterp t (dom :: Γ) :=
   fun i τ h =>
     match i, h with
@@ -356,7 +356,7 @@ def CtxInterp.cons {t : SemanticId} {Γ : Ctx} {dom : Ty} (x : dom.tdenote t) (�
 /-- Evaluation under the `t`-interpretation, for any policy that does not
     grant `t`.  `rep` never needs the value of its argument (the result is a
     sem-free representation); `mk s` for `s ≠ t` is `()`. -/
-def REval {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {P : Policy} {t : SemanticId}
+def REval {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {P : Policy} {t : ConceptId}
     (hP : ¬ P.allows t) (δ : ∀ (d : DeclId) (τ : Ty), Δ.tyView d = some τ → τ.tdenote t) :
     ∀ (e : RExpr) (Γ : Ctx), CtxInterp t Γ → ∀ (τ : Ty), rinfer Θ Δ P Γ e = some τ → τ.tdenote t
   | .var i, _, γ, τ, h => γ i τ h
@@ -422,7 +422,7 @@ def REval {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {P : Policy} {t : Seman
     type.  So `t`-values arise only from declarations typed as `t`-sources
     (sensors `sem t`, explicit mappings `… → sem t`) or inside realizations
     granted `t`. -/
-theorem provenance {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {P : Policy} {t : SemanticId}
+theorem provenance {Θ : ConceptEnv} (hΘ : Θ.WF) {Δ : DeclEnv} {P : Policy} {t : ConceptId}
     (hP : ¬ P.allows t) (hΔ : ∀ d τ, Δ.tyView d = some τ → ¬ τ.IsSource t)
     {e : RExpr} {τ : Ty} (h : RHasType Θ Δ P [] e τ) : ¬ τ.IsSource t := by
   intro hsrc
@@ -452,7 +452,7 @@ theorem unrestricted_representation_binding_bypasses_semantic_identity :
     RHasType Θnat .empty .free [] (.lam Tilt (.mk cMotor (.rep (.var 0)))) (.arr Tilt MotorAngle) := by
   decide
 
-/-- Worse: semantic values from nothing. -/
+/-- Worse: Sem values from nothing. -/
 theorem unrestricted_mk_creates_semantic_values_from_nothing :
     RHasType Θnat .empty .free [] (.mk cMotor (.natLit 0)) MotorAngle := by decide
 
@@ -472,7 +472,7 @@ theorem modelA_breaks_phase2_provenance :
 
 /-! ### The binding itself must be sem-free -/
 
-/-- If a concept may be "represented by" another semantic type, `rep` is a
+/-- If a concept may be "represented by" another Sem type, `rep` is a
     hidden mapping — under *every* policy, even observation-only. -/
 def Θbad : ConceptEnv := fun s => if s = cTilt then some MotorAngle else some .nat
 
@@ -489,7 +489,7 @@ theorem observation_is_available :
     RHasType Θnat Δ₁ .none [] (.lam Tilt (.rep (.var 0))) (.arr Tilt .nat) := by decide
 
 /-- … and Model B is safe: no concept can be manufactured anywhere. -/
-theorem modelB_provenance {Δ : DeclEnv} {t : SemanticId}
+theorem modelB_provenance {Δ : DeclEnv} {t : ConceptId}
     (hΔ : ∀ d τ, Δ.tyView d = some τ → ¬ τ.IsSource t) {e : RExpr} {τ : Ty}
     (h : RHasType Θnat Δ .none [] e τ) : ¬ τ.IsSource t :=
   provenance Θnat_wf (P := .none) (t := t) (fun hf => hf) hΔ h
@@ -552,7 +552,7 @@ theorem declared_crossing_realizable :
 
 /-- Provenance under grants: for every concept *not* granted to the body
     being typed, values still trace to declared sources. -/
-theorem grant_provenance {Δ : DeclEnv} {G : List SemanticId} {t : SemanticId} (ht : t ∉ G)
+theorem grant_provenance {Δ : DeclEnv} {G : List ConceptId} {t : ConceptId} (ht : t ∉ G)
     (hΔ : ∀ d τ, Δ.tyView d = some τ → ¬ τ.IsSource t) {e : RExpr} {τ : Ty}
     (h : RHasType Θnat Δ (.grant G) [] e τ) : ¬ τ.IsSource t :=
   provenance Θnat_wf (P := .grant G) (t := t) ht hΔ h

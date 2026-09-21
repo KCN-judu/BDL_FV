@@ -24,7 +24,7 @@ keeps the concrete designs and the rejected alternatives:
       `every`, `rise`, and a StateHandler-style scoped reset counter — each
       a declaration graph with a self-delayed cycle, checked by execution.
 * §6  Initialization alternatives.  §7  Event vs `opt`.
-* §9  Delay vs dimensions, semantic types, refinement.  §10  Signal as a type.
+* §9  Delay vs dimensions, Sem types, refinement.  §10  Signal as a type.
 -/
 
 namespace BDL.Experiments.Reactive
@@ -316,7 +316,7 @@ example : True := trivial
 * For *wiring* designs — no lambdas, no variables — stepping over
   references and stepping over the unfolded program agree. -/
 
-/-! ## §9 Temporal structure vs semantic types, dimensions, and refinement -/
+/-! ## §9 Temporal structure vs Sem types, dimensions, and refinement -/
 
 /-- **`delay_preserves_type`** is the typing rule itself: `delay : τ → τ → τ`
     for data `τ`.  In particular dimensions do not drift … -/
@@ -341,7 +341,7 @@ theorem backward_difference_rate_typed :
       (.q (Dim.Length.sub Dim.Time)) := by
   decide
 
-/-- Semantic values can be delayed (they are data) and the grant discipline
+/-- Sem values can be delayed (they are data) and the grant discipline
     is untouched: re-labelling a *stored* tilt as a motor angle still needs
     the construction grant, and `previous (rep x)` equals `rep (previous x)`
     — representation access is not stateful. -/

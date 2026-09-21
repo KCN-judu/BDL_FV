@@ -1,5 +1,5 @@
 import BDL.Surface.SourceBoundary
-import BDL.Validation.Producer
+import BDL.Experiments.ProducerUnique
 import BDL.Surface.Stdlib
 import BDL.Experiments.OutputAlternatives
 import BDL.Experiments.BehaviorAlternatives
@@ -80,25 +80,25 @@ open BDL BDL.Reactive BDL.Clock BDL.Output BDL.Stdlib BDL.Provision BDL.OutputWi
 /-! ## The candidate notions -/
 
 /-- `d`'s signature announces `C` in result position — the grant reading. -/
-def SigProduces (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : Prop :=
+def SigProduces (Δ : DeclEnv) (d : DeclId) (C : ConceptId) : Prop :=
   ∃ h, Δ d = some h ∧ C ∈ h.interface.expectedType.grant
 
 /-- At most one declaration per concept announces it in result position. -/
 def SigUnique (Δ : DeclEnv) : Prop :=
   ∀ C d₁ d₂, SigProduces Δ d₁ C → SigProduces Δ d₂ C → d₁ = d₂
 
-def sigProducesB (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : Bool :=
+def sigProducesB (Δ : DeclEnv) (d : DeclId) (C : ConceptId) : Bool :=
   match Δ d with
   | some h => decide (C ∈ h.interface.expectedType.grant)
   | none => false
 
-theorem sigProducesB_iff (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : sigProducesB Δ d C = true ↔ SigProduces Δ d C := by
+theorem sigProducesB_iff (Δ : DeclEnv) (d : DeclId) (C : ConceptId) : sigProducesB Δ d C = true ↔ SigProduces Δ d C := by
   unfold sigProducesB SigProduces
   cases hd : Δ d with
   | none => simp
   | some h => simp
 
-instance (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : Decidable (SigProduces Δ d C) :=
+instance (Δ : DeclEnv) (d : DeclId) (C : ConceptId) : Decidable (SigProduces Δ d C) :=
   decidable_of_iff _ (sigProducesB_iff Δ d C)
 
 /-- Phase 19's names for the notions Phase 20 moved into `Core/Producer`:
@@ -114,7 +114,7 @@ theorem SigUnique.toMkUnique {Θ : ConceptEnv} {ev : Evidence} {Δ : DeclEnv} (g
   · exact granted g h₁
   · exact granted g h₂
 where
-  granted {Θ : ConceptEnv} {ev : Evidence} {Δ : DeclEnv} (g : GlobalWF ev Θ Δ) {d : DeclId} {C : SemanticId}
+  granted {Θ : ConceptEnv} {ev : Evidence} {Δ : DeclEnv} (g : GlobalWF ev Θ Δ) {d : DeclId} {C : ConceptId}
       (h : Produces Δ d C) : SigProduces Δ d C := by
     obtain ⟨h, hd, hp⟩ := h
     refine ⟨h, hd, ?_⟩
@@ -126,9 +126,9 @@ where
 
 /-! ## The current fact: two declarations of one concept, well formed -/
 
-def C : SemanticId := ⟨300⟩
-def A : SemanticId := ⟨301⟩
-def B : SemanticId := ⟨302⟩
+def C : ConceptId := ⟨300⟩
+def A : ConceptId := ⟨301⟩
+def B : ConceptId := ⟨302⟩
 def Q0 : Ty := .q Dim.zero
 def Θ : ConceptEnv := fun s => if s = C ∨ s = A ∨ s = B then some Q0 else none
 def lit (n : Nat) : Expr := .prim (.lit Dim.zero n)
@@ -167,7 +167,7 @@ theorem witness_two_arrows : GlobalWF (fun _ _ _ => True) Θ Δfg ∧ ¬ SigUniq
 
 /-- **Two values of one concept coexist at one tick**, both well typed,
     both deterministic (`Ev.det`), different at the representation level:
-    semantic identity alone does not identify one runtime value. -/
+    concept identity alone does not identify one runtime value. -/
 theorem two_C_values_coexist :
     (evalF Δxy (fun _ _ => .nat 0) 16 0 [] (.declRef x)).bind (fun v => match v with | .sem s (.nat n) => some (s.n, n) | _ => none)
       = some (300, 1) ∧
@@ -266,7 +266,7 @@ theorem lamp_two_origins :
 
 open BDL.Experiments.Behavior in
 /-- With the concept instance-private, the two instances originate two
-    *different* concepts (`inst_sem_disjoint`): the boundary rule under
+    *different* concepts (`inst_concept_disjoint`): the boundary rule under
     which flattening keeps origin-uniqueness is that a shared concept is
     provided by at most one instance, or is private. -/
 def privateLamp : BehaviorSystem := { lamp with insts := [⟨source, κfast⟩, ⟨privateDimmer, κfast⟩, ⟨privateDimmer, κfast⟩] }
@@ -310,9 +310,9 @@ theorem rewrap_counts_as_origin :
 
 /-! ## Model C — explicit resolution with intermediate concepts, executed -/
 
-def Temperature : SemanticId := ⟨310⟩
-def SensorA : SemanticId := ⟨311⟩
-def SensorB : SemanticId := ⟨312⟩
+def Temperature : ConceptId := ⟨310⟩
+def SensorA : ConceptId := ⟨311⟩
+def SensorB : ConceptId := ⟨312⟩
 def Θt : ConceptEnv := fun s => if s = Temperature ∨ s = SensorA ∨ s = SensorB then some Q0 else none
 def tA : DeclId := ⟨20⟩
 def tB : DeclId := ⟨21⟩
@@ -361,9 +361,9 @@ theorem sensorsC_mkUnique : MkUnique ΔsensC := ProducerUnique.ofList (by decide
 
 /-- Manual/automatic override — Model A with one `Brightness` for both
     and Model C with `ManualBrightness`, `AutoBrightness` and one resolver. -/
-def Brightness : SemanticId := ⟨320⟩
-def ManualB : SemanticId := ⟨321⟩
-def AutoB : SemanticId := ⟨322⟩
+def Brightness : ConceptId := ⟨320⟩
+def ManualB : ConceptId := ⟨321⟩
+def AutoB : ConceptId := ⟨322⟩
 def Θb : ConceptEnv := fun s => if s = Brightness ∨ s = ManualB ∨ s = AutoB then some Q0 else none
 def knob : DeclId := ⟨30⟩
 def ambient : DeclId := ⟨31⟩

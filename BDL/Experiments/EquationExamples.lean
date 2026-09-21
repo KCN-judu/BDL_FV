@@ -13,9 +13,9 @@ through the structural equality `Value.beq` (`Value.eq_of_beq` makes a
 namespace BDL.Experiments.Equations
 open BDL BDL.Reactive BDL.Stdlib BDL.Generic
 
-def Brightness : SemanticId := ⟨50⟩
-def Opacity : SemanticId := ⟨51⟩
-def Mode : SemanticId := ⟨52⟩
+def Brightness : ConceptId := ⟨50⟩
+def Opacity : ConceptId := ⟨51⟩
+def Mode : ConceptId := ⟨52⟩
 def Q0 : Ty := .q Dim.zero
 def B : Ty := .sem Brightness
 /-- Brightness is an ordered concept (Phase 9c evidence); Mode is not. -/

@@ -9,7 +9,7 @@ effect occurs only when an explicit **drive edge** binds a declaration to a
 **physical sink**.  The smallest model tested here:
 
 * `OutputId` — nominal identity of a physical sink (resource identity, not
-  semantic identity, not a design relationship);
+  concept identity, not a design relationship);
 * `OutputEnv Ω : OutputId → Option OutputSpec` — what a sink accepts: a
   target `Ty` and a `ClockId` (deployment-declared resource description);
 * `DriveEnv β : DeclId → Option OutputId` — which declaration drives which
@@ -28,7 +28,7 @@ The model itself (identities, `DriveWF`, `SingleDriver`, `CompleteOutputs`,
 the refinement lemma, partial vs executable, physical output semantics and
 its determinism) was promoted to `BDL/Core/Output.lean`.  This file keeps:
 §2 output identity alternatives (D); §3 Counterexamples A, B; §4 hidden
-arbitration (C) and explicit priority; §5 semantic identity, dimension, grant
+arbitration (C) and explicit priority; §5 concept identity, dimension, grant
 (E); §6 clocks (G); §7 rebinding (F); §8 partial vs executable examples;
 §9 effect rows and action values; §10 StateHandler remainder; §11 two
 drivers, two outputs.
@@ -43,7 +43,7 @@ def leftServo  : OutputId := ⟨0⟩
 def rightServo : OutputId := ⟨1⟩
 def actuatorClock : ClockId := slow
 
-/-- Two sinks accepting exactly the same semantic type and domain. -/
+/-- Two sinks accepting exactly the same Sem type and domain. -/
 def Ωservos : OutputEnv := .ofList [(leftServo, ⟨MotorAngle, actuatorClock⟩), (rightServo, ⟨MotorAngle, actuatorClock⟩)]
 
 def leftTarget : DeclId := ⟨200⟩
@@ -65,7 +65,7 @@ theorem type_keyed_binding_collides :
     DriveWF Ωservos Κservos Δservos (.ofList [(leftTarget, leftServo), (rightTarget, rightServo)]) :=
   ⟨by decide, SingleDriver.ofList (by decide), DriveWF.ofList (by decide)⟩
 
-/-- Using `SemanticId` as the sink identity conflates concept and hardware:
+/-- Using `ConceptId` as the sink identity conflates concept and hardware:
     one concept (`MotorAngle`) feeds two devices, so "the MotorAngle output"
     is not a sink.  Using `DeclId` conflates relationship and resource: two
     declarations that both mean to drive the steering motor become two
@@ -196,7 +196,7 @@ def dMaxed : DesignDecl := ⟨maxed, ⟨MotorAngle, []⟩, some
 theorem blend_and_max_are_ordinary_targets :
     GlobalWF trivEv Dimension.Θdim (.ofList [dEmT, dNormT, dBlended, dMaxed]) := GlobalWF.ofList (by decide)
 
-/-! ## §5 Semantic identity, dimension, grant (Counterexample E) -/
+/-! ## §5 Concept identity, dimension, grant (Counterexample E) -/
 
 def tiltTarget : DeclId := ⟨230⟩
 def angleTarget : DeclId := ⟨231⟩

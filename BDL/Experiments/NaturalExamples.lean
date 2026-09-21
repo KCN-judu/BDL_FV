@@ -13,9 +13,9 @@ Nominal cases use `Tilt` and `MotorAngle` (both angles, both ordered) and
 namespace BDL.Experiments.Natural
 open BDL BDL.Reactive BDL.Stdlib BDL.Natural BDL.Units
 
-def Tilt : SemanticId := ⟨70⟩
-def MotorAngle : SemanticId := ⟨71⟩
-def Mode : SemanticId := ⟨72⟩
+def Tilt : ConceptId := ⟨70⟩
+def MotorAngle : ConceptId := ⟨71⟩
+def Mode : ConceptId := ⟨72⟩
 def Θ : ConceptEnv := fun s =>
   if s = Tilt ∨ s = MotorAngle then some (.q Dim.Angle) else if s = Mode then some (.q Dim.zero) else none
 def O : Poly.OrdDecl := fun s => s = Tilt ∨ s = MotorAngle
@@ -192,7 +192,7 @@ theorem exI : desugar [] (.coalesce Q0 (ref opt1) (.core (lit 0))) = some (app2 
 
 /-! ## J — no construction -/
 
-theorem no_construction (s : SemanticId) : ∀ e', desugar [] allReadings = some e' → ¬ e'.constructs s :=
+theorem no_construction (s : ConceptId) : ∀ e', desugar [] allReadings = some e' → ¬ e'.constructs s :=
   fun _ h => desugar_constructs s allReadings [] h ⟨id, ⟨trivial, id, id⟩⟩
 
 end BDL.Experiments.Natural

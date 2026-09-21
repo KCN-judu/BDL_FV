@@ -8,7 +8,7 @@ import BDL.Core.Decl
 * `Δ : DeclEnv`    — consulted through `Δ.tyView` **only** (Phase-1 invariant);
 * `Θ : ConceptEnv` — consulted through the representation binding
                       `Θ s = some R` **only** (Phase 3);
-* `G : Grant`      — which semantic concepts this term may *construct*.
+* `G : Grant`      — which concepts this term may *construct*.
 
 Rules that touch the environments:
 
@@ -28,9 +28,9 @@ not a wider declaration-level one.
 
 **Construction boundary.**  Client code (wiring, references) is typed under
 `Grant.none`.  A declaration's realization is typed under
-`Grant.of` its own signature (`Satisfaction.lean`), so a semantic value of
+`Grant.of` its own signature (`Satisfaction.lean`), so a Sem value of
 `s` is constructed only inside a declaration that announces `sem s` — the
-signature is the authority for crossing semantic identities.
+signature is the authority for crossing concept identities.
 -/
 
 namespace BDL
@@ -54,7 +54,7 @@ inductive HasType (Θ : ConceptEnv) (Δ : DeclEnv) (G : Grant) : Ctx → Expr �
   | delay   {i e τ} : τ.Data → HasType Θ Δ G [] i τ → HasType Θ Δ G [] e τ →
       HasType Θ Δ G [] (.delay i e) τ
   /-- Phase 5.  Same shape as `delay`: transport preserves the type, hence
-      semantic identity and dimension.  Which domain `e` lives in is not a
+      concept identity and dimension.  Which domain `e` lives in is not a
       typing matter (`Clock.lean`). -/
   | sync    {c i e τ} : τ.Data → HasType Θ Δ G [] i τ → HasType Θ Δ G [] e τ →
       HasType Θ Δ G [] (.sync c i e) τ
@@ -345,7 +345,7 @@ theorem HasType.to_all {Γ : Ctx} {e : Expr} {τ : Ty} (h : HasType Θ Δ G Γ e
   h.mono_grant fun _ _ => trivial
 
 /-- Does `mk s` occur in the term? -/
-def Expr.constructs (s : SemanticId) : Expr → Prop
+def Expr.constructs (s : ConceptId) : Expr → Prop
   | .lam _ b => b.constructs s
   | .app f a => f.constructs s ∨ a.constructs s
   | .rep e => e.constructs s

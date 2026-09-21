@@ -397,10 +397,10 @@ theorem clocked_delay_iff_sync_own (Κ : ClockEnv) (c : ClockId) (i e : Expr) :
 
 /-! ## §8 Tag provenance across domains
 
-Synchronization changes timing, not semantic identity: `sync` moves a value
+Synchronization changes timing, not concept identity: `sync` moves a value
 between domains without touching its tag. -/
 
-theorem MEv.tag_provenance {S : Sched} {Δ : DeclEnv} {I : Input} (s : SemanticId)
+theorem MEv.tag_provenance {S : Sched} {Δ : DeclEnv} {I : Input} (s : ConceptId)
     (hΔ : ∀ d b, Δ.realizationOf d = some b → ¬ b.constructs s)
     (hI : ∀ d t, ¬ (I d t).Taints s) :
     ∀ {c : ClockId} {t : Nat} {ρ : List Value} {e : Expr} {v : Value}, MEv S Δ I c t ρ e v →
@@ -472,7 +472,7 @@ theorem MEv.tag_provenance {S : Sched} {Δ : DeclEnv} {I : Input} (s : SemanticI
 /-- **`transport_preserves_semantic_identity`** (semantic form): with clock
     crossings present, a concept no signature announces never appears. -/
 theorem sync_preserves_semantic_identity {S : Sched} {Θ : ConceptEnv} {Δ : DeclEnv} {I : Input}
-    {ev : Evidence} (g : GlobalWF ev Θ Δ) (s : SemanticId)
+    {ev : Evidence} (g : GlobalWF ev Θ Δ) (s : ConceptId)
     (hsig : ∀ d dh, Δ d = some dh → s ∉ dh.interface.expectedType.grant)
     (hI : ∀ d t, ¬ (I d t).Taints s)
     {c : ClockId} {t : Nat} {d : DeclId} {v : Value} (h : MEv S Δ I c t [] (.declRef d) v) : ¬ v.Taints s := by

@@ -41,7 +41,7 @@ structure Substitutable (ev : Evidence) (S : BehaviorSystem) (k : Nat) (I I' : I
   atk : S.instAt k = some I
   iface : IfaceRefines I.comp.iface I'.comp.iface
   sameκ : I'.κ = I.κ
-  sameSem : I'.comp.internalSem = I.comp.internalSem
+  sameSem : I'.comp.internalConcept = I.comp.internalConcept
   sameOut : I'.comp.internalOut = I.comp.internalOut
   sameΘ : I'.comp.design.Θ = I.comp.design.Θ
   realizes : I'.comp.Realizes ev
@@ -71,7 +71,7 @@ theorem Substitutable.unionΘ_eq {k : Nat} {I I' : Inst} (h : Substitutable ev S
   unfold unionΘ
   show (match decode S.W s.n with
     | some (k', n) => match (S.replace k I').instAt k' with
-      | some J => if J.comp.internalSem ⟨n⟩ then (J.comp.design.Θ ⟨n⟩).map (Ty.rename ((S.replace k I').ren k' J).s) else none
+      | some J => if J.comp.internalConcept ⟨n⟩ then (J.comp.design.Θ ⟨n⟩).map (Ty.rename ((S.replace k I').ren k' J).s) else none
       | none => none
     | none => S.Θg s) = _
   cases decode S.W s.n with

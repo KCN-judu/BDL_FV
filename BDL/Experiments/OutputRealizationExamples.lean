@@ -33,11 +33,11 @@ open BDL BDL.Reactive BDL.Clock BDL.Output BDL.Stdlib BDL.Provision BDL.OutputRe
 
 /-! ## The abstract design -/
 
-def Brightness : SemanticId := ⟨100⟩   -- percent, `q 0`
-def SwitchState : SemanticId := ⟨101⟩  -- `bool`
-def ServoAngle : SemanticId := ⟨102⟩   -- degrees, `q Angle`
-def MotorSpeed : SemanticId := ⟨103⟩   -- `(forward?, magnitude)`, `bool × q 0`
-def Other : SemanticId := ⟨104⟩        -- an unrelated concept, `q 0`
+def Brightness : ConceptId := ⟨100⟩   -- percent, `q 0`
+def SwitchState : ConceptId := ⟨101⟩  -- `bool`
+def ServoAngle : ConceptId := ⟨102⟩   -- degrees, `q Angle`
+def MotorSpeed : ConceptId := ⟨103⟩   -- `(forward?, magnitude)`, `bool × q 0`
+def Other : ConceptId := ⟨104⟩        -- an unrelated concept, `q 0`
 
 def Q0 : Ty := .q Dim.zero
 def QA : Ty := .q Dim.Angle

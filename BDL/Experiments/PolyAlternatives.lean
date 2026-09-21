@@ -29,9 +29,9 @@ open BDL BDL.Reactive BDL.Stdlib BDL.Poly
 
 /-! ## §1 Model B is what Model C elaborates to -/
 
-def Brightness : SemanticId := ⟨40⟩
-def Opacity : SemanticId := ⟨41⟩
-def Mode : SemanticId := ⟨42⟩
+def Brightness : ConceptId := ⟨40⟩
+def Opacity : ConceptId := ⟨41⟩
+def Mode : ConceptId := ⟨42⟩
 
 /-- Brightness and Opacity are ordered concepts; Mode is not.  All three are
     represented by `q 0`. -/

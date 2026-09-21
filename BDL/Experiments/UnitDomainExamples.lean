@@ -16,8 +16,8 @@ is refused by `infer`.
 namespace BDL.Experiments.UnitDomainEx
 open BDL BDL.Reactive BDL.Stdlib BDL.UnitDomain
 
-def Tilt : SemanticId := ⟨80⟩
-def RoomTemp : SemanticId := ⟨81⟩
+def Tilt : ConceptId := ⟨80⟩
+def RoomTemp : ConceptId := ⟨81⟩
 def Θ : ConceptEnv := fun s =>
   if s = Tilt then some (.q Dim.Angle) else if s = RoomTemp then some (.q Dim.Temp) else none
 def Q0 : Ty := .q Dim.zero

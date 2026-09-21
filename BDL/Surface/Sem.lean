@@ -9,7 +9,7 @@ value per tick.  Its `interface` is the block; its `realization`, when
 present, is the **mapping block** attached to it — the one producer of its
 value — and when absent the environment provides the value (a Source).  A
 **Concept** is the type template Sem blocks are created from
-(`SemanticId`, its representation in `Θ`); a **rule** — an arrow-typed
+(`ConceptId`, its representation in `Θ`); a **rule** — an arrow-typed
 declaration — is the template mapping blocks apply.  Several Sem blocks of
 one concept are ordinary (`sensorA, sensorB, roomTemp : Temperature`);
 each has its one producer by construction, and no invariant counts them.
@@ -35,19 +35,19 @@ namespace BDL.Sem
 open BDL BDL.Reactive BDL.Clock BDL.Provision BDL.OutputWindow
 
 /-- `s` is a Sem block of concept `C`: a declaration whose type is `sem C`. -/
-def IsSem (Δ : DeclEnv) (s : DeclId) (C : SemanticId) : Prop := Δ.tyView s = some (.sem C)
+def IsSem (Δ : DeclEnv) (s : DeclId) (C : ConceptId) : Prop := Δ.tyView s = some (.sem C)
 
-instance (Δ : DeclEnv) (s : DeclId) (C : SemanticId) : Decidable (IsSem Δ s C) :=
+instance (Δ : DeclEnv) (s : DeclId) (C : ConceptId) : Decidable (IsSem Δ s C) :=
   inferInstanceAs (Decidable (Δ.tyView s = some (.sem C)))
 
 /-- `r` is a rule: an arrow-typed declaration, the template of mapping blocks. -/
 def IsRule (Δ : DeclEnv) (r : DeclId) : Prop := ∃ a b, Δ.tyView r = some (.arr a b)
 
 /-- The Sem blocks of concept `C` among `ids` — its instances. -/
-def Instances (ids : List DeclId) (Δ : DeclEnv) (C : SemanticId) : List DeclId :=
+def Instances (ids : List DeclId) (Δ : DeclEnv) (C : ConceptId) : List DeclId :=
   ids.filter fun s => decide (Δ.tyView s = some (.sem C))
 
-theorem mem_instances {ids : List DeclId} {Δ : DeclEnv} {C : SemanticId} {s : DeclId} :
+theorem mem_instances {ids : List DeclId} {Δ : DeclEnv} {C : ConceptId} {s : DeclId} :
     s ∈ Instances ids Δ C ↔ s ∈ ids ∧ IsSem Δ s C := by
   simp [Instances, IsSem]
 
@@ -97,7 +97,7 @@ theorem reads_iff_dependsOn (Δ : DeclEnv) (s d : DeclId) : Reads Δ s d ↔ Dep
     `update_transparent`).  Several Sem blocks of one concept coexist
     without interaction until a mapping reads them. -/
 theorem new_sem_transparent {ev : Evidence} {Θ : ConceptEnv} {S : Sched} {Δ : DeclEnv} {I : Input}
-    (g : GlobalWF ev Θ Δ) {s : DeclId} (fresh : Δ s = none) {C : SemanticId} {m : Option Expr}
+    (g : GlobalWF ev Θ Δ) {s : DeclId} (fresh : Δ s = none) {C : ConceptId} {m : Option Expr}
     (hI : ∀ d t, Avoids s (I d t)) {c : ClockId} {t : Nat} {ex : Expr} {v : Value} (he : s ∉ ex.refs) :
     MEv S Δ I c t [] ex v ↔ MEv S (Δ.update ⟨s, ⟨.sem C, []⟩, m⟩) I c t [] ex v :=
   update_transparent (h := ⟨s, ⟨.sem C, []⟩, m⟩) (NoMention.of_globalWF g fresh) hI he (fun _ hw => by simp at hw)

@@ -43,7 +43,7 @@ Executed (all by `decide` on `evalF` / `mevalF`):
   active job is removed and the next starts, an unknown id is ignored.
 * E — **bounded queue**: with `cap = 2` a third job is refused and the
   refusal is state (`overflow`).
-* F — **semantic identity**: a retried submission with the same `JobId`
+* F — **concept identity**: a retried submission with the same `JobId`
   is one job under the dedup design and two under the plain one — the
   design decides, because the id is in the state.
 * G — **freshness and timeout**: no sample for three ticks is stale, for
@@ -103,7 +103,7 @@ def flattenF (τ : Ty) : Expr :=
 
 /-! ## Concepts -/
 
-def DesiredPos : SemanticId := ⟨200⟩
+def DesiredPos : ConceptId := ⟨200⟩
 def Θ : ConceptEnv := fun s => if s = DesiredPos then some Q0 else none
 
 /-! ## Q — the work queue -/
@@ -267,7 +267,7 @@ theorem exC_same_tick :
     runD ΔQ I_C_AB 3 = some 40 ∧ runD ΔQ I_C_BA 3 = some 40 ∧ runD ΔQ I_C_A 3 = some 10 := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> decide
 
-/-! ### D — cancellation by semantic identity -/
+/-! ### D — cancellation by concept identity -/
 
 /-- `A, B` at tick 1; cancel 2 (queued) at tick 2; cancel 1 (active) at
     tick 3; cancel 9 (unknown) at tick 4 with `C = (3, 5)` submitted. -/
@@ -295,7 +295,7 @@ theorem exE_bounded :
     runB ΔQ I_E overflow 2 = some false := by
   refine ⟨?_, ?_, ?_⟩ <;> decide
 
-/-! ### F — semantic identity: a retried submission -/
+/-! ### F — concept identity: a retried submission -/
 
 /-- The host submits job 1 and, hearing no answer, submits job 1 again. -/
 def I_F : Input := inQ (fun t => if t = 1 ∨ t = 2 then [(1, 10)] else []) (fun _ => none) (fun _ => false)

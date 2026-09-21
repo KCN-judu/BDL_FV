@@ -1,5 +1,5 @@
 import BDL.Surface.Sem
-import BDL.Experiments.ProducerUniqueExamples
+import BDL.Experiments.ProducerAlternatives
 
 /-!
 # Phase 21 — the Sem-block reading on the development's designs
@@ -22,8 +22,8 @@ import BDL.Experiments.ProducerUniqueExamples
 namespace BDL.Experiments.Sem
 open BDL BDL.Reactive BDL.Clock BDL.Stdlib BDL.Sem
 
-def Pressed : SemanticId := ⟨501⟩
-def Lit : SemanticId := ⟨502⟩
+def Pressed : ConceptId := ⟨501⟩
+def Lit : ConceptId := ⟨502⟩
 def Θpl : ConceptEnv := fun s => if s = Pressed ∨ s = Lit then some .bool else none
 def pressed : DeclId := ⟨50⟩
 def lit : DeclId := ⟨51⟩

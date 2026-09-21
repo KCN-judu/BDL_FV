@@ -642,7 +642,7 @@ theorem lower_comm {R₁ R₂ : Realization} {spec₁ spec₂ : OutputSpec}
     command — so the abstract design would have to be re-driven and its
     output meaning lost.  `rebinding_invalidates_design` (Phase 6) already
     calls this an edit. -/
-theorem retarget_breaks_driveWF {o : OutputId} {d : DeclId} {c : SemanticId} {raw : Ty} {clock : ClockId}
+theorem retarget_breaks_driveWF {o : OutputId} {d : DeclId} {c : ConceptId} {raw : Ty} {clock : ClockId}
     (hβ : β d = some o) (hty : Δ.tyView d = some (.sem c)) (hraw : raw.SemFree) :
     ¬ DriveWF (fun q => if q = o then some ⟨raw, clock⟩ else Ω q) Κ Δ β := by
   intro hw

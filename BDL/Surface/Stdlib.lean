@@ -25,7 +25,7 @@ Three things are proved once, for the whole library (§21 of the brief):
   reads no declaration and no earlier tick, so its value is the same in
   every design, at every tick, under every input (`Ev.pure`);
 * **no hidden privilege** (`lib_no_construction`, `lib_clocked`): a library
-  term constructs no semantic value and is clocked in every domain.
+  term constructs no Sem value and is clocked in every domain.
 
 And the collection operations are proved to compute the intended
 mathematical functions (`any_spec`, `all_spec`, `contains_spec`,
@@ -81,7 +81,7 @@ dimension `d`.  Nothing else: pairs, lists, options, booleans and
 undeclared concepts have no order — their only comparison is equality. -/
 inductive Ordered : Ty → Type where
   | q (d : Dim) : Ordered (.q d)
-  | sem (s : SemanticId) (d : Dim) : Ordered (.sem s)
+  | sem (s : ConceptId) (d : Dim) : Ordered (.sem s)
 
 /-- `a < b` at an ordered type: directly on quantities, through the
     representation on an ordered concept.  The concept's identity is never
@@ -246,7 +246,7 @@ theorem _root_.BDL.Expr.Comb.delayFree : ∀ {e : Expr}, e.Comb → e.DelayFree
   | .fold f z l, h => ⟨Expr.Comb.delayFree (e := f) h.1, Expr.Comb.delayFree (e := z) h.2.1, Expr.Comb.delayFree (e := l) h.2.2⟩
   | .declRef _, h | .delay _ _, h | .sync _ _ _, h | .mk _ _, h => h.elim
 
-/-- **`lib_no_construction`**: a combinator constructs no semantic value. -/
+/-- **`lib_no_construction`**: a combinator constructs no Sem value. -/
 theorem _root_.BDL.Expr.Comb.noConstruct : ∀ {e : Expr}, e.Comb → ∀ s, ¬ e.constructs s
   | .var _, _, _, h | .boolLit _, _, _, h | .natLit _, _, _, h | .prim _, _, _, h => h
   | .lam _ b, hc, s, h => Expr.Comb.noConstruct (e := b) hc s h

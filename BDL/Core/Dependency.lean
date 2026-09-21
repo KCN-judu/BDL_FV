@@ -198,7 +198,7 @@ inductive Unfolds (Δ : DeclEnv) : Expr → Expr → Prop where
   | refRealized {h : DeclId} {e e' : Expr} :
       Δ.realizationOf h = some e → Unfolds Δ e e' → Unfolds Δ (.declRef h) e'
   | rep {e e' : Expr} : Unfolds Δ e e' → Unfolds Δ (.rep e) (.rep e')
-  | mk {s : SemanticId} {e e' : Expr} : Unfolds Δ e e' → Unfolds Δ (.mk s e) (.mk s e')
+  | mk {s : ConceptId} {e e' : Expr} : Unfolds Δ e e' → Unfolds Δ (.mk s e) (.mk s e')
   | prim (p : Prim) : Unfolds Δ (.prim p) (.prim p)
   | delay {i i' e e' : Expr} : Unfolds Δ i i' → Unfolds Δ e e' → Unfolds Δ (.delay i e) (.delay i' e')
   | sync {c : ClockId} {i i' e e' : Expr} : Unfolds Δ i i' → Unfolds Δ e e' → Unfolds Δ (.sync c i e) (.sync c i' e')

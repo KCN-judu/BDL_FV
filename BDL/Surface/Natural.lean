@@ -189,7 +189,7 @@ theorem alpha (a b : Name) (e : NatExpr) (hb : b ∉ e.names) : desugar [] (e.re
 
 /-- The elaborated term constructs a concept only if an embedded core term
     does: binders introduce no `mk`. -/
-def NatExpr.CoresNoConstruct (s : SemanticId) : NatExpr → Prop
+def NatExpr.CoresNoConstruct (s : ConceptId) : NatExpr → Prop
   | .core e => ¬ e.constructs s
   | .local _ => True
   | .app f a => f.CoresNoConstruct s ∧ a.CoresNoConstruct s
@@ -197,7 +197,7 @@ def NatExpr.CoresNoConstruct (s : SemanticId) : NatExpr → Prop
   | .range _ x lo hi => x.CoresNoConstruct s ∧ lo.CoresNoConstruct s ∧ hi.CoresNoConstruct s
   | .coalesce _ x d => x.CoresNoConstruct s ∧ d.CoresNoConstruct s
 
-theorem desugar_constructs (s : SemanticId) : ∀ (e : NatExpr) (Γ : List Name) {e' : Expr},
+theorem desugar_constructs (s : ConceptId) : ∀ (e : NatExpr) (Γ : List Name) {e' : Expr},
     desugar Γ e = some e' → e.CoresNoConstruct s → ¬ e'.constructs s
   | .core _, _, _, h, hc => by cases h; exact hc
   | .local x, Γ, _, h, _ => by

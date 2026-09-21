@@ -18,7 +18,7 @@ Results
 * `fundamental`, `reactive_total`— causal + globally well formed + well-typed
                                     inputs ⇒ a value at every tick.
 * `Ev.tag_provenance`, `temporal_state_preserves_semantic_identity`
-                                 — state never manufactures a `SemanticId`.
+                                 — state never manufactures a `ConceptId`.
 * `unfolds_preserves_eval`       — on wiring designs, stepping the unfolded
                                     program equals stepping the references.
 * `evalF` / `evalF_sound`        — an executable interpreter for examples.
@@ -35,7 +35,8 @@ open BDL
 inductive Value where
   | bool (b : Bool)
   | nat (n : Nat)                 -- also every `q d`
-  | sem (s : SemanticId) (v : Value)
+  /-- A Sem value: an instance of concept `s`, a tagged representation value. -/
+  | sem (s : ConceptId) (v : Value)
   | none
   | some (v : Value)
   | clo (ρ : List Value) (body : Expr)
@@ -49,7 +50,7 @@ inductive Value where
 /-! ### Structural equality on data values (Phase 9b)
 
 Every data value admits a decidable structural equality: booleans,
-numbers, `none`/`some`, pairs and lists componentwise, semantic values by
+numbers, `none`/`some`, pairs and lists componentwise, Sem values by
 concept and representation (typing already forbids comparing two
 concepts).  Closures compare `false`; typing never asks.  There is *no*
 structural order on values (Phase 9c): ordering is a quantity comparison
@@ -488,7 +489,7 @@ def RedSF (A : App) : Ty → Value → Prop
   | .arr a b, v => ∀ w, RedSF A a w → ∃ v', A v w v' ∧ RedSF A b v'
   | .sem _, _ => False
 
-/-- Logical relation.  A semantic value is a tagged representation value. -/
+/-- Logical relation.  A Sem value is a tagged representation value. -/
 def Red (Θ : ConceptEnv) (A : App) : Ty → Value → Prop
   | .bool, v => ∃ b, v = .bool b
   | .nat, v => ∃ n, v = .nat n
@@ -898,9 +899,9 @@ A value is *tainted* by `s` if a `sem s` tag occurs inside it — including
 inside closure environments, and counting a closure body that *could*
 construct `s` when applied. -/
 
-inductive Value.Taints (s : SemanticId) : Value → Prop where
+inductive Value.Taints (s : ConceptId) : Value → Prop where
   | semHere (v : Value) : Value.Taints s (.sem s v)
-  | semInner {s' : SemanticId} {v : Value} : Value.Taints s v → Value.Taints s (.sem s' v)
+  | semInner {s' : ConceptId} {v : Value} : Value.Taints s v → Value.Taints s (.sem s' v)
   | someInner {v : Value} : Value.Taints s v → Value.Taints s (.some v)
   | cloEnv {ρ : List Value} {body : Expr} {v : Value} : v ∈ ρ → Value.Taints s v → Value.Taints s (.clo ρ body)
   | cloBody {ρ : List Value} {body : Expr} : body.constructs s → Value.Taints s (.clo ρ body)
@@ -911,7 +912,7 @@ inductive Value.Taints (s : SemanticId) : Value → Prop where
 
 /-- A saturated primitive either returns one of its arguments or a fresh
     untagged value: it never introduces a tag. -/
-theorem Prim.compute_taints {s : SemanticId} (p : Prim) (args : List Value)
+theorem Prim.compute_taints {s : ConceptId} (p : Prim) (args : List Value)
     (h : (p.compute args).Taints s) : ∃ v ∈ args, v.Taints s := by
   unfold Prim.compute at h
   split at h <;> first
@@ -938,7 +939,7 @@ theorem Prim.compute_taints {s : SemanticId} (p : Prim) (args : List Value)
     | (cases h with | listElem hm h' => (refine ⟨_, ?_, Value.Taints.listElem (List.mem_of_mem_drop hm) h'⟩; simp; done))
     | (cases h with | listElem hm h' => (simp at hm; subst hm; refine ⟨_, ?_, Value.Taints.someInner h'⟩; simp; done))
 
-theorem applyPrim_taints {s : SemanticId} (p : Prim) (args : List Value)
+theorem applyPrim_taints {s : ConceptId} (p : Prim) (args : List Value)
     (h : (applyPrim p args).Taints s) : ∃ v ∈ args, v.Taints s := by
   unfold applyPrim at h
   split at h
@@ -950,7 +951,7 @@ theorem applyPrim_taints {s : SemanticId} (p : Prim) (args : List Value)
     is clean, then the result is clean.  In particular `delay` — the only
     stateful construct — never manufactures a tag: state preserves semantic
     values, it cannot re-label them. -/
-theorem Ev.tag_provenance {Δ : DeclEnv} {I : Input} (s : SemanticId)
+theorem Ev.tag_provenance {Δ : DeclEnv} {I : Input} (s : ConceptId)
     (hΔ : ∀ d b, Δ.realizationOf d = some b → ¬ b.constructs s)
     (hI : ∀ d t, ¬ (I d t).Taints s) :
     ∀ {t : Nat} {ρ : List Value} {e : Expr} {v : Value}, Ev Δ I t ρ e v →
@@ -1026,7 +1027,7 @@ theorem Ev.tag_provenance {Δ : DeclEnv} {I : Input} (s : SemanticId)
     `sem s` and no input carries `s`, then no value at any tick carries `s`
     — with delays, closures and primitives all present. -/
 theorem temporal_state_preserves_semantic_identity {Θ : ConceptEnv} {Δ : DeclEnv} {I : Input}
-    {ev : Evidence} (g : GlobalWF ev Θ Δ) (s : SemanticId)
+    {ev : Evidence} (g : GlobalWF ev Θ Δ) (s : ConceptId)
     (hsig : ∀ d dh, Δ d = some dh → s ∉ dh.interface.expectedType.grant)
     (hI : ∀ d t, ¬ (I d t).Taints s)
     {t : Nat} {d : DeclId} {v : Value} (h : Ev Δ I t [] (.declRef d) v) : ¬ v.Taints s := by
@@ -1097,7 +1098,7 @@ def DeclEnvWiring (Δ : DeclEnv) : Prop := ∀ d b, Δ.realizationOf d = some b 
 
 inductive Value.HasClo : Value → Prop where
   | clo (ρ : List Value) (body : Expr) : Value.HasClo (.clo ρ body)
-  | semInner {s : SemanticId} {v : Value} : Value.HasClo v → Value.HasClo (.sem s v)
+  | semInner {s : ConceptId} {v : Value} : Value.HasClo v → Value.HasClo (.sem s v)
   | someInner {v : Value} : Value.HasClo v → Value.HasClo (.some v)
   | primArg {p : Prim} {args : List Value} {v : Value} : v ∈ args → Value.HasClo v → Value.HasClo (.prim p args)
   | listElem {vs : List Value} {v : Value} : v ∈ vs → Value.HasClo v → Value.HasClo (.list vs)
@@ -1301,7 +1302,7 @@ instance : ∀ e : Expr, Decidable e.Pure
 inductive Value.Pure : Value → Prop where
   | bool (b : Bool) : Value.Pure (.bool b)
   | nat (n : Nat) : Value.Pure (.nat n)
-  | sem {s : SemanticId} {v : Value} : Value.Pure v → Value.Pure (.sem s v)
+  | sem {s : ConceptId} {v : Value} : Value.Pure v → Value.Pure (.sem s v)
   | none : Value.Pure .none
   | some {v : Value} : Value.Pure v → Value.Pure (.some v)
   | clo {ρ : List Value} {body : Expr} : body.Pure → (∀ w ∈ ρ, Value.Pure w) → Value.Pure (.clo ρ body)

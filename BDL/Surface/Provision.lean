@@ -106,7 +106,7 @@ is the instance `P = Expr.Pure`; the observation boundary below uses
 inductive Value.All (P : Expr → Prop) : Value → Prop where
   | bool (b : Bool) : Value.All P (.bool b)
   | nat (n : Nat) : Value.All P (.nat n)
-  | sem {s : SemanticId} {v : Value} : Value.All P v → Value.All P (.sem s v)
+  | sem {s : ConceptId} {v : Value} : Value.All P v → Value.All P (.sem s v)
   | none : Value.All P .none
   | some {v : Value} : Value.All P v → Value.All P (.some v)
   | clo {ρ : List Value} {body : Expr} : P body → (∀ w ∈ ρ, Value.All P w) → Value.All P (.clo ρ body)
@@ -398,7 +398,7 @@ structure DeviceProfile where
   channels : List (Channel raw)
 
 /-- **`channel_constructs_nothing`** (the grant boundary, one half): a
-    well-formed channel term constructs no semantic concept whatsoever —
+    well-formed channel term constructs no concept whatsoever —
     `Grant.none` admits no `mk`. -/
 theorem channel_constructs_nothing {Θ : ConceptEnv} {raw : Ty} {ch : Channel raw} (h : ch.WF Θ) :
     ∀ c, ¬ ch.tr.constructs c :=
@@ -407,7 +407,7 @@ theorem channel_constructs_nothing {Θ : ConceptEnv} {raw : Ty} {ch : Channel ra
 /-- **`grant_of_sem`** (the other half): a declaration whose expected type
     is `sem c` is realized under the grant `{c}` and nothing else — the
     grant a provisioned Source uses for its `mk c` is its own signature's. -/
-theorem grant_of_sem (c s : SemanticId) : Grant.of (.sem c) s ↔ s = c := by
+theorem grant_of_sem (c s : ConceptId) : Grant.of (.sem c) s ↔ s = c := by
   simp [Grant.of, Ty.grant]
 
 /-- Where the grant is used: a realized declaration's body is checked under

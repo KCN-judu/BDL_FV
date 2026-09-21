@@ -232,7 +232,7 @@ def sensor : BehaviorComponent where
              params := [], clockParams := [cP] }
   design := sensorDesign
   width := 4
-  internalSem := fun _ => false
+  internalConcept := fun _ => false
   internalOut := fun _ => false
 
 /-- The consumer: `logIn` required; `seen`, `cursor`, `window` as elaborated. -/
@@ -251,7 +251,7 @@ def consumer : BehaviorComponent where
              params := [], clockParams := [cP] }
   design := consumerDesign
   width := 4
-  internalSem := fun _ => false
+  internalConcept := fun _ => false
   internalOut := fun _ => false
 
 /-- Sensor in `fast`, consumer in `slow`; the log is transported by a `sync`

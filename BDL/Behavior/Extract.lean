@@ -75,7 +75,7 @@ def template (D : Design) (keep port : DeclId → Bool) (required provided : Lis
         clockParams := clocks }
     design := restrict D keep port
     width := W
-    internalSem := fun _ => false
+    internalConcept := fun _ => false
     internalOut := fun _ => false }
 
 /-! ## The extraction input and its two templates -/

@@ -1,7 +1,7 @@
 import BDL.Core.Env
 
 /-!
-# Producer — one producer per concept (Phase 20; an optional judgment since Phase 21)
+# ProducerUnique — one Sem block per concept (Phase 20; an experiment since Phase 22)
 
 A concept `sem C` is a nominal type (Phase 2).  Phase 20 adds the global
 invariant that in a design each concept has **at most one producer** — one
@@ -12,10 +12,13 @@ memory (`delay`) or a selection of `C` values originates nothing: it relays;
 the explicit initial value of a transport or a memory is the relay's
 default, not an origin.
 
-Phase 21 (FVD-0163) makes this an *optional* design judgment — "one Sem
-block per concept" — rather than a kernel invariant: a Sem block has one
-producer by write-once realization, and several Sem blocks of one concept
-are legal.  The theorems stand.  As stated in Phase 20 the invariant sits
+Phase 21 (FVD-0163) made this an *optional* judgment and Phase 22
+(FVD-0164) an experiment: it was the invariant of a superseded reading in
+which a concept held a value.  Under the ladder representation → concept
+(type) → Sem block (instance) → value, a Sem block has one producer by
+write-once realization and several Sem blocks of one concept are ordinary;
+nothing consumes this invariant.  The theorems stand as the record of what
+"one Sem block per concept" would cost.  As stated in Phase 20 it sat
 beside `SingleDriver` (Phase 6): that one constrains
 declarations per output, this one origins per concept; neither implies the
 other (Phase 19 `one_origin_two_outputs`).  Typing, evaluation and the
@@ -36,7 +39,7 @@ concept elaborates to `declRef` of its producer (`Surface/ConceptRef`).
 namespace BDL
 
 /-- The concepts a term constructs. -/
-def Expr.mkSet : Expr → List SemanticId
+def Expr.mkSet : Expr → List ConceptId
   | .lam _ b => b.mkSet
   | .app f a => f.mkSet ++ a.mkSet
   | .rep e => e.mkSet
@@ -46,7 +49,7 @@ def Expr.mkSet : Expr → List SemanticId
   | .fold f z l => f.mkSet ++ z.mkSet ++ l.mkSet
   | _ => []
 
-theorem Expr.mem_mkSet_iff (s : SemanticId) : ∀ e : Expr, s ∈ e.mkSet ↔ e.constructs s
+theorem Expr.mem_mkSet_iff (s : ConceptId) : ∀ e : Expr, s ∈ e.mkSet ↔ e.constructs s
   | .var _ | .boolLit _ | .natLit _ | .declRef _ | .prim _ => by simp [Expr.mkSet, Expr.constructs]
   | .lam _ b => by simp [Expr.mkSet, Expr.constructs, Expr.mem_mkSet_iff s b]
   | .app f a => by simp [Expr.mkSet, Expr.constructs, Expr.mem_mkSet_iff s f, Expr.mem_mkSet_iff s a]
@@ -57,7 +60,7 @@ theorem Expr.mem_mkSet_iff (s : SemanticId) : ∀ e : Expr, s ∈ e.mkSet ↔ e.
   | .fold f z l => by
     simp [Expr.mkSet, Expr.constructs, Expr.mem_mkSet_iff s f, Expr.mem_mkSet_iff s z, Expr.mem_mkSet_iff s l]
 
-instance (s : SemanticId) (e : Expr) : Decidable (e.constructs s) :=
+instance (s : ConceptId) (e : Expr) : Decidable (e.constructs s) :=
   decidable_of_iff _ (Expr.mem_mkSet_iff s e)
 
 /-- The concepts a term *originates*: what it constructs outside the
@@ -65,7 +68,7 @@ instance (s : SemanticId) (e : Expr) : Decidable (e.constructs s) :=
     the relay's default — the value stood in before the first sample — and
     every transported concept value needs one (FVD-0038), so it is not a
     producer of the concept. -/
-def Expr.originSet : Expr → List SemanticId
+def Expr.originSet : Expr → List ConceptId
   | .lam _ b => b.originSet
   | .app f a => f.originSet ++ a.originSet
   | .rep e => e.originSet
@@ -75,7 +78,7 @@ def Expr.originSet : Expr → List SemanticId
   | .fold f z l => f.originSet ++ z.originSet ++ l.originSet
   | _ => []
 
-theorem Expr.constructs_of_mem_originSet (s : SemanticId) : ∀ e : Expr, s ∈ e.originSet → e.constructs s
+theorem Expr.constructs_of_mem_originSet (s : ConceptId) : ∀ e : Expr, s ∈ e.originSet → e.constructs s
   | .var _ | .boolLit _ | .natLit _ | .declRef _ | .prim _ => by simp [Expr.originSet]
   | .lam _ b => fun h => Expr.constructs_of_mem_originSet s b h
   | .app f a => fun h => by
@@ -97,25 +100,25 @@ theorem Expr.constructs_of_mem_originSet (s : SemanticId) : ∀ e : Expr, s ∈ 
 
 /-- The concepts a declaration originates: what its body originates, or —
     unresolved — what its signature announces in result position. -/
-def DesignDecl.origins (h : DesignDecl) : List SemanticId :=
+def DesignDecl.origins (h : DesignDecl) : List ConceptId :=
   match h.realization with
   | some b => b.originSet
   | none => h.interface.expectedType.grant
 
 /-- `d` originates values of `C` in `Δ`. -/
-def Produces (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : Prop :=
+def Produces (Δ : DeclEnv) (d : DeclId) (C : ConceptId) : Prop :=
   ∃ h, Δ d = some h ∧ C ∈ h.origins
 
 /-- `Produces` as a Boolean. -/
-def producesB (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : Bool :=
+def producesB (Δ : DeclEnv) (d : DeclId) (C : ConceptId) : Bool :=
   match Δ d with
   | some h => h.origins.contains C
   | none => false
 
-theorem producesB_iff (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : producesB Δ d C = true ↔ Produces Δ d C := by
+theorem producesB_iff (Δ : DeclEnv) (d : DeclId) (C : ConceptId) : producesB Δ d C = true ↔ Produces Δ d C := by
   cases hd : Δ d <;> simp [producesB, Produces, hd]
 
-instance (Δ : DeclEnv) (d : DeclId) (C : SemanticId) : Decidable (Produces Δ d C) :=
+instance (Δ : DeclEnv) (d : DeclId) (C : ConceptId) : Decidable (Produces Δ d C) :=
   decidable_of_iff _ (producesB_iff Δ d C)
 
 /-- **One producer per concept** — global, over origins only.  Relays are
@@ -124,17 +127,17 @@ def ProducerUnique (Δ : DeclEnv) : Prop :=
   ∀ C d₁ d₂, Produces Δ d₁ C → Produces Δ d₂ C → d₁ = d₂
 
 /-- The producer of `C` among the identities `ids`. -/
-def producerOf (ids : List DeclId) (Δ : DeclEnv) (C : SemanticId) : Option DeclId :=
+def producerOf (ids : List DeclId) (Δ : DeclEnv) (C : ConceptId) : Option DeclId :=
   ids.find? fun d => decide (Produces Δ d C)
 
-theorem producerOf_produces {ids : List DeclId} {Δ : DeclEnv} {C : SemanticId} {d : DeclId}
+theorem producerOf_produces {ids : List DeclId} {Δ : DeclEnv} {C : ConceptId} {d : DeclId}
     (h : producerOf ids Δ C = some d) : Produces Δ d C := by
   have := List.find?_some h
   simpa using this
 
 /-- Under the invariant the producer is *the* producer: whichever origin
     is found is the one there is. -/
-theorem producerOf_eq {ids : List DeclId} {Δ : DeclEnv} {C : SemanticId} {d : DeclId}
+theorem producerOf_eq {ids : List DeclId} {Δ : DeclEnv} {C : ConceptId} {d : DeclId}
     (hu : ProducerUnique Δ) (hp : Produces Δ d C) (hd : d ∈ ids) : producerOf ids Δ C = some d := by
   unfold producerOf
   cases hf : ids.find? (fun d => decide (Produces Δ d C)) with
@@ -146,7 +149,7 @@ theorem producerOf_eq {ids : List DeclId} {Δ : DeclEnv} {C : SemanticId} {d : D
     rw [hu C d' d hp' hp]
 
 /-- The invariant reduces the many-valued relation to a function. -/
-theorem produces_iff_producerOf {ids : List DeclId} {Δ : DeclEnv} {C : SemanticId} {d : DeclId}
+theorem produces_iff_producerOf {ids : List DeclId} {Δ : DeclEnv} {C : ConceptId} {d : DeclId}
     (hu : ProducerUnique Δ) (hd : d ∈ ids) : Produces Δ d C ↔ producerOf ids Δ C = some d :=
   ⟨fun hp => producerOf_eq hu hp hd, producerOf_produces⟩
 
@@ -156,7 +159,7 @@ theorem produces_iff_producerOf {ids : List DeclId} {Δ : DeclEnv} {C : Semantic
     that became realized announced every concept its body may construct
     (`constructs_granted`), and a realized declaration keeps its body. -/
 theorem Produces.of_refine {Θ : ConceptEnv} {ev : Evidence} {Δ₁ Δ₂ : DeclEnv} (g₂ : GlobalWF ev Θ Δ₂)
-    (er : EnvRefines Δ₁ Δ₂) (dom : ∀ d, Δ₂ d ≠ none → Δ₁ d ≠ none) {d : DeclId} {C : SemanticId}
+    (er : EnvRefines Δ₁ Δ₂) (dom : ∀ d, Δ₂ d ≠ none → Δ₁ d ≠ none) {d : DeclId} {C : ConceptId}
     (h : Produces Δ₂ d C) : Produces Δ₁ d C := by
   obtain ⟨h₂, hd₂, hp⟩ := h
   cases hd₁ : Δ₁ d with
@@ -188,11 +191,11 @@ theorem ProducerUnique.refine {Θ : ConceptEnv} {ev : Evidence} {Δ₁ Δ₂ : D
 /-- The producer does not move under refinement. -/
 theorem producerOf_refine {Θ : ConceptEnv} {ev : Evidence} {Δ₁ Δ₂ : DeclEnv} (g₂ : GlobalWF ev Θ Δ₂)
     (er : EnvRefines Δ₁ Δ₂) (dom : ∀ d, Δ₂ d ≠ none → Δ₁ d ≠ none) (hu : ProducerUnique Δ₁)
-    {ids : List DeclId} {C : SemanticId} {d : DeclId} (h : producerOf ids Δ₂ C = some d) :
+    {ids : List DeclId} {C : ConceptId} {d : DeclId} (h : producerOf ids Δ₂ C = some d) :
     producerOf ids Δ₁ C = some d :=
   producerOf_eq hu (Produces.of_refine g₂ er dom (producerOf_produces h)) (List.mem_of_find?_eq_some h)
 
-theorem Produces.of_update {Δ : DeclEnv} {h' : DesignDecl} {d : DeclId} {C : SemanticId}
+theorem Produces.of_update {Δ : DeclEnv} {h' : DesignDecl} {d : DeclId} {C : ConceptId}
     (hp : Produces (Δ.update h') d C) : (d = h'.id ∧ C ∈ h'.origins) ∨ (d ≠ h'.id ∧ Produces Δ d C) := by
   obtain ⟨h, hd, hc⟩ := hp
   by_cases e : d = h'.id

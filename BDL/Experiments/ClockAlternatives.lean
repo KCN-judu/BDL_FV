@@ -24,7 +24,7 @@ The general theory (schedules, `Clocked`, `MEv`, determinism, embedding,
 rejected alternatives:
 
 * §6 counterexamples A, B, E, F and the direct-wire/transport results;
-* §7 semantic identity and dimension across domains (typing);
+* §7 concept identity and dimension across domains (typing);
 * §10 event transport: `opt` under `sync` loses events; the window example;
   policies compared;
 * §11 clocks in types (toy).
@@ -72,7 +72,7 @@ theorem both_well_typed : GlobalWF trivEv ConceptEnv.empty Δgood ∧ GlobalWF t
   ⟨GlobalWF.ofList (by decide), GlobalWF.ofList (by decide)⟩
 
 /-- **`cross_domain_direct_wire_rejected`** — the temporal analogue of
-    Phase 2's "same representation ≠ same semantic identity": same value type
+    Phase 2's "same representation ≠ same concept identity": same value type
     does not imply connectability across domains. -/
 theorem cross_domain_direct_wire_rejected : ¬ Clocked Κ₁ (Κ₁ wireS) (.declRef xF) := by decide
 
@@ -199,7 +199,7 @@ theorem scheduling_order_observable :
       simpa [lit0, applyPrim, Prim.arity, Prim.compute] using this
     exact .refRealized hA (.syncLaterNone (c' := other) (by decide) (by decide) hlit)
 
-/-! ## §7 Semantic identity and dimension across domains (typing) -/
+/-! ## §7 Concept identity and dimension across domains (typing) -/
 
 def tiltFast : DeclId := ⟨120⟩
 def tiltSlow : DeclId := ⟨121⟩

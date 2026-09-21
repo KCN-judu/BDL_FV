@@ -293,7 +293,7 @@ def motion : BDL.BehaviorComponent where
       clockParams := [c0] }
   design := motionDesign
   width := 40
-  internalSem := fun _ => false
+  internalConcept := fun _ => false
   internalOut := fun _ => false
 
 /-- An axis's inputs: four open ports (the system's Sources). -/
@@ -316,7 +316,7 @@ def feed : BDL.BehaviorComponent where
       clockParams := [c0] }
   design := feedDesign
   width := 40
-  internalSem := fun _ => false
+  internalConcept := fun _ => false
   internalOut := fun _ => false
 
 /-- Two axes: instances 0 and 1 feed, instances 2 and 3 control. -/

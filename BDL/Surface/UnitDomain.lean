@@ -103,7 +103,7 @@ instance : ∀ τ : Ty, Decidable (Ty.IsArr τ)
   | .arr _ _ => inferInstanceAs (Decidable True)
   | .bool | .nat | .sem _ | .q _ | .opt _ | .list _ | .prod _ _ => inferInstanceAs (Decidable False)
 
-theorem Ty.sem_not_arr (s : SemanticId) : ¬ Ty.IsArr (.sem s) := fun h => h
+theorem Ty.sem_not_arr (s : ConceptId) : ¬ Ty.IsArr (.sem s) := fun h => h
 
 /-- A signature over concepts, as production's are. -/
 def Sig.Concept (s : Sig) : Prop :=

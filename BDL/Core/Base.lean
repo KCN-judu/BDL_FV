@@ -9,11 +9,16 @@ against a `DeclEnv` (see `Decl.lean`) at typing time.
 
 namespace BDL
 
-/-- Stable identity of a semantic concept (Phase 2).  Distinct from `DeclId`:
-    a concept is a *type*, a declaration is a *value*; conflating them admits
-    category errors (see `Experiments.SemanticTypeAlternatives`, Model C).
-    Display names are surface data and are not part of identity. -/
-structure SemanticId where
+/-- Stable identity of a **concept** (Phase 2) — the *type* level of the
+    ladder representation → concept → Sem block → value (FVD-0164):
+    a concept is a type, a template; a declaration of type `sem C` is a
+    **Sem block**, one instance of it holding one value per tick.  Distinct
+    from `DeclId`: conflating a concept with a declaration admits category
+    errors (see `Experiments.SemanticTypeAlternatives`, Model C).  Display
+    names are surface data and are not part of identity.  (Before Phase 22
+    this was `SemanticId`; theorem names keep their historical spelling,
+    "concept identity" reading "concept identity".) -/
+structure ConceptId where
   n : Nat
   deriving DecidableEq, Repr
 
@@ -69,12 +74,13 @@ inductive Ty where
   | bool
   | nat
   | arr (dom cod : Ty)
-  /-- Phase 2: a nominal semantic type.  Two distinct ids are distinct types
-      regardless of any eventual representation.  Values of semantic type
-      are observed with `Expr.rep` and constructed with `Expr.mk` — the latter
-      only inside the realization of a declaration whose signature announces
-      the type (`Ty.grant`). -/
-  | sem (s : SemanticId)
+  /-- Phase 2: the nominal type of the **Sem values** of concept `s` — read
+      `sem s` as "a Sem of `s`".  Two distinct concepts are distinct types
+      regardless of any eventual representation.  Sem values are observed
+      with `Expr.rep` and constructed with `Expr.mk` — the latter only inside
+      the realization of a declaration whose signature announces the type
+      (`Ty.grant`). -/
+  | sem (s : ConceptId)
   /-- Phase 3: a physical quantity of dimension `d`.  The representation type
       of physical concepts.  `nat` remains for counts. -/
   | q (d : Dim)
@@ -91,7 +97,7 @@ inductive Ty where
   | prod (a b : Ty)
   deriving DecidableEq, Repr
 
-/-- A type mentioning no semantic concept. -/
+/-- A type mentioning no concept. -/
 def Ty.SemFree : Ty → Prop
   | .sem _ => False
   | .arr a b => a.SemFree ∧ b.SemFree
@@ -237,8 +243,8 @@ inductive Expr where
   | lam (dom : Ty) (body : Expr)  -- binder annotated with its domain
   | app (f a : Expr)
   | declRef (d : DeclId)          -- Phase 1: reference to a declaration by id
-  | rep (e : Expr)                -- Phase 3: observe a semantic value's representation
-  | mk (s : SemanticId) (e : Expr) -- Phase 3: construct a semantic value (granted only)
+  | rep (e : Expr)                -- Phase 3: observe a Sem value's representation
+  | mk (s : ConceptId) (e : Expr) -- Phase 3: construct a Sem value (granted only)
   | prim (p : Prim)               -- Phase 3: registered operator
   | delay (init e : Expr)         -- Phase 4: the value of `e` one tick ago; `init` at tick 0
   /-- Phase 5: cross-domain transport.  The value of `e` (evaluated in domain

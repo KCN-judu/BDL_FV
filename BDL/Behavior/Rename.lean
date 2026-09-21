@@ -22,7 +22,7 @@ open BDL.Clock (ClockEnv clockedB Clocked)
 /-- A renaming of the four sorts of nominal identity. -/
 structure Ren where
   d : DeclId → DeclId
-  s : SemanticId → SemanticId
+  s : ConceptId → ConceptId
   c : ClockId → ClockId
   o : OutputId → OutputId
 
@@ -30,7 +30,7 @@ def Ren.id : Ren := ⟨fun d => d, fun s => s, fun c => c, fun o => o⟩
 
 /-! ## Types and primitives -/
 
-def Ty.rename (σ : SemanticId → SemanticId) : Ty → Ty
+def Ty.rename (σ : ConceptId → ConceptId) : Ty → Ty
   | .bool => .bool
   | .nat => .nat
   | .arr a b => .arr (a.rename σ) (b.rename σ)
@@ -40,14 +40,14 @@ def Ty.rename (σ : SemanticId → SemanticId) : Ty → Ty
   | .list τ => .list (τ.rename σ)
   | .prod a b => .prod (a.rename σ) (b.rename σ)
 
-theorem Ty.rename_data (σ : SemanticId → SemanticId) : ∀ τ : Ty, τ.Data → (τ.rename σ).Data
+theorem Ty.rename_data (σ : ConceptId → ConceptId) : ∀ τ : Ty, τ.Data → (τ.rename σ).Data
   | .bool, h | .nat, h | .q _, h | .sem _, h => h
   | .opt τ, h => Ty.rename_data σ τ h
   | .list τ, h => Ty.rename_data σ τ h
   | .prod a b, h => ⟨Ty.rename_data σ a h.1, Ty.rename_data σ b h.2⟩
   | .arr _ _, h => h.elim
 
-theorem Ty.rename_data_iff (σ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.rename σ).Data ↔ τ.Data
+theorem Ty.rename_data_iff (σ : ConceptId → ConceptId) : ∀ τ : Ty, (τ.rename σ).Data ↔ τ.Data
   | .bool | .nat | .q _ | .sem _ => Iff.rfl
   | .opt τ => Ty.rename_data_iff σ τ
   | .list τ => Ty.rename_data_iff σ τ
@@ -56,7 +56,7 @@ theorem Ty.rename_data_iff (σ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.r
     exact and_congr (Ty.rename_data_iff σ a) (Ty.rename_data_iff σ b)
   | .arr _ _ => Iff.rfl
 
-theorem Ty.rename_semFree (σ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.rename σ).SemFree ↔ τ.SemFree
+theorem Ty.rename_semFree (σ : ConceptId → ConceptId) : ∀ τ : Ty, (τ.rename σ).SemFree ↔ τ.SemFree
   | .bool | .nat | .q _ => Iff.rfl
   | .sem _ => Iff.rfl
   | .opt τ => Ty.rename_semFree σ τ
@@ -69,7 +69,7 @@ theorem Ty.rename_semFree (σ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.re
     exact and_congr (Ty.rename_semFree σ a) (Ty.rename_semFree σ b)
 
 /-- A sem-free type is fixed by every renaming. -/
-theorem Ty.rename_of_semFree (σ : SemanticId → SemanticId) : ∀ τ : Ty, τ.SemFree → τ.rename σ = τ
+theorem Ty.rename_of_semFree (σ : ConceptId → ConceptId) : ∀ τ : Ty, τ.SemFree → τ.rename σ = τ
   | .bool, _ | .nat, _ | .q _, _ => rfl
   | .sem _, h => h.elim
   | .opt τ, h => by simp [Ty.rename, Ty.rename_of_semFree σ τ h]
@@ -77,12 +77,12 @@ theorem Ty.rename_of_semFree (σ : SemanticId → SemanticId) : ∀ τ : Ty, τ.
   | .arr a b, h => by simp [Ty.rename, Ty.rename_of_semFree σ a h.1, Ty.rename_of_semFree σ b h.2]
   | .prod a b, h => by simp [Ty.rename, Ty.rename_of_semFree σ a h.1, Ty.rename_of_semFree σ b h.2]
 
-theorem Ty.rename_grant (σ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.rename σ).grant = τ.grant.map σ
+theorem Ty.rename_grant (σ : ConceptId → ConceptId) : ∀ τ : Ty, (τ.rename σ).grant = τ.grant.map σ
   | .bool | .nat | .q _ | .opt _ | .list _ | .prod _ _ => rfl
   | .sem _ => rfl
   | .arr _ b => Ty.rename_grant σ b
 
-theorem Ty.rename_comp (σ₁ σ₂ : SemanticId → SemanticId) : ∀ τ : Ty, (τ.rename σ₁).rename σ₂ = τ.rename (σ₂ ∘ σ₁)
+theorem Ty.rename_comp (σ₁ σ₂ : ConceptId → ConceptId) : ∀ τ : Ty, (τ.rename σ₁).rename σ₂ = τ.rename (σ₂ ∘ σ₁)
   | .bool | .nat | .q _ | .sem _ => rfl
   | .opt τ => by simp [Ty.rename, Ty.rename_comp σ₁ σ₂ τ]
   | .list τ => by simp [Ty.rename, Ty.rename_comp σ₁ σ₂ τ]
@@ -96,7 +96,7 @@ theorem Ty.rename_id : ∀ τ : Ty, τ.rename (fun s => s) = τ
   | .arr a b => by simp [Ty.rename, Ty.rename_id a, Ty.rename_id b]
   | .prod a b => by simp [Ty.rename, Ty.rename_id a, Ty.rename_id b]
 
-def Prim.rename (σ : SemanticId → SemanticId) : Prim → Prim
+def Prim.rename (σ : ConceptId → ConceptId) : Prim → Prim
   | .lit d n => .lit d n
   | .add d => .add d
   | .sub d => .sub d
@@ -126,7 +126,7 @@ def Prim.rename (σ : SemanticId → SemanticId) : Prim → Prim
 
 /-- Dimension algebra is untouched by renaming: the type of a renamed
     primitive is the renamed type. -/
-theorem Prim.rename_ty (σ : SemanticId → SemanticId) : ∀ p : Prim, (p.rename σ).ty = p.ty.rename σ
+theorem Prim.rename_ty (σ : ConceptId → ConceptId) : ∀ p : Prim, (p.rename σ).ty = p.ty.rename σ
   | .lit _ _ | .add _ | .sub _ | .mul _ _ | .div _ _ | .lt _ | .eq _ _ | .not | .and | .or => rfl
   | .ite _ | .none _ | .some _ | .isSome _ | .getD _ => rfl
   | .nil _ | .cons _ | .length _ | .take _ | .reverse _ | .head _ => rfl
@@ -192,7 +192,7 @@ theorem Expr.rename_refFree {r : Ren} {e : Expr} (h : e.RefFree) : (e.rename r).
 
 /-! ## Declarations and environments -/
 
-def DeclInterface.rename (σ : SemanticId → SemanticId) (S : DeclInterface) : DeclInterface :=
+def DeclInterface.rename (σ : ConceptId → ConceptId) (S : DeclInterface) : DeclInterface :=
   { expectedType := S.expectedType.rename σ, commitments := S.commitments }
 
 def DesignDecl.rename (r : Ren) (h : DesignDecl) : DesignDecl :=
@@ -216,7 +216,7 @@ theorem DeclEnv.RenamedBy.realizationOf {r : Ren} {Δ Δ' : DeclEnv} (hr : Δ.Re
   exact ⟨dh.rename r, hr d dh hdh, by simp [DesignDecl.rename, hre]⟩
 
 /-- `Θ'` agrees with `Θ` on the renamed concepts. -/
-def ConceptEnv.RenamedBy (σ : SemanticId → SemanticId) (Θ Θ' : ConceptEnv) : Prop :=
+def ConceptEnv.RenamedBy (σ : ConceptId → ConceptId) (Θ Θ' : ConceptEnv) : Prop :=
   ∀ s R, Θ s = some R → Θ' (σ s) = some (R.rename σ)
 
 /-- `Κ'` agrees with `Κ` on the renamed declarations satisfying `P`
@@ -248,7 +248,7 @@ theorem HasType.rename {r : Ren} {Θ Θ' : ConceptEnv} {Δ Δ' : DeclEnv} {G G' 
   | fold _ _ _ ihf ihz ihl => exact .fold ihf ihz ihl
 
 /-- The grant of a renamed signature is the renamed grant. -/
-theorem Grant.of_rename (σ : SemanticId → SemanticId) (τ : Ty) (s : SemanticId) :
+theorem Grant.of_rename (σ : ConceptId → ConceptId) (τ : Ty) (s : ConceptId) :
     Grant.of τ s → Grant.of (τ.rename σ) (σ s) := by
   intro h
   unfold Grant.of at *

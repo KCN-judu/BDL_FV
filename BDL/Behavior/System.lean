@@ -78,7 +78,7 @@ def unionΘ (S : BehaviorSystem) : ConceptEnv := fun s =>
   | some (k, n) =>
     match S.instAt k with
     | some I =>
-      if I.comp.internalSem ⟨n⟩ then (I.comp.design.Θ ⟨n⟩).map (Ty.rename (S.ren k I).s) else none
+      if I.comp.internalConcept ⟨n⟩ then (I.comp.design.Θ ⟨n⟩).map (Ty.rename (S.ren k I).s) else none
     | none => none
   | none => S.Θg s
 
@@ -175,7 +175,7 @@ def InstsWF (ev : Evidence) (S : BehaviorSystem) : Prop :=
   ∀ k I, S.instAt k = some I →
     I.comp.Realizes ev ∧ I.comp.width ≤ S.W ∧
     (∀ c, I.comp.internalClock c = false → (I.κ c).n < S.W) ∧
-    (∀ s R, I.comp.design.Θ s = some R → I.comp.internalSem s = false → s.n < S.W ∧ S.Θg s = some R) ∧
+    (∀ s R, I.comp.design.Θ s = some R → I.comp.internalConcept s = false → s.n < S.W ∧ S.Θg s = some R) ∧
     (∀ o spec, I.comp.design.Ω o = some spec → I.comp.internalOut o = false →
       o.n < S.W ∧ S.Ωg o = some (OutputSpec.rename (S.ren k I) spec))
 
@@ -231,7 +231,7 @@ def toComponent (S : BehaviorSystem) (iface : BehaviorInterface) : BehaviorCompo
   { iface := iface
     design := S.flatten
     width := S.flatWidth
-    internalSem := fun s => decide (S.W ≤ s.n)
+    internalConcept := fun s => decide (S.W ≤ s.n)
     internalOut := fun o => decide (S.W ≤ o.n) }
 
 end BehaviorSystem

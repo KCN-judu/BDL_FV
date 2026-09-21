@@ -39,13 +39,13 @@ theorem unionΔ_fresh (hW : 0 < S.W) {k : Nat} {I : Inst} (hI : S.instAt k = som
   unfold unionΔ declOf
   simp only [decode_fresh hW hd, hI]
 
-theorem unionΘ_fresh (hW : 0 < S.W) {k : Nat} {I : Inst} (hI : S.instAt k = some I) {s : SemanticId} (hs : s.n < S.W)
-    (hi : I.comp.internalSem s = true) :
+theorem unionΘ_fresh (hW : 0 < S.W) {k : Nat} {I : Inst} (hI : S.instAt k = some I) {s : ConceptId} (hs : s.n < S.W)
+    (hi : I.comp.internalConcept s = true) :
     S.unionΘ ⟨fresh S.W k s.n⟩ = (I.comp.design.Θ s).map (Ty.rename (S.ren k I).s) := by
   unfold unionΘ
   simp only [decode_fresh hW hs, hI, hi, if_true]
 
-theorem unionΘ_global {s : SemanticId} (hs : s.n < S.W) : S.unionΘ s = S.Θg s := by
+theorem unionΘ_global {s : ConceptId} (hs : s.n < S.W) : S.unionΘ s = S.Θg s := by
   unfold unionΘ
   simp only [decode_global hs]
 
@@ -102,11 +102,11 @@ theorem renamedBy_unionΘ (c : ComposeWF ev S) {k : Nat} {I : Inst} (hI : S.inst
     ConceptEnv.RenamedBy (S.ren k I).s I.comp.design.Θ S.unionΘ := by
   intro s R hs
   obtain ⟨hr, hw, -, hg, -⟩ := c.insts k I hI
-  show S.unionΘ (if I.comp.internalSem s then ⟨fresh S.W k s.n⟩ else s) = _
-  cases hi : I.comp.internalSem s with
+  show S.unionΘ (if I.comp.internalConcept s then ⟨fresh S.W k s.n⟩ else s) = _
+  cases hi : I.comp.internalConcept s with
   | true =>
     simp only [if_true]
-    have hb : s.n < S.W := Nat.lt_of_lt_of_le (hr.semBound s R hs hi) hw
+    have hb : s.n < S.W := Nat.lt_of_lt_of_le (hr.conceptBound s R hs hi) hw
     rw [unionΘ_fresh c.width hI hb hi, hs]; rfl
   | false =>
     simp only [Bool.false_eq_true, if_false]
@@ -152,7 +152,7 @@ theorem unionΘ_WF (c : ComposeWF ev S) : S.unionΘ.WF := by
     | none => simp [hI] at hs
     | some I =>
       simp only [hI] at hs
-      cases hi : I.comp.internalSem ⟨n⟩ with
+      cases hi : I.comp.internalConcept ⟨n⟩ with
       | false => simp [hi] at hs
       | true =>
         simp only [hi, if_true, Option.map_eq_some_iff] at hs

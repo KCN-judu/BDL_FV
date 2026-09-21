@@ -24,8 +24,8 @@ open BDL BDL.Reactive BDL.Clock BDL.Output BDL.BehaviorSystem
 /-! ## §1 Global vocabulary -/
 
 /-- Shared concepts (below the system width). -/
-def Tilt : SemanticId := ⟨1⟩
-def Bright : SemanticId := ⟨2⟩
+def Tilt : ConceptId := ⟨1⟩
+def Bright : ConceptId := ⟨2⟩
 /-- System clock domains (below the width). -/
 def fastClk : ClockId := ⟨1⟩
 def slowClk : ClockId := ⟨2⟩
@@ -71,7 +71,7 @@ def dimmer : BehaviorComponent where
       clockParams := [c0] }
   design := dimmerDesign
   width := 2
-  internalSem := fun _ => false
+  internalConcept := fun _ => false
   internalOut := fun _ => false
 
 /-- `Source`: an open provider — `tilt : Tilt` is an unresolved provided
@@ -91,7 +91,7 @@ def source : BehaviorComponent where
       clockParams := [c0] }
   design := sourceDesign
   width := 2
-  internalSem := fun _ => false
+  internalConcept := fun _ => false
   internalOut := fun _ => false
 
 /-! ## §3 A system: one source, two dimmers (reuse), two bindings -/
@@ -201,7 +201,7 @@ def pass : BehaviorComponent where
       clockParams := [c0] }
   design := passDesign
   width := 2
-  internalSem := fun _ => false
+  internalConcept := fun _ => false
   internalOut := fun _ => false
 
 theorem pass_causal : Causal passDesign.Δ :=
@@ -301,7 +301,7 @@ theorem identity_renaming_aliases : Ren.id.d inP = Ren.id.d inP ∧ (Ren.inst di
 /-- A concept flagged *internal* is freshened per instance: two instances of
     a template do not share it merely because it came from the same
     template.  (A concept meant to be shared must be flagged global.) -/
-def privateDimmer : BehaviorComponent := { dimmer with internalSem := fun s => s = Bright }
+def privateDimmer : BehaviorComponent := { dimmer with internalConcept := fun s => s = Bright }
 
 theorem internal_concept_not_shared :
     (Ren.inst privateDimmer W 1 κfast).s Bright ≠ (Ren.inst privateDimmer W 2 κfast).s Bright ∧
@@ -310,7 +310,7 @@ theorem internal_concept_not_shared :
 /-! ## §7 Counterexample 4 — incompatible port binding -/
 
 /-- `Motor`: requires `angle : MotorAngle`. -/
-def MotorAngle : SemanticId := ⟨3⟩
+def MotorAngle : ConceptId := ⟨3⟩
 
 def motorDesign : Design where
   Δ := .ofList [⟨inP, ⟨.sem MotorAngle, []⟩, none⟩]
@@ -327,7 +327,7 @@ def motor : BehaviorComponent where
       clockParams := [c0] }
   design := motorDesign
   width := 2
-  internalSem := fun _ => false
+  internalConcept := fun _ => false
   internalOut := fun _ => false
 
 /-- Wiring the source's `Tilt` port straight into the motor's `MotorAngle` port. -/

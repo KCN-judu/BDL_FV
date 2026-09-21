@@ -34,7 +34,7 @@ inductive PTy where
   | bool
   | nat
   | arr (a b : PTy)
-  | sem (s : SemanticId)
+  | sem (s : ConceptId)
   | q (d : PDim)
   | opt (τ : PTy)
   | list (τ : PTy)
@@ -375,7 +375,7 @@ inductive Cap where
 
 /-- The ordering declarations of the design: which concepts the designer
     marked as ordered.  Surface metadata, like display names. -/
-abbrev OrdDecl := SemanticId → Bool
+abbrev OrdDecl := ConceptId → Bool
 
 /-- `ordB O Θ τ`: `τ` has a designer-meaningful order.  Quantities, and
     ordered concepts represented by quantities; never booleans, options,

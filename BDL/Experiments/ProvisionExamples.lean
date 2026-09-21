@@ -28,9 +28,9 @@ open BDL BDL.Reactive BDL.Clock BDL.Stdlib BDL.Provision BDL.UnitDomain
 
 /-! ## The abstract design -/
 
-def RoomTemp : SemanticId := ⟨90⟩
-def Pitch : SemanticId := ⟨91⟩
-def Roll : SemanticId := ⟨92⟩
+def RoomTemp : ConceptId := ⟨90⟩
+def Pitch : ConceptId := ⟨91⟩
+def Roll : ConceptId := ⟨92⟩
 def Θ : ConceptEnv := fun s =>
   if s = RoomTemp then some (.q Dim.Temp) else if s = Pitch ∨ s = Roll then some (.q Dim.Angle) else none
 

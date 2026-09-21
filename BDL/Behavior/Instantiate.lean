@@ -78,7 +78,7 @@ theorem fresh_inj {W k₁ n₁ k₂ n₂ : Nat} (hW : 0 < W) (h₁ : n₁ < W) (
     substituted. -/
 def Ren.inst (C : BehaviorComponent) (W k : Nat) (κ : ClockId → ClockId) : Ren where
   d := fun d => ⟨fresh W k d.n⟩
-  s := fun s => if C.internalSem s then ⟨fresh W k s.n⟩ else s
+  s := fun s => if C.internalConcept s then ⟨fresh W k s.n⟩ else s
   c := fun c => if C.internalClock c then ⟨fresh W k c.n⟩ else κ c
   o := fun o => if C.internalOut o then ⟨fresh W k o.n⟩ else o
 
@@ -100,20 +100,20 @@ theorem inst_decl_disjoint {C₁ C₂ : BehaviorComponent} {W k₁ k₂ : Nat} {
 
 /-- Internal concepts of two distinct instances never coincide, and never
     coincide with a global concept. -/
-theorem inst_sem_disjoint {C₁ C₂ : BehaviorComponent} {W k₁ k₂ : Nat} {κ₁ κ₂ : ClockId → ClockId}
-    (hW : 0 < W) {s₁ s₂ : SemanticId} (i₁ : C₁.internalSem s₁ = true) (i₂ : C₂.internalSem s₂ = true)
+theorem inst_concept_disjoint {C₁ C₂ : BehaviorComponent} {W k₁ k₂ : Nat} {κ₁ κ₂ : ClockId → ClockId}
+    (hW : 0 < W) {s₁ s₂ : ConceptId} (i₁ : C₁.internalConcept s₁ = true) (i₂ : C₂.internalConcept s₂ = true)
     (h₁ : s₁.n < W) (h₂ : s₂.n < W)
     (h : (Ren.inst C₁ W k₁ κ₁).s s₁ = (Ren.inst C₂ W k₂ κ₂).s s₂) : k₁ = k₂ ∧ s₁ = s₂ := by
-  simp only [Ren.inst, i₁, i₂, if_true, SemanticId.mk.injEq] at h
+  simp only [Ren.inst, i₁, i₂, if_true, ConceptId.mk.injEq] at h
   obtain ⟨hk, hn⟩ := fresh_inj hW h₁ h₂ h
   exact ⟨hk, by cases s₁; cases s₂; simp_all⟩
 
-theorem inst_sem_not_global {C : BehaviorComponent} {W k : Nat} {κ : ClockId → ClockId} (hW : 0 < W)
-    {s g : SemanticId} (i : C.internalSem s = true) (hg : g.n < W) : (Ren.inst C W k κ).s s ≠ g := by
+theorem inst_concept_not_global {C : BehaviorComponent} {W k : Nat} {κ : ClockId → ClockId} (hW : 0 < W)
+    {s g : ConceptId} (i : C.internalConcept s = true) (hg : g.n < W) : (Ren.inst C W k κ).s s ≠ g := by
   simp only [Ren.inst, i, if_true]
   intro h
   have := fresh_ge (W := W) (k := k) (n := s.n) hW
-  cases g; simp only [SemanticId.mk.injEq] at h; simp only at hg; omega
+  cases g; simp only [ConceptId.mk.injEq] at h; simp only at hg; omega
 
 theorem inst_out_disjoint {C₁ C₂ : BehaviorComponent} {W k₁ k₂ : Nat} {κ₁ κ₂ : ClockId → ClockId}
     (hW : 0 < W) {o₁ o₂ : OutputId} (i₁ : C₁.internalOut o₁ = true) (i₂ : C₂.internalOut o₂ = true)

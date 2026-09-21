@@ -283,7 +283,7 @@ theorem inUnitE_safe [DecidablePred G] (u : NUnit) {q : Expr} {τ : Ty} (h : Has
       cases hp
       exact hq
 
-/-- The result of `withUnit` is a quantity — never a semantic value. -/
+/-- The result of `withUnit` is a quantity — never a Sem value. -/
 theorem withUnitE_is_quantity [DecidablePred G] (u : NUnit) {x : Expr} {τ : Ty}
     (h : HasType Θ Δ G Γ (withUnitE u x) τ) : τ = .q (Dim.zero.add u.dim) := by
   cases h with
@@ -291,10 +291,10 @@ theorem withUnitE_is_quantity [DecidablePred G] (u : NUnit) {x : Expr} {τ : Ty}
     cases hf with
     | app hp _ => cases hp; rfl
 
-/-- Unit operations construct no semantic value: they are quantity
+/-- Unit operations construct no Sem value: they are quantity
     arithmetic.  Re-wrapping a coordinate as a concept needs `mk` under the
     concept's own grant, exactly as before (`HasType.constructs_granted`). -/
-theorem unitOps_no_construction (u : NUnit) (e : Expr) (s : SemanticId) :
+theorem unitOps_no_construction (u : NUnit) (e : Expr) (s : ConceptId) :
     ((inUnitE u e).constructs s ↔ e.constructs s) ∧ ((withUnitE u e).constructs s ↔ e.constructs s) := by
   simp [inUnitE, withUnitE, app2, unitConst, Expr.constructs]
 
@@ -349,10 +349,10 @@ end Eval
 /-- A presentation: a preferred unit per concept (and per declaration, if
     wanted).  It is not part of the design. -/
 structure Presentation where
-  preferred : SemanticId → Option NUnit
+  preferred : ConceptId → Option NUnit
 
 /-- Reading a value for display: the coordinate in the preferred unit. -/
-def display (P : Presentation) (s : SemanticId) (v : Value) : Option Nat :=
+def display (P : Presentation) (s : ConceptId) (v : Value) : Option Nat :=
   match P.preferred s, v with
   | some u, .sem _ (.nat m) => some (m / u.scale)
   | some u, .nat m => some (m / u.scale)
@@ -383,7 +383,7 @@ theorem presentation_irrelevant_clock (D : Design) (P P' : Presentation) (c : Op
     Clock.Clocked (Presented.mk D P).design.Κ c e ↔ Clock.Clocked (Presented.mk D P').design.Κ c e := Iff.rfl
 
 /-- What a presentation *does* change: the displayed number. -/
-theorem presentation_changes_display (s : SemanticId) (m : Nat) :
+theorem presentation_changes_display (s : ConceptId) (m : Nat) :
     display ⟨fun _ => some Reg.cm⟩ s (.nat (m * 100)) = some m ∧
     display ⟨fun _ => some Reg.mm⟩ s (.nat (m * 100)) = some (m * 10) := by
   constructor
@@ -397,7 +397,7 @@ theorem presentation_changes_display (s : SemanticId) (m : Nat) :
 theorem ordering_ignores_presentation {τ : Ty} (o : Ordered τ) (a b : Expr) (_P _P' : Presentation) :
     ltAt o a b = ltAt o a b := rfl
 
-theorem display_may_identify_distinct (P : Presentation) (s : SemanticId) (hP : P.preferred s = some Reg.cm) :
+theorem display_may_identify_distinct (P : Presentation) (s : ConceptId) (hP : P.preferred s = some Reg.cm) :
     display P s (.nat 150) = display P s (.nat 199) ∧ (150 : Nat) < 199 := by
   simp [display, hP, Reg.cm]
 

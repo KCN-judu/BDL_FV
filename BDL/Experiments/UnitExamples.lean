@@ -14,10 +14,10 @@ Nominal cases use `Tilt`, `MotorAngle` (both angles) and `Brightness`,
 namespace BDL.Experiments.Units
 open BDL BDL.Reactive BDL.Stdlib BDL.Units BDL.Composer BDL.Affine
 
-def Tilt : SemanticId := ⟨60⟩
-def MotorAngle : SemanticId := ⟨61⟩
-def Brightness : SemanticId := ⟨62⟩
-def Opacity : SemanticId := ⟨63⟩
+def Tilt : ConceptId := ⟨60⟩
+def MotorAngle : ConceptId := ⟨61⟩
+def Brightness : ConceptId := ⟨62⟩
+def Opacity : ConceptId := ⟨63⟩
 def Θ : ConceptEnv := fun s =>
   if s = Tilt ∨ s = MotorAngle then some (.q Dim.Angle)
   else if s = Brightness ∨ s = Opacity then some (.q Dim.zero) else none

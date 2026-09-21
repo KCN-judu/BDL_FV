@@ -11,7 +11,7 @@ the interface — checked once, for the template; every instance inherits it
 (`Preservation.lean`).
 
 Three kinds of identity inside a template are *internal* and are freshened
-at every instantiation: all of its declarations, the semantic concepts it
+at every instantiation: all of its declarations, the concepts it
 flags as private, and the physical sinks it flags as private.  Everything
 else is *global*: shared concepts (`Tilt`), external sinks, and the clock
 parameters, which the composer maps to system domains.
@@ -28,7 +28,7 @@ structure BehaviorComponent where
   width  : Nat
   /-- Concepts private to the behaviour (freshened per instance).  All others
       are shared with the system and are never renamed. -/
-  internalSem : SemanticId → Bool
+  internalConcept : ConceptId → Bool
   /-- Sinks private to the behaviour (freshened per instance).  All others
       are external and may be driven by at most one instance in a system. -/
   internalOut : OutputId → Bool
@@ -58,7 +58,7 @@ structure Realizes (ev : Evidence) (C : BehaviorComponent) : Prop where
   declBound : ∀ d h, C.design.Δ d = some h → d.n < C.width
   clockBound : ∀ d c, C.design.Κ d = some c → C.internalClock c = true → c.n < C.width
   clockDeclared : ∀ d c, C.design.Κ d = some c → ∃ h, C.design.Δ d = some h
-  semBound : ∀ s R, C.design.Θ s = some R → C.internalSem s = true → s.n < C.width
+  conceptBound : ∀ s R, C.design.Θ s = some R → C.internalConcept s = true → s.n < C.width
   outBound : ∀ o spec, C.design.Ω o = some spec → C.internalOut o = true → o.n < C.width
   driveDeclared : ∀ d o, C.design.β d = some o → ∃ h, C.design.Δ d = some h
   required : ∀ p ∈ C.iface.required, C.design.Δ p.id = some ⟨p.id, p.iface, none⟩ ∧ C.design.Κ p.id = p.clock

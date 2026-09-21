@@ -63,7 +63,7 @@ end
 inductive Value.IsData : Value → Prop where
   | bool (b : Bool) : Value.IsData (.bool b)
   | nat (n : Nat) : Value.IsData (.nat n)
-  | sem {s : SemanticId} {v : Value} : Value.IsData v → Value.IsData (.sem s v)
+  | sem {s : ConceptId} {v : Value} : Value.IsData v → Value.IsData (.sem s v)
   | none : Value.IsData .none
   | some {v : Value} : Value.IsData v → Value.IsData (.some v)
   | list {vs : List Value} : (∀ w ∈ vs, Value.IsData w) → Value.IsData (.list vs)
@@ -115,7 +115,7 @@ variable {Θ : ConceptEnv} {Δ : DeclEnv} {G : Grant} [DecidablePred G] {Γ : Ct
     `s'` are (they are not even consulted). -/
 theorem generic_preserves_identity (g : Ty → Expr)
     (hg : ∀ τ, HasType Θ Δ G Γ (g τ) (.arr τ (.arr τ τ)))
-    {s s' : SemanticId} (hne : s ≠ s') {x y : Expr}
+    {s s' : ConceptId} (hne : s ≠ s') {x y : Expr}
     (hx : HasType Θ Δ G Γ x (.sem s)) (hy : HasType Θ Δ G Γ y (.sem s')) :
     ¬ ∃ τ, HasType Θ Δ G Γ (app2 (g (.sem s)) x y) τ := by
   rintro ⟨τ, h⟩
@@ -146,7 +146,7 @@ theorem generic_preserves_dimension (g : Ty → Expr)
 
 /-- Through pairs: a pair of two concepts projects to each concept, never to
     the other (typing of `fst`/`snd` is positional). -/
-theorem pair_projections_keep_concepts {s s' : SemanticId} {p : Expr}
+theorem pair_projections_keep_concepts {s s' : ConceptId} {p : Expr}
     (hp : HasType Θ Δ G Γ p (.prod (.sem s) (.sem s'))) :
     HasType Θ Δ G Γ (fstE (.sem s) (.sem s') p) (.sem s) ∧ HasType Θ Δ G Γ (sndE (.sem s) (.sem s') p) (.sem s') ∧
     (s ≠ s' → ¬ HasType Θ Δ G Γ (fstE (.sem s) (.sem s') p) (.sem s')) :=
@@ -154,7 +154,7 @@ theorem pair_projections_keep_concepts {s s' : SemanticId} {p : Expr}
 
 /-- Through lists and `map`: `map f` at `sem s → sem s'` yields `list (sem s')`
     and cannot be typed at `list (sem s)`. -/
-theorem map_keeps_concepts {s s' : SemanticId} (hne : s ≠ s') {f xs : Expr}
+theorem map_keeps_concepts {s s' : ConceptId} (hne : s ≠ s') {f xs : Expr}
     (hf : HasType Θ Δ G Γ f (.arr (.sem s) (.sem s'))) (hxs : HasType Θ Δ G Γ xs (.list (.sem s))) :
     HasType Θ Δ G Γ (app2 (mapF (.sem s) (.sem s')) f xs) (.list (.sem s')) ∧
     ¬ HasType Θ Δ G Γ (app2 (mapF (.sem s) (.sem s')) f xs) (.list (.sem s)) := by
@@ -164,7 +164,7 @@ theorem map_keeps_concepts {s s' : SemanticId} (hne : s ≠ s') {f xs : Expr}
 
 /-- Through `eq`: equality is typed at one concept; the two concepts cannot
     be compared even though both may be represented by the same `q Dim.zero`. -/
-theorem eq_across_concepts_rejected {s s' : SemanticId} (hne : s ≠ s') {x y : Expr}
+theorem eq_across_concepts_rejected {s s' : ConceptId} (hne : s ≠ s') {x y : Expr}
     (hx : HasType Θ Δ G Γ x (.sem s)) (hy : HasType Θ Δ G Γ y (.sem s')) :
     ¬ ∃ τ, HasType Θ Δ G Γ (eqE (.sem s) trivial x y) τ := by
   rintro ⟨τ, h⟩

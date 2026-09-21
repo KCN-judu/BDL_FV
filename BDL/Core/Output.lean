@@ -30,7 +30,7 @@ open BDL BDL.Reactive BDL.Clock
 /-! ## §1 The model -/
 
 /-- Nominal identity of a physical sink.  Distinct from `DeclId` (a design
-    relationship) and `SemanticId` (a concept): "the steering motor" is a
+    relationship) and `ConceptId` (a concept): "the steering motor" is a
     resource, "the desired steering angle" is a value. -/
 structure OutputId where
   n : Nat

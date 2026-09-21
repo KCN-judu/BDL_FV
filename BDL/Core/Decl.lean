@@ -85,14 +85,14 @@ represented by `R`.  It is a second, concept-level environment, separate
 from `DeclEnv` (a concept is a type, a declaration is a value — Phase 2,
 Model C).  Like a realization it is write-once (`ConceptRefines`). -/
 
-abbrev ConceptEnv := SemanticId → Option Ty
+abbrev ConceptEnv := ConceptId → Option Ty
 
 def ConceptEnv.empty : ConceptEnv := fun _ => none
 
 /-- Representation types must not be semantic — binding `Tilt ↦ MotorAngle`
     would make `rep` a hidden mapping
     (`Experiments.RepBinding.binding_to_semantic_type_is_hidden_mapping`) —
-    and must be *data* (Phase 4): a semantic value may be delayed, and a
+    and must be *data* (Phase 4): a Sem value may be delayed, and a
     function-typed representation would carry a closure across ticks. -/
 def ConceptEnv.WF (Θ : ConceptEnv) : Prop :=
   ∀ s R, Θ s = some R → R.SemFree ∧ R.Data
@@ -107,10 +107,10 @@ theorem ConceptRefines.trans {Θ₀ Θ₁ Θ₂ : ConceptEnv}
   fun s R h => b s R (a s R h)
 
 /-- Bind a representation to an (unbound) concept. -/
-def ConceptEnv.bind (Θ : ConceptEnv) (s : SemanticId) (R : Ty) : ConceptEnv :=
+def ConceptEnv.bind (Θ : ConceptEnv) (s : ConceptId) (R : Ty) : ConceptEnv :=
   fun s' => if s' = s then some R else Θ s'
 
-theorem ConceptRefines.bind {Θ : ConceptEnv} {s : SemanticId} (R : Ty) (h : Θ s = none) :
+theorem ConceptRefines.bind {Θ : ConceptEnv} {s : ConceptId} (R : Ty) (h : Θ s = none) :
     ConceptRefines Θ (Θ.bind s R) := by
   intro s' R' h'
   unfold ConceptEnv.bind
@@ -122,9 +122,9 @@ theorem ConceptRefines.bind {Θ : ConceptEnv} {s : SemanticId} (R : Ty) (h : Θ 
 
 `mk s` may be used only where the grant permits `s`.  A declaration's
 realization is granted exactly the concepts in result position of its own
-signature: the signature is the authority for crossing semantic identities. -/
+signature: the signature is the authority for crossing concept identities. -/
 
-abbrev Grant := SemanticId → Prop
+abbrev Grant := ConceptId → Prop
 
 def Grant.none : Grant := fun _ => False
 def Grant.all  : Grant := fun _ => True
@@ -133,7 +133,7 @@ instance : DecidablePred Grant.none := fun _ => inferInstanceAs (Decidable False
 instance : DecidablePred Grant.all  := fun _ => inferInstanceAs (Decidable True)
 
 /-- Concepts in result position of a signature. -/
-def Ty.grant : Ty → List SemanticId
+def Ty.grant : Ty → List ConceptId
   | .sem s => [s]
   | .arr _ b => b.grant
   | _ => []

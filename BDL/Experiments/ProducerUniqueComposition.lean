@@ -1,15 +1,15 @@
 import BDL.Behavior.System
-import BDL.Validation.Producer
+import BDL.Experiments.ProducerUnique
 
 /-!
-# Producer uniqueness under composition (Phase 20)
+# ProducerUnique under composition (Phase 20; an experiment since Phase 22)
 
 The invariant `ProducerUnique` (`Core/Producer`) survives flattening under a
 boundary rule that mirrors `ExternalSingleDriver` for sinks: **a shared
 concept is originated by at most one instance**, where a required port or a
 parameter — a placeholder the system fills — counts as no origin; internal
 concepts are freshened per instance and cannot collide
-(`inst_sem_disjoint`).  Bindings relay (their bodies are typed under
+(`inst_concept_disjoint`).  Bindings relay (their bodies are typed under
 `Grant.none`, so they construct nothing) and therefore add no origin.
 
 * `ExternalSingleProducer S` — the boundary rule.
@@ -66,8 +66,8 @@ def IsPort (C : BehaviorComponent) (d : DeclId) : Prop :=
     — originates each shared concept, ports not counting. -/
 def ExternalSingleProducer (S : BehaviorSystem) : Prop :=
   ∀ k₁ I₁ d₁ k₂ I₂ d₂ C, S.instAt k₁ = some I₁ → S.instAt k₂ = some I₂ →
-    Produces I₁.comp.design.Δ d₁ C → I₁.comp.internalSem C = false → ¬ IsPort I₁.comp d₁ →
-    Produces I₂.comp.design.Δ d₂ C → I₂.comp.internalSem C = false → ¬ IsPort I₂.comp d₂ →
+    Produces I₁.comp.design.Δ d₁ C → I₁.comp.internalConcept C = false → ¬ IsPort I₁.comp d₁ →
+    Produces I₂.comp.design.Δ d₂ C → I₂.comp.internalConcept C = false → ¬ IsPort I₂.comp d₂ →
     k₁ = k₂ ∧ d₁ = d₂
 
 /-- Every required port and parameter of every instance is bound. -/
@@ -85,7 +85,7 @@ theorem storedId_update {Δ : DeclEnv} (hs : StoredId Δ) {h' : DesignDecl} : St
   · rw [DeclEnv.update_other _ _ e] at hd; exact hs id h hd
 
 /-- An origin of the union is the renamed origin of one instance. -/
-theorem produces_union {S : BehaviorSystem} {id : DeclId} {C : SemanticId}
+theorem produces_union {S : BehaviorSystem} {id : DeclId} {C : ConceptId}
     (h : Produces S.unionΔ id C) :
     ∃ k n I, decode S.W id.n = some (k, n) ∧ S.instAt k = some I ∧
       ∃ C₀, C = (S.ren k I).s C₀ ∧ Produces I.comp.design.Δ ⟨n⟩ C₀ := by
@@ -223,11 +223,11 @@ theorem flatten_producerUnique {S : BehaviorSystem}
   suffices hk : k₁ = k₂ ∧ n₁ = n₂ by
     obtain ⟨rfl, rfl⟩ := hk
     cases id₁; cases id₂; simp only at e₁ e₂; simp [e₁, e₂]
-  cases hi₁ : I₁.comp.internalSem C₁ with
+  cases hi₁ : I₁.comp.internalConcept C₁ with
   | true =>
-    cases hi₂ : I₂.comp.internalSem C₂ with
+    cases hi₂ : I₂.comp.internalConcept C₂ with
     | true =>
-      obtain ⟨rfl, rfl⟩ := inst_sem_disjoint hW hi₁ hi₂ b₁ b₂ hren
+      obtain ⟨rfl, rfl⟩ := inst_concept_disjoint hW hi₁ hi₂ b₁ b₂ hren
       rw [hI₁] at hI₂; cases hI₂
       have := hT k₁ I₁ hI₁ C₁ ⟨n₁⟩ ⟨n₂⟩ q₁ q₂
       exact ⟨rfl, by cases this; rfl⟩
@@ -235,14 +235,14 @@ theorem flatten_producerUnique {S : BehaviorSystem}
       exfalso
       have : (S.ren k₂ I₂).s C₂ = C₂ := by simp [ren, Ren.inst, hi₂]
       rw [this] at hren
-      exact inst_sem_not_global hW hi₁ b₂ hren
+      exact inst_concept_not_global hW hi₁ b₂ hren
   | false =>
-    cases hi₂ : I₂.comp.internalSem C₂ with
+    cases hi₂ : I₂.comp.internalConcept C₂ with
     | true =>
       exfalso
       have : (S.ren k₁ I₁).s C₁ = C₁ := by simp [ren, Ren.inst, hi₁]
       rw [this] at hren
-      exact inst_sem_not_global hW hi₂ b₁ hren.symm
+      exact inst_concept_not_global hW hi₂ b₁ hren.symm
     | false =>
       have e : C₁ = C₂ := by simpa [ren, Ren.inst, hi₁, hi₂] using hren
       subst e
@@ -277,7 +277,7 @@ structure Finite (S : BehaviorSystem) where
   eq : ∀ k I, S.instAt k = some I → I.comp.design.Δ = .ofList (decls k)
 
 theorem Finite.produces {S : BehaviorSystem} (F : Finite S) {k : Nat} {I : Inst} (hI : S.instAt k = some I)
-    {d : DeclId} {C : SemanticId} (h : Produces I.comp.design.Δ d C) :
+    {d : DeclId} {C : ConceptId} (h : Produces I.comp.design.Δ d C) :
     ∃ h' ∈ F.decls k, h'.id = d ∧ C ∈ h'.origins := by
   obtain ⟨h', hd, hc⟩ := h
   rw [F.eq k I hI] at hd
@@ -301,8 +301,8 @@ def externalSingleProducerB (S : BehaviorSystem) (F : Finite S) : Bool :=
     | some I₁, some I₂ =>
       (F.decls k₁).all fun h₁ => (F.decls k₂).all fun h₂ =>
         h₁.origins.all fun C =>
-          I₁.comp.internalSem C || isPortB I₁.comp h₁.id || !(h₂.origins.contains C) ||
-          I₂.comp.internalSem C || isPortB I₂.comp h₂.id || (k₁ == k₂ && h₁.id == h₂.id)
+          I₁.comp.internalConcept C || isPortB I₁.comp h₁.id || !(h₂.origins.contains C) ||
+          I₂.comp.internalConcept C || isPortB I₂.comp h₂.id || (k₁ == k₂ && h₁.id == h₂.id)
     | _, _ => true
 
 theorem ExternalSingleProducer.ofB {S : BehaviorSystem} (F : Finite S) (h : externalSingleProducerB S F = true) :

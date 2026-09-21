@@ -20,7 +20,6 @@ import BDL.Behavior.Group
 import BDL.Behavior.Boundary
 import BDL.Behavior.Extract
 import BDL.Behavior.ExtractPreservation
-import BDL.Behavior.Producer
 import BDL.Experiments.DeclCounterexamples
 import BDL.Experiments.SemanticTypeAlternatives
 import BDL.Experiments.RepresentationBindingAlternatives
@@ -29,7 +28,6 @@ import BDL.Experiments.ReactiveAlternatives
 import BDL.Experiments.ClockAlternatives
 import BDL.Experiments.OutputAlternatives
 import BDL.Validation.Hardware
-import BDL.Validation.Producer
 import BDL.Experiments.HardwareAlternatives
 import BDL.Experiments.BehaviorAlternatives
 import BDL.Experiments.GroupAlternatives
@@ -68,8 +66,8 @@ import BDL.Experiments.CommunicationExamples
 import BDL.Experiments.ProviderExamples
 import BDL.Experiments.OutputWindowExamples
 import BDL.Experiments.SourceBoundaryExamples
+import BDL.Experiments.ProducerUnique
+import BDL.Experiments.ProducerUniqueComposition
 import BDL.Experiments.ProducerAlternatives
-import BDL.Experiments.ConceptRef
-import BDL.Experiments.ProducerUniqueExamples
 import BDL.Surface.Sem
 import BDL.Experiments.SemExamples

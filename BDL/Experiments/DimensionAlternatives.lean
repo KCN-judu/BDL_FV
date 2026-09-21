@@ -4,7 +4,7 @@ import BDL.Experiments.RepresentationBindingAlternatives
 # Phase 3, part 2 — physical dimensions
 
 Question: what is the smallest dimensional mechanism that rejects
-dimensionally invalid computation while keeping semantic identity independent
+dimensionally invalid computation while keeping concept identity independent
 of physical representation?
 
 The candidate in core: `Ty.q d` with `d : Dim` an exponent vector, and
@@ -208,7 +208,7 @@ example : HasType ConceptEnv.empty .empty Grant.none []
     (.app (.app (.prim (.add Dim.Length)) (elabUnit 5 centimeter)) (elabUnit 2 meter)) (.q Dim.Length) := by
   decide
 
-/-! ## Counterexample C — semantic identity is independent of dimension -/
+/-! ## Counterexample C — concept identity is independent of dimension -/
 
 /-- Tilt and MotorAngle are both angles; Brightness is dimensionless. -/
 def Θdim : ConceptEnv := fun s =>

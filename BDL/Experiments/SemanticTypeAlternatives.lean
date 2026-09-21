@@ -1,7 +1,7 @@
 import BDL.Core.Dependency
 
 /-!
-# Phase 2 — where should semantic identity live?
+# Phase 2 — where should concept identity live?
 
 Question: what is the smallest mechanism that makes representation-compatible
 but semantically distinct concepts (Tilt, MotorAngle, both numeric)
@@ -11,12 +11,12 @@ non-interchangeable *by default*, while still allowing an explicit mapping
 Sections:
 
 * §0 Baseline — representation types only.  **Counterexample A.**
-* §A Model A — nominal `Ty.sem SemanticId` (promoted to core `Base.lean`).
+* §A Model A — nominal `Ty.sem ConceptId` (promoted to core `Base.lean`).
   Results: mismatch rejected; explicit mapping allowed; erasure soundness
   (and: the baseline *is* erased Model A); conservativity over sem-free
   programs; rename preserves identity; identity change is an edit
   (**Counterexample B**, **Counterexample C**); refinement preservation is
-  inherited from Phase 1; semantic values originate only from declarations.
+  inherited from Phase 1; Sem values originate only from declarations.
 * §B Model B — semantic role as interface data, separate checker.
   Results: **Counterexample D** (typing accepts what the checker must later
   reject); the tested direct-wire checker is evaded by η-expansion (formal
@@ -28,7 +28,7 @@ Sections:
 * §C Model C — concepts as ordinary `DesignDecl`s in the value sort.
   Results: two category errors (formal rejection of *that* encoding).  A
   stratified concept-declaration sort is not rejected; it reintroduces an
-  independent `SemanticId`, which is the Phase-2 kernel requirement anyway.
+  independent `ConceptId`, which is the Phase-2 kernel requirement anyway.
 
 Claim strength is labelled per result: *formally rejected by counterexample*,
 *tested formulation redundant*, *not rejected*, or *engineering preference*.
@@ -65,21 +65,21 @@ def Δrep : DeclEnv := .ofList [repTilt, repMotor]
 theorem counterexampleA_baseline_accepts_invalid_wire : GlobalWF trivEv ConceptEnv.empty Δrep :=
   GlobalWF.ofList (by decide)
 
-/-! ## §A Model A — nominal semantic types (`Ty.sem`)
+/-! ## §A Model A — nominal Sem types (`Ty.sem`)
 
 Concepts have a stable internal id; the type `Ty.sem c` is nominal.  No
 introduction/elimination forms exist in the pure fragment. -/
 
-def cTilt   : SemanticId := ⟨0⟩
-def cMotor  : SemanticId := ⟨1⟩
-def cBright : SemanticId := ⟨2⟩
+def cTilt   : ConceptId := ⟨0⟩
+def cMotor  : ConceptId := ⟨1⟩
+def cBright : ConceptId := ⟨2⟩
 
 abbrev Tilt       : Ty := .sem cTilt
 abbrev MotorAngle : Ty := .sem cMotor
 abbrev Brightness : Ty := .sem cBright
 
 /-- Distinct ids are distinct types, whatever their representation. -/
-theorem sem_injective (s₁ s₂ : SemanticId) : Ty.sem s₁ = Ty.sem s₂ ↔ s₁ = s₂ := by
+theorem sem_injective (s₁ s₂ : ConceptId) : Ty.sem s₁ = Ty.sem s₂ ↔ s₁ = s₂ := by
   constructor
   · intro h; cases h; rfl
   · intro h; rw [h]
@@ -95,7 +95,7 @@ def ΔA_bad : DeclEnv := .ofList [aTilt, aMotorWire]
 theorem semantic_identity_mismatch_rejected : ¬ WellFormedDecl trivEv ConceptEnv.empty ΔA_bad [] aMotorWire := by
   decide
 
-/-- The same semantic type may be shared by several declarations, and a
+/-- The same Sem type may be shared by several declarations, and a
     like-to-like wire is fine. -/
 def aTiltDisplay : DesignDecl := ⟨tiltDisplay, ⟨Tilt, []⟩, some (.declRef tiltSensor₂)⟩
 example : GlobalWF trivEv ConceptEnv.empty (.ofList [aTilt, aTilt₂, aTiltDisplay]) := GlobalWF.ofList (by decide)
@@ -114,14 +114,14 @@ def ΔA_good : DeclEnv := .ofList [aTilt, aMap, aMotorMapped]
 theorem explicit_semantic_mapping_accepted : GlobalWF trivEv ConceptEnv.empty ΔA_good :=
   GlobalWF.ofList (by decide)
 
-/-- Semantic identity is established before any realization exists: every
+/-- Concept identity is established before any realization exists: every
     declaration in `ΔA_good` is unresolved except the wire itself. -/
 example : aTilt.realization = none ∧ aMap.realization = none := by decide
 
-/-! ### Erasure: the baseline is Model A with semantic types erased -/
+/-! ### Erasure: the baseline is Model A with Sem types erased -/
 
-/-- Erase semantic types to representation types via a binding `ρ`. -/
-def _root_.BDL.Ty.erase (ρ : SemanticId → Ty) : Ty → Ty
+/-- Erase Sem types to representation types via a binding `ρ`. -/
+def _root_.BDL.Ty.erase (ρ : ConceptId → Ty) : Ty → Ty
   | .sem s => ρ s
   | .arr a b => .arr (a.erase ρ) (b.erase ρ)
   | .opt τ => .opt (τ.erase ρ)
@@ -131,7 +131,7 @@ def _root_.BDL.Ty.erase (ρ : SemanticId → Ty) : Ty → Ty
   | .nat => .nat
   | .q d => .q d
 
-theorem _root_.BDL.Ty.erase_semFree (ρ : SemanticId → Ty) : ∀ {τ : Ty}, τ.SemFree → τ.erase ρ = τ
+theorem _root_.BDL.Ty.erase_semFree (ρ : ConceptId → Ty) : ∀ {τ : Ty}, τ.SemFree → τ.erase ρ = τ
   | .bool, _ => rfl
   | .nat, _ => rfl
   | .q _, _ => rfl
@@ -142,9 +142,9 @@ theorem _root_.BDL.Ty.erase_semFree (ρ : SemanticId → Ty) : ∀ {τ : Ty}, τ
   | .prod a b, h => by simp [Ty.erase, Ty.erase_semFree ρ h.1, Ty.erase_semFree ρ h.2]
 
 /-- Registered operators are sem-free *except* the polymorphic ones instantiated
-    at a semantic type (`ite (sem s)`, `some (sem s)`, …), which merely route
+    at a Sem type (`ite (sem s)`, `some (sem s)`, …), which merely route
     values.  Erasure of a prim erases its type index. -/
-def _root_.BDL.Prim.erase (ρ : SemanticId → Ty) : Prim → Prim
+def _root_.BDL.Prim.erase (ρ : ConceptId → Ty) : Prim → Prim
   | .ite τ => .ite (τ.erase ρ)
   | .none τ => .none (τ.erase ρ)
   | .some τ => .some (τ.erase ρ)
@@ -166,7 +166,7 @@ def _root_.BDL.Prim.erase (ρ : SemanticId → Ty) : Prim → Prim
   | .eq τ h => if h' : (τ.erase ρ).Data then .eq (τ.erase ρ) h' else .eq τ h
   | p => p
 
-theorem _root_.BDL.Ty.erase_data (ρ : SemanticId → Ty) (hρ : ∀ s, (ρ s).Data) : ∀ {τ : Ty}, τ.Data → (τ.erase ρ).Data
+theorem _root_.BDL.Ty.erase_data (ρ : ConceptId → Ty) (hρ : ∀ s, (ρ s).Data) : ∀ {τ : Ty}, τ.Data → (τ.erase ρ).Data
   | .bool, _ => trivial
   | .nat, _ => trivial
   | .q _, _ => trivial
@@ -176,13 +176,13 @@ theorem _root_.BDL.Ty.erase_data (ρ : SemanticId → Ty) (hρ : ∀ s, (ρ s).D
   | .prod _ _, h => ⟨Ty.erase_data ρ hρ h.1, Ty.erase_data ρ hρ h.2⟩
   | .arr _ _, h => h.elim
 
-theorem _root_.BDL.Prim.ty_erase (ρ : SemanticId → Ty) (hρd : ∀ s, (ρ s).Data) (p : Prim) :
+theorem _root_.BDL.Prim.ty_erase (ρ : ConceptId → Ty) (hρd : ∀ s, (ρ s).Data) (p : Prim) :
     (p.erase ρ).ty = p.ty.erase ρ := by
   cases p <;> simp [Prim.erase, Prim.ty, Ty.erase] <;>
     (rename_i τ h; rw [dif_pos (Ty.erase_data ρ hρd h)])
 
 /-- Erasing terms: `rep`/`mk` disappear (the representation *is* the value). -/
-def _root_.BDL.Expr.erase (ρ : SemanticId → Ty) : Expr → Expr
+def _root_.BDL.Expr.erase (ρ : ConceptId → Ty) : Expr → Expr
   | .lam dom b => .lam (dom.erase ρ) (b.erase ρ)
   | .app f a => .app (f.erase ρ) (a.erase ρ)
   | .rep e => e.erase ρ
@@ -193,14 +193,14 @@ def _root_.BDL.Expr.erase (ρ : SemanticId → Ty) : Expr → Expr
   | .fold f z l => .fold (f.erase ρ) (z.erase ρ) (l.erase ρ)
   | e => e
 
-def _root_.BDL.DesignDecl.erase (ρ : SemanticId → Ty) (d : DesignDecl) : DesignDecl :=
+def _root_.BDL.DesignDecl.erase (ρ : ConceptId → Ty) (d : DesignDecl) : DesignDecl :=
   { d with interface := { d.interface with expectedType := d.interface.expectedType.erase ρ },
            realization := d.realization.map (Expr.erase ρ) }
 
-def _root_.BDL.DeclEnv.erase (ρ : SemanticId → Ty) (Δ : DeclEnv) : DeclEnv :=
+def _root_.BDL.DeclEnv.erase (ρ : ConceptId → Ty) (Δ : DeclEnv) : DeclEnv :=
   fun id => (Δ id).map (DesignDecl.erase ρ)
 
-theorem _root_.BDL.DeclEnv.tyView_erase (ρ : SemanticId → Ty) (Δ : DeclEnv) (d : DeclId) :
+theorem _root_.BDL.DeclEnv.tyView_erase (ρ : ConceptId → Ty) (Δ : DeclEnv) (d : DeclId) :
     (Δ.erase ρ).tyView d = (Δ.tyView d).map (Ty.erase ρ) := by
   unfold DeclEnv.tyView DeclEnv.erase DesignDecl.erase
   cases Δ d <;> simp
@@ -211,7 +211,7 @@ theorem _root_.BDL.DeclEnv.tyView_erase (ρ : SemanticId → Ty) (Δ : DeclEnv) 
     `R` sem-free).  `rep`/`mk` erase to their arguments.  So the semantic
     kernel is conservative over the representation language: generated code
     is well typed after erasing concepts. -/
-theorem _root_.BDL.HasType.erase (ρ : SemanticId → Ty) (hρd : ∀ s, (ρ s).Data) {Θ : ConceptEnv} (hΘ : Θ.WF)
+theorem _root_.BDL.HasType.erase (ρ : ConceptId → Ty) (hρd : ∀ s, (ρ s).Data) {Θ : ConceptEnv} (hΘ : Θ.WF)
     (hρ : ∀ s R, Θ s = some R → ρ s = R) {Δ : DeclEnv} {G G' : Grant} {Γ : Ctx} {e : Expr} {τ : Ty}
     (h : HasType Θ Δ G Γ e τ) :
     HasType Θ (Δ.erase ρ) G' (Γ.map (Ty.erase ρ)) (e.erase ρ) (τ.erase ρ) := by
@@ -235,7 +235,7 @@ theorem _root_.BDL.HasType.erase (ρ : SemanticId → Ty) (hρd : ∀ s, (ρ s).
   | fold _ _ _ ihf ihz ihl => exact .fold ihf ihz ihl
 
 /-- The numeric binding: every concept is represented by `nat`. -/
-def ρnat : SemanticId → Ty := fun _ => .nat
+def ρnat : ConceptId → Ty := fun _ => .nat
 
 /-- Erasure is not injective — this is the whole problem in one line. -/
 theorem erase_not_injective : Tilt.erase ρnat = MotorAngle.erase ρnat ∧ Tilt ≠ MotorAngle := by
@@ -292,7 +292,7 @@ theorem semantic_extension_preserves_structural_typing {Θ : ConceptEnv} {Δ : D
 
 /-! ### Refinement preservation is inherited from Phase 1
 
-Semantic identity lives inside `expectedType`, so `tyView` is unchanged and
+Concept identity lives inside `expectedType`, so `tyView` is unchanged and
 every Phase-1 theorem applies verbatim: refining a semantic-typed
 declaration preserves all clients. -/
 
@@ -305,7 +305,7 @@ theorem semantic_check_preserved_under_interface_refinement :
 
 /-! ### Identity change is an edit -/
 
-/-- **Counterexample B — changing semantic identity breaks dependents.**
+/-- **Counterexample B — changing concept identity breaks dependents.**
     Same representation (`nat` under `ρnat`), different concept: the mapping
     `tiltToMotor` no longer accepts the sensor. -/
 def aTiltAsMotor : DesignDecl := ⟨tiltSensor, ⟨MotorAngle, []⟩, none⟩
@@ -329,7 +329,7 @@ inductive SurfaceName where
 
 /-- A concept: internal identity plus a display name.  Typing mentions only `id`. -/
 structure Concept where
-  id   : SemanticId
+  id   : ConceptId
   name : SurfaceName
   deriving DecidableEq, Repr
 
@@ -342,7 +342,7 @@ theorem semantic_rename_preserves_identity (c : Concept) (n : SurfaceName) :
 
 /-- **Counterexample C — names as identity make renaming destructive.**
     Suppose identity *were* derived from the display name. -/
-def nameAsId : SurfaceName → SemanticId
+def nameAsId : SurfaceName → ConceptId
   | .Tilt => ⟨10⟩ | .DeviceTilt => ⟨11⟩ | .MotorAngle => ⟨12⟩
 
 def nTilt : DesignDecl := ⟨tiltSensor, ⟨.sem (nameAsId .Tilt), []⟩, none⟩
@@ -355,10 +355,10 @@ theorem rename_under_name_identity_breaks_client :
         (.app (.declRef tiltToMotor) (.declRef tiltSensor)) MotorAngle := by
   decide
 
-/-! ### Semantic values originate only from declarations
+/-! ### Sem values originate only from declarations
 
-With no introduction form, a closed term of semantic type cannot be built
-from nothing: it must come from a declaration of semantic type.  Proved by
+With no introduction form, a closed term of Sem type cannot be built
+from nothing: it must come from a declaration of Sem type.  Proved by
 interpreting `sem _` as the empty type. -/
 
 def _root_.BDL.Ty.denote : Ty → Type
@@ -550,32 +550,32 @@ def _root_.BDL.Ty.SemFree.inhabitant : ∀ {τ : Ty}, τ.SemFree → τ.denote
   | .arr _ b, h => fun _ => Ty.SemFree.inhabitant (τ := b) h.2
 
 /-- **Result 6.**  In an environment declaring only sem-free types, no closed
-    term has a semantic type.  Hence under Model A every semantic value in a
-    design traces back to a declaration of semantic type (a sensor, or a
+    term has a Sem type.  Hence under Model A every Sem value in a
+    design traces back to a declaration of Sem type (a sensor, or a
     declared mapping).  Phase 3 refines this: with `Grant.none` — i.e. in
     client code — this remains true *even with* representation binding
     present, because `mk` needs a grant and `rep` cannot conjure a value from
     an uninhabited one.  Construction happens only inside realizations
     granted by their own signature (`RepresentationBindingAlternatives`). -/
 theorem no_semantic_value_without_declaration {Θ : ConceptEnv} {Δ : DeclEnv}
-    (hΔ : ∀ d τ, Δ.tyView d = some τ → τ.SemFree) (e : Expr) (s : SemanticId) :
+    (hΔ : ∀ d τ, Δ.tyView d = some τ → τ.SemFree) (e : Expr) (s : ConceptId) :
     ¬ HasType Θ Δ Grant.none [] e (.sem s) := by
   intro h
   have δ : Δ.Interp := fun d τ hd => (hΔ d τ hd).inhabitant
   exact (h.denote δ Ctx.Interp.nil).elim
 
-example (Θ : ConceptEnv) (e : Expr) (s : SemanticId) : ¬ HasType Θ .empty Grant.none [] e (.sem s) :=
+example (Θ : ConceptEnv) (e : Expr) (s : ConceptId) : ¬ HasType Θ .empty Grant.none [] e (.sem s) :=
   no_semantic_value_without_declaration (fun _ _ h => by simp [DeclEnv.tyView, DeclEnv.empty] at h) e s
 
 /-! ## §B Model B — semantic role as interface data, typing unchanged
 
-`Ty` stays sem-free; the interface carries `semanticRole : Option SemanticId`;
+`Ty` stays sem-free; the interface carries `semanticRole : Option ConceptId`;
 a *separate* judgment checks roles.  We build the weakest plausible checker
 (direct wires only) and try to break it. -/
 
 structure InterfaceB where
   expectedType : Ty
-  semanticRole : Option SemanticId
+  semanticRole : Option ConceptId
   commitments  : List PropertyId
   deriving DecidableEq, Repr
 
@@ -593,7 +593,7 @@ def DeclB.toDecl (b : DeclB) : DesignDecl :=
 /-- Typing under Model B sees the representation type only. -/
 def EnvB.toDeclEnv (Δ : EnvB) : DeclEnv := fun id => (Δ id).map DeclB.toDecl
 
-def EnvB.roleOf (Δ : EnvB) (d : DeclId) : Option (Option SemanticId) :=
+def EnvB.roleOf (Δ : EnvB) (d : DeclId) : Option (Option ConceptId) :=
   (Δ d).map (·.interface.semanticRole)
 
 /-- The direct-wire checker: a realization that *is* a reference must have
@@ -651,7 +651,7 @@ theorem role_change_flips_unchanged_clients :
 
 /-! ### §B.2 What a sound Model-B checker would need (argued, not proved)
 
-The η-gap shows that any checker enforcing semantic identity through
+The η-gap shows that any checker enforcing concept identity through
 *arbitrary* term structure must reason compositionally about semantic flow:
 it must say something about variables, lambdas, applications, and
 references — i.e. it needs a discipline comparable in strength to a type
@@ -675,7 +675,7 @@ redundant with nominal typing; broader family not universally excluded*. -/
 /-! ## §C Model C — concepts as ordinary `DesignDecl`s
 
 Try the *unstratified* encoding: a concept *is* a `DesignDecl` in the same
-sort as value declarations, and semantic identity is its `DeclId`.  The two
+sort as value declarations, and concept identity is its `DeclId`.  The two
 category errors below formally reject **this encoding**; they do not reject
 declaration-based concept architectures in general (see the sketch after
 them). -/
@@ -683,7 +683,7 @@ them). -/
 def cTiltDecl : DeclId := ⟨40⟩
 /-- "decl Tilt, represented by nat" as an ordinary declaration. -/
 def conceptTiltAsDecl : DesignDecl := ⟨cTiltDecl, ⟨.nat, []⟩, none⟩
-def semOfDecl : DeclId → SemanticId := fun d => ⟨d.n⟩
+def semOfDecl : DeclId → ConceptId := fun d => ⟨d.n⟩
 def ΔC : DeclEnv := .ofList [conceptTiltAsDecl]
 
 /-- **Category error 1.**  The concept is usable as a *value*: `declRef Tilt`
@@ -701,10 +701,10 @@ theorem conceptC_realizable_by_a_number :
     (deferred, write-once) representation — the Phase-1 declaration pattern
     at the level of types.  Once concepts inhabit a distinct sort with
     independent identity, the Phase-2 kernel requirement is again an
-    independent `SemanticId` — Model A's core — and the remaining fields are
+    independent `ConceptId` — Model A's core — and the remaining fields are
     representation metadata deferred to Phase 3.  Sketched here, not used. -/
 structure ConceptDecl where
-  id             : SemanticId
+  id             : ConceptId
   name           : SurfaceName
   representation : Option Ty
 
