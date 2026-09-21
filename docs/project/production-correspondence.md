@@ -2,7 +2,7 @@
 kind: project
 area: process
 status: current
-snapshot: f47b8344125c17b31f6e6f1f100024dce7f43fa5
+snapshot: 871033ff078e9b6b6fa5241035fb49d726f797ba
 snapshot-date: 2026-09-21
 ---
 
@@ -166,19 +166,18 @@ rename and the vocabulary, with the wire and the persisted formats unchanged
 (the row above). What remains for production is the Sem-block canvas (the brief
 of Phase 21's note §5), which ISS-0020's freeze awaits.
 
-Phase 21 (the Sem-block model) has no canvas consumer yet (ADR-0043 takes its
-vocabulary); it asks production for a projection change only: the canvas draws
-**Sem blocks** (value declarations of a concept — a Source when undefined) and
-**mapping blocks** (their definitions), with one edge from a mapping block into
-its Sem block and one edge from each Sem block a definition reads
-(`MappingAnalysis.references`, unchanged); the concept node disappears and the
-Concept sheet (ADR-0041) becomes the template a Sem block is created from; no
-diagnostic for two Sem blocks of one concept — design recommendation in
-[the-sem-block-model.md](../notes/the-sem-block-model.md) § 5 (FVD-0163).
-ADR-0034's three shapes map onto Sem block + mapping block (_value_), Sem block
-alone (_Source_) and template (_rule_). Phases 19 and 20 (FVD-0159 … FVD-0162,
-superseded) recorded the path to this reading: Phase 20's
-one-producer-per-concept invariant survives as an optional judgment.
+Phase 21 (the Sem-block model) is consumed at the snapshot on the service side:
+`bdl-layout` places Sem blocks and mapping blocks and no concept row, read edges
+are `MappingAnalysis.references` filtered to unit-domain declarations (the
+formal `Reads` = `DependsOn`), a produce edge is a Sem block's definition and
+its removal a detach (`ReplaceDefinition` none — an edit, FVD-0007), and two
+tests restate `reads_iff_dependsOn` and `new_sem_transparent`; option (a) of the
+brief, no new definition form. The canvas, ADR-0044 (which will supersede
+ADR-0034; `fv:` _informed by FV_, FVD-0163) and ISS-0020's resolution are
+written on branch `canvas/affordances` and take their rows here when merged.
+Production's row for FVD-0163 there calls `ProducerUnique` "an optional
+judgment"; since Phase 22 it is an experiment (FVD-0164 §3), to be corrected
+when the branch lands.
 
 Phase 18 (the Source-side boundary) is cited by ISS-0018 as the formal statement
 of what production has not built; its guidance for the in-flight input profile —
