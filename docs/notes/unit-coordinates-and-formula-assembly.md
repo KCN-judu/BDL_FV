@@ -29,7 +29,7 @@ not a kernel decision, the group structure is).
 | ------------------------ | ------------------------------------------------------------ | ------------------- |
 | physical quantity        | a value of type `q d`: a canonical magnitude and a dimension | kernel              |
 | unit coordinate          | `inUnit q u = q / scale(u)`, a dimensionless number          | surface elaboration |
-| display / authoring unit | `Presentation.preferred : SemanticId → Option Unit`          | presentation        |
+| display / authoring unit | `Presentation.preferred : ConceptId → Option Unit`           | presentation        |
 
 A unit itself is `⟨id, dim, scale⟩` in a registry; its symbol is not part of it
 (§4). `withUnit x u = x × scale(u)` builds a quantity from a coordinate; a

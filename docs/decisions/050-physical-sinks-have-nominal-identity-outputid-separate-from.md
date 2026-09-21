@@ -11,7 +11,7 @@ related: []
 production: [ADR-0005/supports]
 ---
 
-# FVD-0050: Physical sinks have nominal identity (`OutputId`), separate from `SemanticId` and `DeclId`
+# FVD-0050: Physical sinks have nominal identity (`OutputId`), separate from `ConceptId` and `DeclId`
 
 ## Status
 
@@ -19,7 +19,7 @@ Accepted in Phase 6.
 
 ## Alternatives rejected
 
-Type-keyed sinks (`type_keyed_binding_collides`); `SemanticId` as sink (one
+Type-keyed sinks (`type_keyed_binding_collides`); `ConceptId` as sink (one
 concept, many devices); `DeclId` as sink (Counterexample A becomes unstatable);
 deployment-only binding (completeness is a design-time acceptance condition).
 

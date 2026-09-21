@@ -24,7 +24,7 @@ Unrestricted `rep : sem s → R` and `mk : R → sem s` would let
 declared semantic mapping, falsifying `no_semantic_value_without_declaration`
 and reducing `Ty.sem` to ceremony. Phase 3 must decide which representation
 observations are safe, which semantic constructions are safe, and when crossing
-`SemanticId`s must require a declared mapping; it must test (A) unrestricted
+`ConceptId`s must require a declared mapping; it must test (A) unrestricted
 symmetric `mk`/`rep`, (B) restricted/capability-controlled construction, (C)
 binding available only inside realization/elaboration, (D) an explicit witness
 `RepresentationBinding s r`, (E) semantic mappings as the only user-visible

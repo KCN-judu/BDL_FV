@@ -53,13 +53,13 @@ the signature of the declaration being realized.
 
 ## 3.3 The surviving model (promoted to core)
 
-- `ConceptEnv Θ : SemanticId → Option Ty` — write-once representation binding
+- `ConceptEnv Θ : ConceptId → Option Ty` — write-once representation binding
   (`ConceptRefines`; `ConceptEnv.bind`), sem-free (`ConceptEnv.WF`).
 - `Expr.rep e` — typed `R` when `e : sem s` and `Θ s = some R`; available
   everywhere.
 - `Expr.mk s e` — typed `sem s` when `e : R`, `Θ s = some R`, **and the grant
   permits `s`**.
-- `Grant := SemanticId → Prop`; client code is typed under `Grant.none`; a
+- `Grant := ConceptId → Prop`; client code is typed under `Grant.none`; a
   realization under `Grant.of τ = (· ∈ τ.grant)`, the concepts in result
   position of its own signature (`Satisfies`).
 - `Prim` — registered operators with dimensioned types (§3.5).

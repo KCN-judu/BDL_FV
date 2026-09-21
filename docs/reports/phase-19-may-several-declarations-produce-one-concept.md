@@ -46,10 +46,10 @@ paper impact:
 Audited at `5f71710600bc` (the reference HEAD of the brief, in sync with
 `origin/main`). The relevant artifacts, read before any definition was written:
 
-- `Ty.sem SemanticId` (`Core/Base.lean`, `Core/Decl.lean`): a concept is a
+- `Ty.sem ConceptId` (`Core/Base.lean`, `Core/Decl.lean`): a concept is a
   **nominal type** over an internal identity (FVD-0019, FVD-0020 "a concept is a
-  type, a declaration is a value"). `ConceptEnv : SemanticId → Option Ty` binds
-  a representation; nothing in the kernel binds a concept to a declaration.
+  type, a declaration is a value"). `ConceptEnv : ConceptId → Option Ty` binds a
+  representation; nothing in the kernel binds a concept to a declaration.
 - `Grant.of τ = τ.grant` — the concepts in result position of a declaration's
   expected type — and `HasType.constructs_granted`: a realization may construct
   (`mk C`) only concepts its own signature announces (Phase 3.1). This is
@@ -162,10 +162,10 @@ results are:
   provided concept are two origins after flattening (`lamp_two_origins`), so
   `MkUnique` fails on ordinary reuse; with the concept instance-private the two
   instances originate two _different_ concepts (`private_lamp_two_concepts`,
-  from `inst_sem_disjoint`). The boundary rule under which flattening preserves
-  origin-uniqueness is therefore: a shared concept is provided by at most one
-  instance, or is private — a rule about the system's binding, checkable, not a
-  kernel invariant.
+  from `inst_concept_disjoint`). The boundary rule under which flattening
+  preserves origin-uniqueness is therefore: a shared concept is provided by at
+  most one instance, or is private — a rule about the system's binding,
+  checkable, not a kernel invariant.
 - **Clock domains**: a transport is not an origin, ~~but its explicit initial
   value is what it says — `sync c (mk C 0) x` constructs `C` (the initial value
   is a `C` from nowhere) and `sync c 0 x` does not

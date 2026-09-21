@@ -36,7 +36,7 @@ stand. Decision FVD-0163 (supersedes FVD-0161, FVD-0162); note:
 
 | Design object          | Kernel object                                                               | Since              |
 | ---------------------- | --------------------------------------------------------------------------- | ------------------ |
-| Concept (template)     | `SemanticId` with its representation in `Θ` (nominal type `sem C`)          | Phase 2, 3         |
+| Concept (template)     | `ConceptId` with its representation in `Θ` (nominal type `sem C`)           | Phase 2, 3         |
 | Sem block (instance)   | `DesignDecl` with `expectedType = sem C`; one value per tick                | Phase 0, 1, 4      |
 | its producer           | the block's `realization`, write-once; `none` = provided by the environment | FVD-0007, FVD-0118 |
 | mapping block          | that realization, drawn as a node: a rule applied to Sem blocks             | Phase 1            |
@@ -135,9 +135,11 @@ development 1 623 across 75 files; `lake build` 78 jobs, clean, no warnings.
   concept = template; rule = template — **KEEP IN KERNEL** as what the kernel
   already is (FVD-0163); `Surface/Sem.lean` — **KEEP IN SURFACE-DESUGAR** as the
   projection.
-- `ProducerUnique` (one Sem block per concept) — **MOVE TO VALIDATION**,
-  optional (FVD-0163).
-- `cref`/`elabS` — **MOVE TO EXPERIMENTS**: not part of the surface language; a
-  reference is `declRef` to a Sem block (FVD-0163).
+- ~~`ProducerUnique` (one Sem block per concept) — **MOVE TO VALIDATION**,
+  optional (FVD-0163).~~ — corrected in Phase 22: **MOVE TO EXPERIMENTS**, a
+  tested discipline with no consumer (FVD-0164).
+- ~~`cref`/`elabS` — **MOVE TO EXPERIMENTS**: not part of the surface language;
+  a reference is `declRef` to a Sem block (FVD-0163).~~ — corrected in Phase 22:
+  **REMOVE** (FVD-0164).
 - intermediate concepts for alternatives — **not required**; a guidance of style
   only.

@@ -32,11 +32,11 @@ determined (`valueOf_det`). The designs Phase 19 found with several producers �
 Phase 6's composition and priority, Phase 14's re-wrap, Phase 8a's shared lamp —
 are rewritten in the invariant's form with the same executed traces
 (`composition_unique`, `priority_unique`, `rewrap_unique`,
-`private_lamp_unique`). Files: `BDL/Validation/Producer.lean` (moved from
-`Core/` in Phase 21), `BDL/Behavior/Producer.lean`,
-`BDL/Experiments/ConceptRef.lean` (moved from `Surface/` in Phase 21),
-`BDL/Experiments/ProducerUniqueExamples.lean`; decisions FVD-0161 (supersedes
-FVD-0159, FVD-0160), FVD-0162; note:
+`private_lamp_unique`). Files: `BDL/Experiments/ProducerUnique.lean` (moved from
+`Core/` in Phase 21), `BDL/Experiments/ProducerUniqueComposition.lean`,
+`Experiments/ConceptRef.lean` (deleted in Phase 22) (moved from `Surface/` in
+Phase 21), `Experiments/ProducerUniqueExamples.lean` (deleted in Phase 22);
+decisions FVD-0161 (supersedes FVD-0159, FVD-0160), FVD-0162; note:
 [one-producer-per-concept.md](../notes/one-producer-per-concept.md).
 
 ## 20.1 The model
@@ -94,13 +94,14 @@ design is producer-unique. Proof: an origin of `flattenΔ` is an origin of
 bindings with `of_update`); an origin of `unionΔ` is the renamed origin of one
 instance (`produces_union`, with `rename_originSet` and `Ty.rename_grant`); two
 such of one concept are either both internal — then the same instance and, by
-the template's uniqueness, the same declaration (`inst_sem_disjoint`) — or both
-shared and neither a port (a port is bound and a bound destination is no
+the template's uniqueness, the same declaration (`inst_concept_disjoint`) — or
+both shared and neither a port (a port is bound and a bound destination is no
 origin), hence the same by the boundary rule; a mixed pair is impossible
-(`inst_sem_not_global`). `flatten_producerUnique_of_composeWF` takes the stored
-identities and the relaying bindings from `ComposeWF` (a binding body is typed
-under `Grant.none`, `originSet_nil_of_noGrant`). `flatten_producerUnique_ofB`:
-one Boolean over a `Finite` presentation decides all five hypotheses.
+(`inst_concept_not_global`). `flatten_producerUnique_of_composeWF` takes the
+stored identities and the relaying bindings from `ComposeWF` (a binding body is
+typed under `Grant.none`, `originSet_nil_of_noGrant`).
+`flatten_producerUnique_ofB`: one Boolean over a `Finite` presentation decides
+all five hypotheses.
 
 The boundary rule is the concept analogue of `ExternalSingleDriver` (FVD-0068's
 system judgment): "an external sink is driven by at most one instance" becomes

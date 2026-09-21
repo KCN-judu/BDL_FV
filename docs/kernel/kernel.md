@@ -6,19 +6,19 @@ status: current
 
 # The kernel in one paragraph
 
-The cumulative kernel after Phase 21 (unchanged since Phase 9b), as the reports
-state it; the Lean sources under `BDL/` are the authority and this page is their
-summary. Per-phase results are in [`../reports/`](../reports/README.md); the
-construct-by-construct verdicts in [minimality.md](minimality.md); the file map
-in [layout.md](layout.md).
+The cumulative kernel after Phase 22 (unchanged since Phase 9b; Phase 22 renamed
+`SemanticId` to `ConceptId`), as the reports state it; the Lean sources under
+`BDL/` are the authority and this page is their summary. Per-phase results are
+in [`../reports/`](../reports/README.md); the construct-by-construct verdicts in
+[minimality.md](minimality.md); the file map in [layout.md](layout.md).
 
 ```text
 DeclEnv         maps DeclId ↦ DesignDecl
 DesignDecl      = id : DeclId  ×  interface : DeclInterface  ×  realization : Option Expr
 DeclInterface   = expectedType : Ty  ×  commitments : List PropertyId      (monotone, public)
-Ty              = bool | nat | arr Ty Ty | sem SemanticId | q Dim | opt Ty | list Ty | prod Ty Ty
+Ty              = bool | nat | arr Ty Ty | sem ConceptId | q Dim | opt Ty | list Ty | prod Ty Ty
                                                                             (Phase 2: nominal concepts; Phase 3: quantities; Phase 9a: lists; 9b: products)
-ConceptEnv Θ    maps SemanticId ↦ Option Ty                                 (Phase 3: representation binding, write-once, sem-free data)
+ConceptEnv Θ    maps ConceptId ↦ Option Ty                                 (Phase 3: representation binding, write-once, sem-free data)
 Prim            registered operators; dimension algebra lives in Prim.ty     (Phase 3; Phase 4 adds bool/opt ops; 9a list ops; 9b pairs, eq on every data type; lt on quantities only — 9c)
 declRef d       refers to a declaration by stable identity
 rep e / mk s e  observe / construct a semantic value                        (Phase 3; mk only under a grant)
@@ -52,10 +52,13 @@ arbitrary edit  (retype, drop commitment, detach/replace realization, re-identif
 whose `realization` is `none`; the word survives only as a surface/HCI metaphor
 (FVD-0015).
 
-A concept `sem s` is a nominal type — a **template**; a declaration of type
-`sem s` is a **Sem block**, one instance of it with one value per tick, whose
-write-once realization is its **mapping block** and one producer, absent for a
-Source (Phase 21, FVD-0163). Several Sem blocks of one concept are ordinary;
-nothing counts them; every reference is `declRef` to a Sem block, and no term
-names a concept. "One Sem block per concept" (`ProducerUnique`, Phase 20) is an
-optional judgment in `Validation/`.
+**The concept ladder** (FVD-0163, FVD-0164): representation (`Θ C = R`) →
+**concept** (`ConceptId`, the nominal type `sem C` — a _template_) → **Sem
+block** (a declaration of type `sem C` — an _instance_, one value per tick,
+whose write-once realization is its **mapping block** and one producer, absent
+for a Source) → **value** (`Value.sem C v`). In parallel, a rule (arrow-typed
+declaration) is a template and a mapping block its instance. Read `sem C` as "a
+Sem of `C`". Several Sem blocks of one concept are ordinary; nothing counts
+them; every reference is `declRef` to a Sem block, and no term names a concept.
+Theorem names keep their historical spelling: "semantic identity" in a name
+reads "concept identity".

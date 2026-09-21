@@ -159,6 +159,11 @@ production-tested through recording sinks and a cross-build; Phase 15 models
 that step up to the abstract sink operation and the line (FVD-0140) and no
 further (FVI-0023).
 
+Phase 22 (the concept ladder) asks production for the same rename —
+`bdl_model::SemanticId` → `ConceptId`, protocol and Studio vocabulary saying
+_concept_ for the type and _Sem block_ for the instance — as a factual alignment
+with FVD-0164; until then production's `SemanticId` is read as `ConceptId`.
+
 Phase 21 (the Sem-block model) has no production consumer yet; it asks
 production for a projection change only: the canvas draws **Sem blocks** (value
 declarations of a concept — a Source when undefined) and **mapping blocks**

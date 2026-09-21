@@ -11,7 +11,7 @@ related: []
 production: [ADR-0013/supports]
 ---
 
-# FVD-0019: Semantic identity lives in the type: `Ty.sem : SemanticId → Ty`
+# FVD-0019: Semantic identity lives in the type: `Ty.sem : ConceptId → Ty`
 
 ## Status
 
@@ -31,7 +31,7 @@ family of compositional semantic analyses is not universally ruled out. (C)
 concepts as _ordinary_ `DesignDecl`s with identity = `DeclId` — _tested design
 failure_: category errors (`conceptC_usable_as_value`,
 `conceptC_realizable_by_a_number`). A stratified concept sort is not rejected
-but reintroduces an independent `SemanticId`.
+but reintroduces an independent `ConceptId`.
 
 ## Consequences
 

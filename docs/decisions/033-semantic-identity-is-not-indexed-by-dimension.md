@@ -19,7 +19,7 @@ Accepted in Phase 3.
 
 ## Alternatives rejected
 
-`SemanticId d`, `Ty.sem s d`.
+`ConceptId d`, `Ty.sem s d`.
 
 ## Reason
 

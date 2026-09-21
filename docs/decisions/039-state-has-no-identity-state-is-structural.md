@@ -19,7 +19,7 @@ Accepted in Phase 4.
 
 ## Alternatives rejected
 
-`StateId`, reuse of `DeclId`/`SemanticId` for cells.
+`StateId`, reuse of `DeclId`/`ConceptId` for cells.
 
 ## Reason
 

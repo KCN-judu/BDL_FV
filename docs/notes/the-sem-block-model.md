@@ -15,6 +15,13 @@ FVD-0163; Lean: `BDL/Surface/Sem.lean`, `BDL/Experiments/SemExamples.lean`.
 Replaces § 5 of [one-producer-per-concept.md](one-producer-per-concept.md) and
 of [concepts-and-their-producers.md](concepts-and-their-producers.md).
 
+## Amendment (2026-09-21, Phase 22)
+
+The ladder, named in the code by FVD-0164: representation → **concept**
+(`ConceptId`, type, template) → **Sem block** (instance, one value per tick) →
+value; rule (template) → mapping block (instance). `sem C` reads "a Sem of `C`".
+Production is asked to adopt the same names (correspondence page).
+
 ## 1. The question and the answer
 
 What is a block on the canvas? **A Sem block** — a declaration of a concept,

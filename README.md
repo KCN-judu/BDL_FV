@@ -26,7 +26,7 @@ lake build
   programming-languages audience, with the same pipeline
 
 Status: Phases 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-20 and 21 complete; Phase 8c (surface elaboration of the remaining
+20, 21 and 22 complete; Phase 8c (surface elaboration of the remaining
 designer-facing forms, executable semantics) and the final minimality audit not
 started — [docs/project/status.md](docs/project/status.md).
 

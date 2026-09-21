@@ -19,7 +19,7 @@ Accepted in Phase 13.
 
 ## Decision
 
-No `SemanticId` in `Channel`/`DeviceProfile`;
+No `ConceptId` in `Channel`/`DeviceProfile`;
 `Fits Θ (sem c) ch := Θ c = some ch.rep`; `grant_of_sem`,
 `channel_constructs_nothing`.
 

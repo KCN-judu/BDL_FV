@@ -135,8 +135,8 @@ REMOVE. Many-to-one lowering, device clock, stateful adapters: DEFER.
 
 What exists at `7a800bc` (read from the code, not the prose):
 
-- `bdl-model` `PhysicalOutput { id, accepts: SemanticId, clock, required }` —
-  the logical output, at a concept;
+- `bdl-model` `PhysicalOutput { id, accepts: ConceptId, clock, required }` — the
+  logical output, at a concept;
   `DeviceBinding { kind: DeviceKind, output: Option<OutputId>, fixed_pins }`
   associates a device _kind_ (PwmChannel, DigitalOutput, HBridgeChannel,
   I2cSensor, QuadratureEncoder, Uart) with an output; `bdl-hardware::devices`

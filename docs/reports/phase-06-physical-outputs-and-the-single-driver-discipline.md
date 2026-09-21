@@ -54,7 +54,7 @@ No effect rows, no action values, no arbitration.
 | Candidate                    | Verdict                                                                                                                       |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | A — by type                  | rejected: `type_keyed_binding_collides` (two servos, one type)                                                                |
-| B — `SemanticId`             | rejected: one concept feeds several devices; conflates concept and hardware                                                   |
+| B — `ConceptId`              | rejected: one concept feeds several devices; conflates concept and hardware                                                   |
 | C — `DeclId`                 | rejected: two declarations that both mean the steering motor become two "sinks", and Counterexample A cannot even be _stated_ |
 | D — nominal `OutputId`       | **kept**: the only one under which both A and D are expressible                                                               |
 | E — external deployment only | rejected: completeness and single-driver are design-time acceptance conditions (paper §7.6 "executable")                      |
@@ -78,7 +78,7 @@ The sink's `accepts` is ordinary `Ty`. A sink accepting `MotorAngle` takes a
 declaration typed `MotorAngle` — which had to construct it under its own grant.
 A sink accepting `q Angle` (a raw servo) needs an explicit `rep`-typed
 declaration in between. A device-command concept (`PWMCommand`) would be another
-`SemanticId` reached by an explicit mapping. The kernel does not distinguish
+`ConceptId` reached by an explicit mapping. The kernel does not distinguish
 these; the deployment declares, and the path is visible either way.
 
 ## 6.6 Refinement vs edit (§27)
@@ -102,7 +102,7 @@ single-driver invariant.
 | Question                                    | Answer                                                                                                                                                                                                  |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1. What is a physical output?               | A nominal sink `OutputId` with an accepted `Ty` and a `ClockId` (`OutputSpec` in `Ω`).                                                                                                                  |
-| 2. Independent nominal identity?            | Yes (Counterexample D; `SemanticId`/`DeclId` conflate).                                                                                                                                                 |
+| 2. Independent nominal identity?            | Yes (Counterexample D; `ConceptId`/`DeclId` conflate).                                                                                                                                                  |
 | 3. How is a value bound?                    | A drive edge `β d = some o`, well formed iff types equal and clocks equal.                                                                                                                              |
 | 4. Typing, global WF, or deployment?        | Global well-formedness (`DriveWF`, `SingleDriver`); `Ω` is deployment-declared data. Not typing.                                                                                                        |
 | 5. Single-driver formally?                  | `∀ d₁ d₂ o, β d₁ = some o → β d₂ = some o → d₁ = d₂`.                                                                                                                                                   |

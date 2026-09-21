@@ -72,12 +72,12 @@ semantics) is unchanged by this milestone.
 
 1. _Expressible now?_ No. Two copies of a design collide on every id.
 2. _New construct._ `Ren.inst C W k κ`: rename every internal `DeclId`, internal
-   `SemanticId`, internal `OutputId`, internal `ClockId` to a fresh value;
+   `ConceptId`, internal `OutputId`, internal `ClockId` to a fresh value;
    substitute clock parameters by κ; leave global concepts and external sinks
    fixed.
 3. _Classification._ Elaboration machinery.
-4. _Necessity._ Theorem A (`inst_decl_disjoint`, `inst_sem_disjoint`,
-   `inst_out_disjoint`, `inst_clock_disjoint`, `inst_sem_not_global`,
+4. _Necessity._ Theorem A (`inst_decl_disjoint`, `inst_concept_disjoint`,
+   `inst_out_disjoint`, `inst_clock_disjoint`, `inst_concept_not_global`,
    `inst_out_not_global`); Counterexample 3. Renaming preserves every kernel
    judgment: `HasType.rename` (no injectivity needed), `Satisfies.rename`,
    `Clocked.rename`, `Expr.rename_instRefs`.
@@ -93,8 +93,8 @@ semantics) is unchanged by this milestone.
 ### 4. Internal vs shared identity (concepts, sinks, clocks)
 
 1. _Expressible now?_ No; there is no notion of ownership.
-2. _New construct._ Per-template flags `internalSem`, `internalOut`; clocks are
-   internal unless listed in `clockParams`.
+2. _New construct._ Per-template flags `internalConcept`, `internalOut`; clocks
+   are internal unless listed in `clockParams`.
 3. _Classification._ Surface abstraction (a declaration on the template).
 4. _Necessity._ `internal_concept_not_shared`: a private concept must not be
    identified across instances; a shared one (`Tilt`) must be. Both needs are

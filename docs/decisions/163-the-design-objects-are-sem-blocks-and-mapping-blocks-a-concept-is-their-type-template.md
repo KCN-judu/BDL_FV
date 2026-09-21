@@ -35,11 +35,11 @@ superseded so that the chain records the path.
    construction (`producedBy_unique`), write-once under refinement
    (`producedBy_refine`, FVD-0007); a Sem block without a mapping block is
    provided by the environment (a Source, FVD-0118).
-3. **Templates.** A concept (`SemanticId`, its representation in `Θ`, its
-   display metadata) is the template a Sem block is created from; a rule (an
-   arrow-typed declaration) is the template a mapping block applies. Two Sem
-   blocks of one concept, two mapping blocks of one rule, are ordinary
-   (`rule_template`, `sensors_natural`); nothing counts them.
+3. **Templates.** A concept (`ConceptId`, its representation in `Θ`, its display
+   metadata) is the template a Sem block is created from; a rule (an arrow-typed
+   declaration) is the template a mapping block applies. Two Sem blocks of one
+   concept, two mapping blocks of one rule, are ordinary (`rule_template`,
+   `sensors_natural`); nothing counts them.
 4. **Edges.** A mapping block has one edge into its Sem block (`ProducedBy`) and
    one edge from each Sem block or rule it reads (`Reads` = `DependsOn`,
    FVD-0005). Relationships are never joined to relationships; a reference is

@@ -145,8 +145,8 @@ theorem.
   not a kernel construct.** KEEP IN SURFACE/DEPLOYMENT CONSTRUCTION. Nothing
   entered `Core`; every theorem is about `provision`, a function on `DeclEnv`.
 - **The profile is generic in the concept.** A channel produces representation
-  data; the Source's own signature grants `mk c`. No `SemanticId` in `Channel`
-  or `DeviceProfile`.
+  data; the Source's own signature grants `mk c`. No `ConceptId` in `Channel` or
+  `DeviceProfile`.
 - **Purity is the profile condition.** `tr.Pure` — equivalently, typed in the
   empty design and delay-free. A transducer with memory (debouncing, filtering)
   is a different object: not a function of the raw reading, and the transparency

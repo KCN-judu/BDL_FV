@@ -11,7 +11,7 @@ related: []
 production: [ADR-0013/supports]
 ---
 
-# FVD-0020: `SemanticId` is independent of `DeclId` and of display names
+# FVD-0020: `ConceptId` is independent of `DeclId` and of display names
 
 ## Status
 
@@ -28,6 +28,6 @@ A concept is a type, a declaration is a value; names are renameable.
 
 ## Consequences
 
-Three distinct things — internal identity (`SemanticId`), display name (surface
-`Concept.name`), representation (`ρ : SemanticId → Ty`, used only by erasure in
+Three distinct things — internal identity (`ConceptId`), display name (surface
+`Concept.name`), representation (`ρ : ConceptId → Ty`, used only by erasure in
 Phase 2).

@@ -18,8 +18,8 @@ reject it because nothing in the model records the distinction.
 
 ## 2.2 Models tried
 
-**Model A — nominal semantic types.** `SemanticId` (internal, distinct from
-`DeclId` and from display names) and one constructor `Ty.sem : SemanticId → Ty`
+**Model A — nominal semantic types.** `ConceptId` (internal, distinct from
+`DeclId` and from display names) and one constructor `Ty.sem : ConceptId → Ty`
 with _no_ introduction or elimination forms in the pure fragment.
 
 | Result                                                                                                                                                                              | Lean                                                                                   |
@@ -37,7 +37,7 @@ with _no_ introduction or elimination forms in the pure fragment.
 | semantic values originate only from declarations (denotational proof, `sem ↦ Empty`)                                                                                                | `no_semantic_value_without_declaration`                                                |
 
 **Model B — semantic role as interface data, typing unchanged.**
-`InterfaceB = expectedType × semanticRole : Option SemanticId × commitments`;
+`InterfaceB = expectedType × semanticRole : Option ConceptId × commitments`;
 typing sees the representation type; a separate judgment checks roles.
 
 | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                | Lean                                                                                                                   |
@@ -76,7 +76,7 @@ Conclusion for Model C, with claim strength:
   (`ConceptDecl = id × displayName × Option representation` in a distinct sort):
   **not rejected.** But once concepts inhabit a distinct category with
   independent identity, the Phase-2 kernel requirement is again an independent
-  `SemanticId` — Model A's core — and the remaining fields are representation
+  `ConceptId` — Model A's core — and the remaining fields are representation
   metadata, deferred to Phase 3. So this family does not offer a _smaller_
   Phase-2 kernel; it offers a home for Phase-3 data.
 
@@ -84,7 +84,7 @@ Conclusion for Model C, with claim strength:
 
 > **Among the tested designs, the smallest mechanism that enforces semantic
 > non-interchangeability compositionally, without a second semantic analysis, is
-> one nominal type constructor `Ty.sem : SemanticId → Ty`, over an internal
+> one nominal type constructor `Ty.sem : ConceptId → Ty`, over an internal
 > identity distinct from declaration identity and from display names, with no
 > introduction or elimination forms.**
 
@@ -122,7 +122,7 @@ Phase-3 material where the representation is `Q[d]`).
 
 | Question                                         | Answer                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Did `Ty` change?                                 | Yes: one constructor `sem SemanticId`. This was the only acceptable kernel change; §2.2 shows both alternatives fail or reduce to it.                                                                                                                                                                                                                                                             |
+| Did `Ty` change?                                 | Yes: one constructor `sem ConceptId`. This was the only acceptable kernel change; §2.2 shows both alternatives fail or reduce to it.                                                                                                                                                                                                                                                              |
 | Did `DeclInterface` change?                      | No.                                                                                                                                                                                                                                                                                                                                                                                               |
 | Did `tyView` change?                             | No. Semantic identity rides inside `expectedType`; typing still consults `tyView` only.                                                                                                                                                                                                                                                                                                           |
 | Is semantic identity change refinement or edit?  | **Edit**, in every model. In A it is a type change (`InterfaceRefines` fails, clients break); in B a role change flips verdicts on unchanged clients while keeping every type. So a semantic role field would have to be frozen exactly like the type — which is the argument for putting it _in_ the type.                                                                                       |
@@ -133,13 +133,13 @@ Phase-3 material where the representation is `Q[d]`).
 
 | Candidate construct                       | Verdict                                                                                    | Reason                                                                                                         |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `SemanticId`                              | KEEP_IN_KERNEL                                                                             | the identity `Ty.sem` refers to; distinct from `DeclId` (Model C) and from names (Counterexample C)            |
+| `ConceptId`                               | KEEP_IN_KERNEL                                                                             | the identity `Ty.sem` refers to; distinct from `DeclId` (Model C) and from names (Counterexample C)            |
 | nominal `Ty.sem` constructor              | KEEP_IN_KERNEL                                                                             | the whole mechanism                                                                                            |
 | interface semantic field (`semanticRole`) | REMOVE (for the tested design)                                                             | Model B: would have to be frozen like the type; the tested design is dominated by putting identity in the type |
 | separate semantic-compatibility judgment  | tested weak form: REMOVE; general compositional-analysis family: NOT universally ruled out | weak: η-evaded (formal); strong: tested formulation redundant (argued)                                         |
 | explicit semantic mapping                 | KEEP_IN_SURFACE; represented as an ordinary declared arrow `sem a → sem b`                 | a design relationship, not a conversion; representation-level `mk`/`rep` pending Phase 3                       |
 | concept as ordinary `DesignDecl`          | REMOVE                                                                                     | two category errors (formal)                                                                                   |
-| stratified `ConceptDecl`                  | NOT REQUIRED IN PHASE 2; may reappear as surface/representation metadata in Phase 3        | not rejected; reduces the Phase-2 identity requirement to an independent `SemanticId`                          |
+| stratified `ConceptDecl`                  | NOT REQUIRED IN PHASE 2; may reappear as surface/representation metadata in Phase 3        | not rejected; reduces the Phase-2 identity requirement to an independent `ConceptId`                           |
 
 ## 2.6 Critical remarks
 
@@ -177,7 +177,7 @@ Phase-2 labels:
 | Model B weak (direct-wire metadata checker)  | tested design failure (`bweak_evaded_by_eta`, `counterexampleD_*`)                                                                              |
 | Model B strong (compositional role judgment) | engineering preference: tested formulation redundant with nominal typing; broader class of compositional analyses **not** universally ruled out |
 | Model C as ordinary `DesignDecl`             | tested design failure (`conceptC_usable_as_value`, `conceptC_realizable_by_a_number`)                                                           |
-| Model C stratified declaration family        | **not rejected**; reduces the Phase-2 identity requirement to an independent `SemanticId`                                                       |
+| Model C stratified declaration family        | **not rejected**; reduces the Phase-2 identity requirement to an independent `ConceptId`                                                        |
 | baseline = erased Model A                    | reduction by proof (`HasType.erase`, `baseline_is_erased_modelA`)                                                                               |
 
 Nothing in Phase 2 is a proven impossibility. The same discipline applies to
@@ -208,7 +208,7 @@ later phases.
    0/1 theorem untouched, rejects the invalid wire by ordinary STLC rules,
    admits explicit mappings as ordinary declarations, and is conservative over
    the baseline by `HasType.erase`. Every tested alternative either fails
-   formally or contains an independent `SemanticId` anyway.
+   formally or contains an independent `ConceptId` anyway.
 5. **What new obligation does Phase 2 impose on Phase 3?** Representation
    binding must not destroy the nominal distinction. See "Open items" below and
    FVD-0025.

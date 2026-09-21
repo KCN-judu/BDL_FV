@@ -48,7 +48,7 @@ The theorems above. What survives is stated positively: `MkUnique` is preserved
 by every refinement that adds no declaration (`mkUnique_refine`), so an
 origin-unique design stays so while it is realized, and the private-concept form
 splits the origins of two instances into two concepts
-(`private_lamp_two_concepts`, from `inst_sem_disjoint`).
+(`private_lamp_two_concepts`, from `inst_concept_disjoint`).
 
 ## Consequences
 

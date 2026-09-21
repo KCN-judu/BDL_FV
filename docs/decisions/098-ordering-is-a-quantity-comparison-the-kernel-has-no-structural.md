@@ -25,7 +25,7 @@ Accepted in Phase 9c.
 
 `lt` at every data type (9b) — `mode1 < mode2`, `None < Some x` and
 lexicographic pairs/lists have no behaviour-design meaning and their order would
-come from codes, constructor tags or `SemanticId`s (`lt_rejected`,
+come from codes, constructor tags or `ConceptId`s (`lt_rejected`,
 `min_mode_rejected`); a kernel `Ord` predicate on types (unnecessary: an ordered
 concept compares as `lt d` on `rep`). An implementation's canonical order for
 maps/serialization is not a language capability.

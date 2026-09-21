@@ -13,9 +13,10 @@ frozen during Phase 19 — and for the papers. It settles the reading of a
 concept: **one product quantity, one value per tick, one producer**, and what
 follows for the canvas, the checks and the naming of alternatives. Report:
 [Phase 20](../reports/phase-20-one-producer-per-concept.md); decisions FVD-0161,
-FVD-0162; Lean: `BDL/Validation/Producer.lean` (moved from `Core/` in Phase 21),
-`BDL/Behavior/Producer.lean`, `BDL/Experiments/ConceptRef.lean` (moved from
-`Surface/` in Phase 21), `BDL/Experiments/ProducerUniqueExamples.lean`.
+FVD-0162; Lean: `BDL/Experiments/ProducerUnique.lean` (moved from `Core/` in
+Phase 21), `BDL/Experiments/ProducerUniqueComposition.lean`,
+`Experiments/ConceptRef.lean` (deleted in Phase 22) (moved from `Surface/` in
+Phase 21), `Experiments/ProducerUniqueExamples.lean` (deleted in Phase 22).
 Supersedes § 5 of
 [concepts-and-their-producers.md](concepts-and-their-producers.md).
 

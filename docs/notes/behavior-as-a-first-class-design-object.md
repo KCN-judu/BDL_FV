@@ -77,20 +77,20 @@ bound, hence again a template.
 
 ## 3. Each word, formally
 
-| Word                              | Definition / theorem                                                                                                                                    |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| _namable, referenceable_          | `Port` carries a `DeclId`; `Binding` refers to `(instance, port)`; display names never enter (FVD-0065)                                                 |
-| _abstractable_                    | `BehaviorInterface`; `BehaviorComponent.Realizes` hides every internal declaration                                                                      |
-| _instantiable_                    | `Ren.inst`, `fresh`, `decode`; **Theorem A** `inst_decl_disjoint`, `inst_sem_disjoint`, `inst_out_disjoint`, `inst_clock_disjoint`, `inst_*_not_global` |
-| _reusable_                        | `union_globalWF`: every instance of a valid template is well formed in the system, for every index, given `Evidence.Equivariant`                        |
-| _composable_                      | `BehaviorSystem`, `ComposeWF`; **Theorem C** `binding_satisfies`; **Theorem D** `flatten_WF`                                                            |
-| _interface-bound_                 | `BindingWF` is stated on the two interfaces; **Theorem E** `flatten_globalWF` uses the existing typing judgment only                                    |
-| _hierarchically nestable_         | `toComponent`, `flatWidth`                                                                                                                              |
-| _flattenable, meaning-preserving_ | **Theorem J** (restricted) `modular_iff_flat`: an instance evaluated alone under a consistent input agrees with the flattened design                    |
-| _temporally sound_                | **Theorem F** `flatten_causal` under `InstAcyclic`; **Theorem G** `flatten_wellClocked`, `Clocked.rename` for any clock assignment                      |
-| _open_                            | **Theorem H** `open_port_stays_open`: an unbound required port is an ordinary unresolved declaration                                                    |
-| _physically disciplined_          | **Theorem I** `flatten_singleDriver`, `flatten_driveWF`                                                                                                 |
-| _substitutable_                   | `substitute_composeWF`: an interface-refining component may replace an instance                                                                         |
+| Word                              | Definition / theorem                                                                                                                                        |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _namable, referenceable_          | `Port` carries a `DeclId`; `Binding` refers to `(instance, port)`; display names never enter (FVD-0065)                                                     |
+| _abstractable_                    | `BehaviorInterface`; `BehaviorComponent.Realizes` hides every internal declaration                                                                          |
+| _instantiable_                    | `Ren.inst`, `fresh`, `decode`; **Theorem A** `inst_decl_disjoint`, `inst_concept_disjoint`, `inst_out_disjoint`, `inst_clock_disjoint`, `inst_*_not_global` |
+| _reusable_                        | `union_globalWF`: every instance of a valid template is well formed in the system, for every index, given `Evidence.Equivariant`                            |
+| _composable_                      | `BehaviorSystem`, `ComposeWF`; **Theorem C** `binding_satisfies`; **Theorem D** `flatten_WF`                                                                |
+| _interface-bound_                 | `BindingWF` is stated on the two interfaces; **Theorem E** `flatten_globalWF` uses the existing typing judgment only                                        |
+| _hierarchically nestable_         | `toComponent`, `flatWidth`                                                                                                                                  |
+| _flattenable, meaning-preserving_ | **Theorem J** (restricted) `modular_iff_flat`: an instance evaluated alone under a consistent input agrees with the flattened design                        |
+| _temporally sound_                | **Theorem F** `flatten_causal` under `InstAcyclic`; **Theorem G** `flatten_wellClocked`, `Clocked.rename` for any clock assignment                          |
+| _open_                            | **Theorem H** `open_port_stays_open`: an unbound required port is an ordinary unresolved declaration                                                        |
+| _physically disciplined_          | **Theorem I** `flatten_singleDriver`, `flatten_driveWF`                                                                                                     |
+| _substitutable_                   | `substitute_composeWF`: an interface-refining component may replace an instance                                                                             |
 
 ## 4. What the theorems needed
 
