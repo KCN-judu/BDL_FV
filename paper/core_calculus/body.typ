@@ -343,7 +343,7 @@ content of each environment is developed in the sections that follow.
 <syntax>
 Figure 1 gives the syntax. Types are those of a simply typed calculus
 with booleans, counts and arrows, extended by nominal concept types
-$upright("sem") thick s$ over an identity $s$, physical quantities
+$upright("sem") thick C$ over an identity $C$, physical quantities
 $upright("q") thick d$ over a dimension $d$, and the data formers
 $upright("opt")$, $upright("list")$ and $times$. A dimension is an
 exponent vector over a fixed finite set of base dimensions (length,
@@ -351,17 +351,34 @@ time, angle, mass, temperature in the development); dimensions form an
 abelian group under pointwise addition, which is the only structure the
 calculus uses.
 
-$  & s in upright("ConceptId") #h(2em) d in upright("Dim") #h(2em) c in upright("ClockId") #h(2em) delta in upright("DeclId") #h(2em) o in upright("OutputId")\
-tau\,sigma thick upright("::=") thick & upright("bool") divides upright("nat") divides tau arrow.r sigma divides upright("sem") thick s divides upright("q") thick d divides upright("opt") thick tau divides upright("list") thick tau divides tau times sigma\
-e thick upright("::=") thick & x divides upright("true") divides upright("false") divides n divides lambda x : tau . thin e divides e thick e divides upright("declRef") thick delta divides upright("rep") thick e divides upright("mk") thick s thick e divides p\
+$  & C in upright("ConceptId") #h(2em) d in upright("Dim") #h(2em) c in upright("ClockId") #h(2em) delta in upright("DeclId") #h(2em) o in upright("OutputId")\
+tau\,sigma thick upright("::=") thick & upright("bool") divides upright("nat") divides tau arrow.r sigma divides upright("sem") thick C divides upright("q") thick d divides upright("opt") thick tau divides upright("list") thick tau divides tau times sigma\
+e thick upright("::=") thick & x divides upright("true") divides upright("false") divides n divides lambda x : tau . thin e divides e thick e divides upright("declRef") thick delta divides upright("rep") thick e divides upright("mk") thick C thick e divides p\
 divides thick & upright("delay") thick e thick e divides upright("sync") thick c thick e thick e divides upright("fold") thick e thick e thick e\
-p thick upright("::=") thick & upright("lit")_d thin n divides upright("add")_d divides upright("sub")_d divides upright("mul")_(d_1 d_2) divides upright("div")_(d_1 d_2) divides upright("lt")_d divides upright("eq")_tau^h divides not divides and divides or divides upright("ite")_tau\
+p thick upright("::=") thick & upright("lit")_d thin n divides upright("add")_d divides upright("sub")_d divides upright("mul")_(d_1 d_2) divides upright("div")_(d_1 d_2) divides upright("lt")_d divides upright("eq")_tau^(italic(p f)) divides not divides and divides or divides upright("ite")_tau\
 divides thick & upright("none")_tau divides upright("some")_tau divides upright("isSome")_tau divides upright("getD")_tau divides upright("nil")_tau divides upright("cons")_tau divides upright("length")_tau divides upright("take")_tau divides upright("drop")_tau divides upright("reverse")_tau divides upright("head")_tau\
 divides thick & upright("toList")_tau divides upright("pair")_(tau sigma) divides upright("fst")_(tau sigma) divides upright("snd")_(tau sigma) $
 
 #emph[Figure 1. Syntax of $lambda_(upright(B D L))$. Variables are de
-Bruijn indices in the development; the paper writes names. $h$ in
-$upright("eq")_tau^h$ is a proof that $tau$ is a data type.]
+Bruijn indices in the development; the paper writes names. $italic(p f)$
+in $upright("eq")_tau^(italic(p f))$ is a proof that $tau$ is a data
+type.]
+
+#emph[Notation.] Each letter is bound once, where its object first
+appears, and is never rebound: $C$ a concept (a nominal type, the level
+of $upright("ConceptId")$), $delta$ a declaration identity and $h$ a
+declaration record (§3.2), $v\,w$ values --- a value of concept $C$ is
+$upright("sem") thick C thick v$ (§6) --- $c$ a clock domain, $o$ an
+output, $d$ a dimension, $tau\,sigma$ types, $R$ a representation (a
+concept-free data type), $e\,b$ terms, $x$ variables, $t$ a tick, $p$ a
+property. Environments: $Theta$ concepts, $Delta$ the design, $G$ the
+grant, $Gamma$ the context, $upright(K)$ clocks, $S$ the schedule, $I$
+the input, $rho$ the evaluation environment, $Omega$ outputs and $beta$
+drive edges (§3.2, §8); $cal(P) = chevron.l tau\,cal(K) chevron.r$ an
+interface with its commitment list (§4), $italic(e v)$ evidence, $eta$
+an erasure (§5.2), $cal(C)$ a component and $k$ an instance index (§9).
+The ladder of §2 reads, in these letters: $R$ is the type of a type, $C$
+is a type, $h$ (named $delta$) is one instance holding one $v$ per $t$.
 
 Terms are those of the λ-calculus plus five design-specific forms.
 $upright("declRef") thick delta$ refers to a relationship by the
@@ -369,7 +386,7 @@ identity of its declaration; nothing about the declaration's interface
 or realization is in the syntax, which is what lets a term refer to a
 relationship that has no realization yet. $upright("rep") thick e$
 observes the representation of a concept value and
-$upright("mk") thick s thick e$ constructs one.
+$upright("mk") thick C thick e$ constructs one.
 $upright("delay") thick i thick e$ is the value of $e$ at the previous
 activation of the current domain, $i$ before any;
 $upright("sync") thick c thick i thick e$ is the value of $e$ in domain
@@ -412,12 +429,12 @@ noticing.
   binds each concept to a representation. It is well formed,
   $Theta . upright("WF")$, when every bound representation is
   concept-free and data:
-  $Theta thick s = upright("some") thick R arrow.r.double R . upright("SemFree") and R . upright("Data")$.
+  $Theta thick C = upright("some") thick R arrow.r.double R . upright("SemFree") and R . upright("Data")$.
 - A #strong[grant] $G : upright("ConceptId") arrow.r upright("Prop")$
   says which concepts a term may construct. $upright("Grant.none")$
   permits nothing; $upright("Grant.of") thick tau$ permits the concepts
   in result position of $tau$,
-  $upright("grant")\(upright("sem") thick s\)=\[s\]$,
+  $upright("grant")\(upright("sem") thick C\)=\[C\]$,
   $upright("grant")\(tau arrow.r sigma\)= upright("grant")\(sigma\)$,
   $upright("grant")\(\_\)=\[thin\]$.
 - A #strong[clock environment]
@@ -447,7 +464,7 @@ The typing judgment $Theta\;Delta\;G\;Gamma tack.r e : tau$ is given in
 Figure 2. Rules T-Var, T-Bool, T-Nat, T-Lam and T-App are those of the
 simply typed λ-calculus. T-Ref is the only rule that reads $Delta$, and
 it reads the type view. T-Rep and T-Mk read $Theta$ through the binding
-$Theta thick s = upright("some") thick R$\; T-Mk additionally requires
+$Theta thick C = upright("some") thick R$\; T-Mk additionally requires
 the grant. T-Prim assigns each registered operator its type; the
 dimension algebra is entirely in that table (Figure 3), so an
 application of $upright("mul")_(d_1 d_2)$ is checked by T-App like any
@@ -460,7 +477,7 @@ $ frac(Theta\;Delta\;G\;Gamma\,x : tau tack.r e : sigma, Theta\;Delta\;G\;Gamma 
 
 $ frac(Delta^(upright(t y))\(delta\)= upright("some") thick tau, Theta\;Delta\;G\;Gamma tack.r upright("declRef") thick delta : tau) med upright("(T-Ref)") #h(2em) frac(, Theta\;Delta\;G\;Gamma tack.r p : upright("ty")\(p\)) med upright("(T-Prim)") $
 
-$ frac(Theta thick s = upright("some") thick R quad Theta\;Delta\;G\;Gamma tack.r e : upright("sem") thick s, Theta\;Delta\;G\;Gamma tack.r upright("rep") thick e : R) med upright("(T-Rep)") #h(2em) frac(G thick s quad Theta thick s = upright("some") thick R quad Theta\;Delta\;G\;Gamma tack.r e : R, Theta\;Delta\;G\;Gamma tack.r upright("mk") thick s thick e : upright("sem") thick s) med upright("(T-Mk)") $
+$ frac(Theta thick C = upright("some") thick R quad Theta\;Delta\;G\;Gamma tack.r e : upright("sem") thick C, Theta\;Delta\;G\;Gamma tack.r upright("rep") thick e : R) med upright("(T-Rep)") #h(2em) frac(G thick C quad Theta thick C = upright("some") thick R quad Theta\;Delta\;G\;Gamma tack.r e : R, Theta\;Delta\;G\;Gamma tack.r upright("mk") thick C thick e : upright("sem") thick C) med upright("(T-Mk)") $
 
 $ frac(tau . upright("Data") quad Theta\;Delta\;G\;\[thin\]tack.r i : tau quad Theta\;Delta\;G\;\[thin\]tack.r e : tau, Theta\;Delta\;G\;\[thin\]tack.r upright("delay") thick i thick e : tau) med upright("(T-Delay)") $
 
@@ -478,7 +495,7 @@ rule reading $G$.]
     align: (auto,auto,auto,auto,),
     table.header([operator], [type], [operator], [type],),
     table.hline(),
-    [$upright("lit")_d thin n$], [$upright("q") thick d$], [$upright("eq")_tau^h$], [$tau arrow.r tau arrow.r upright("bool")$],
+    [$upright("lit")_d thin n$], [$upright("q") thick d$], [$upright("eq")_tau^(italic(p f))$], [$tau arrow.r tau arrow.r upright("bool")$],
     [$upright("add")_d\,med upright("sub")_d$], [$upright("q") thick d arrow.r upright("q") thick d arrow.r upright("q") thick d$], [$upright("ite")_tau$], [$upright("bool") arrow.r tau arrow.r tau arrow.r tau$],
     [$upright("mul")_(d_1 d_2)$], [$upright("q") thick d_1 arrow.r upright("q") thick d_2 arrow.r upright("q") thick\(d_1 + d_2\)$], [$upright("some")_tau$], [$tau arrow.r upright("opt") thick tau$],
     [$upright("div")_(d_1 d_2)$], [$upright("q") thick d_1 arrow.r upright("q") thick d_2 arrow.r upright("q") thick\(d_1 - d_2\)$], [$upright("getD")_tau$], [$upright("opt") thick tau arrow.r tau arrow.r tau$],
@@ -506,8 +523,8 @@ clients under later realization (Theorem 3) is a direct consequence.
 #emph[The construction boundary.] Client code is typed under
 $upright("Grant.none")$\; a declaration's realization is typed under
 $upright("Grant.of")$ its own expected type (§4.1). A value of
-$upright("sem") thick s$ is therefore constructed only inside a
-declaration whose signature announces $upright("sem") thick s$: the
+$upright("sem") thick C$ is therefore constructed only inside a
+declaration whose signature announces $upright("sem") thick C$: the
 signature is the realization's authority, and §5 shows what each weaker
 alternative admits.
 
@@ -564,11 +581,12 @@ be dropped.
 
 == Interfaces, evidence and satisfaction
 <interfaces-evidence-and-satisfaction>
-An interface $S = chevron.l tau\,C chevron.r$ is the relationship's
-public promise: an expected type and a list of commitments --- atomic
-labels such as `total`, `monotone`, `bounded` that a client may rely on.
-Interfaces are ordered by monotone refinement:
-$ S subset.eq.sq S' thick := thick S . tau = S' . tau thick and thick S . C subset.eq S' . C\, $
+An interface $cal(P) = chevron.l tau\,cal(K) chevron.r$ is the
+relationship's public promise: an expected type and a list of
+commitments --- atomic labels such as `total`, `monotone`, `bounded`
+that a client may rely on. Interfaces are ordered by monotone
+refinement:
+$ cal(P) subset.eq.sq cal(P)' thick := thick cal(P) . tau = cal(P)' . tau thick and thick cal(P) . cal(K) subset.eq cal(P)' . cal(K)\, $
 a decidable preorder, frozen on the type and growing on commitments
 (`InterfaceRefines`). Nothing else is an interface refinement.
 
@@ -578,10 +596,10 @@ relation
 $italic(e v) : upright("DeclEnv") arrow.r upright("Expr") arrow.r upright("PropertyId") arrow.r upright("Prop")$.
 Evidence takes the environment because compositional discharge needs it
 --- "$A$ is monotone because $B$ is committed to be monotone" consults
-$B$'s interface. A realization $e$ #strong[satisfies] $S$ in
+$B$'s interface. A realization $e$ #strong[satisfies] $cal(P)$ in
 $Theta\,Delta\,Gamma$ when it has the expected type under the grant of
 that type and every commitment is discharged:
-$ upright("Satisfies") thick italic(e v) thick Theta thick Delta thick Gamma thick e thick S thick := thick Theta\;Delta\;upright("Grant.of")\(S . tau\)\;Gamma tack.r e : S . tau thick and thick forall p in S . C . thick italic(e v) thick Delta thick e thick p . $
+$ upright("Satisfies") thick italic(e v) thick Theta thick Delta thick Gamma thick e thick cal(P) thick := thick Theta\;Delta\;upright("Grant.of")\(cal(P) . tau\)\;Gamma tack.r e : cal(P) . tau thick and thick forall p in cal(P) . cal(K) . thick italic(e v) thick Delta thick e thick p . $
 A declaration is well formed when its body, if any, satisfies its
 interface; a design is #strong[globally well formed],
 $upright("GlobalWF") thick italic(e v) thick Theta thick Delta$, when
@@ -590,18 +608,18 @@ in $Delta$ at top level. An unrealized declaration is always well
 formed.
 
 The refinement order is complete for abstract evidence:
-$S subset.eq.sq S'$ iff every realization of $S'$ in every environment
-under every evidence relation realizes $S$
+$cal(P) subset.eq.sq cal(P)'$ iff every realization of $cal(P)'$ in
+every environment under every evidence relation realizes $cal(P)$
 (`InterfaceRefines_iff_semantic`). The proof of the converse
-instantiates evidence at "the property is in $S'$'s list" and the body
-at a reference to a single declaration.
+instantiates evidence at "the property is in $cal(P)'$'s list" and the
+body at a reference to a single declaration.
 
 == The refinement order and the lifecycle
 <the-refinement-order-and-the-lifecycle>
 Design progression is generated by three steps (`DeclRefines`), each
 preserving the identity by construction and each checked against the
 current environment $Delta$:
-$ frac(S subset.eq.sq S', chevron.l delta\,S\,upright("none") chevron.r arrow.r.squiggly chevron.l delta\,S'\,upright("none") chevron.r) #h(2em) frac(upright("Satisfies") thick italic(e v) thick Theta thick Delta thick Gamma thick e thick S, chevron.l delta\,S\,upright("none") chevron.r arrow.r.squiggly chevron.l delta\,S\,upright("some") thick e chevron.r) #h(2em) frac(S subset.eq.sq S' quad upright("Satisfies") thick italic(e v) thick Theta thick Delta thick Gamma thick e thick S', chevron.l delta\,S\,upright("some") thick e chevron.r arrow.r.squiggly chevron.l delta\,S'\,upright("some") thick e chevron.r) $
+$ frac(S subset.eq.sq cal(P)', chevron.l delta\,cal(P)\,upright("none") chevron.r arrow.r.squiggly chevron.l delta\,cal(P)'\,upright("none") chevron.r) #h(2em) frac(upright("Satisfies") thick italic(e v) thick Theta thick Delta thick Gamma thick e thick cal(P), chevron.l delta\,cal(P)\,upright("none") chevron.r arrow.r.squiggly chevron.l delta\,cal(P)\,upright("some") thick e chevron.r) #h(2em) frac(S subset.eq.sq cal(P)' quad upright("Satisfies") thick italic(e v) thick Theta thick Delta thick Gamma thick e thick cal(P)', chevron.l delta\,cal(P)\,upright("some") thick e chevron.r arrow.r.squiggly chevron.l delta\,cal(P)'\,upright("some") thick e chevron.r) $
 An unrealized declaration may have its interface refined; an unrealized
 declaration may be realized by a satisfying computation; a realized
 declaration may have its interface strengthened provided the realization
@@ -611,8 +629,8 @@ mechanized (`naive_breaks_wellformedness`).
 
 Separately from the steps there is a purely structural order with no
 satisfaction condition: $upright("DeclLeq") thick h thick h'$ requires
-the same identity, $h . S subset.eq.sq h' . S$, and a write-once
-realization
+the same identity, $h . cal(P) subset.eq.sq h' . cal(P)$, and a
+write-once realization
 ($h . italic(r e a l i z a t i o n) = upright("some") thick e arrow.r.double h' . italic(r e a l i z a t i o n) = upright("some") thick e$);
 $upright("EnvRefines") thick Delta thick Delta'$ lifts it pointwise and
 permits new declarations. Storing a refined declaration back under its
@@ -640,9 +658,9 @@ meaning of earlier design decisions.
 
 #strong[Theorem 3 (Clients survive realization --- typing;
 `local_refinement_preserves_global_typing`).] If
-$Delta thick B . italic(i d) = upright("some") thick B$ and
-$upright("DeclLeq") thick B thick B'$, then every judgment
-$Theta\;Delta\;G\;Gamma tack.r e : tau$ holds in $Delta\[B'\]$.
+$Delta thick B = upright("some") thick h$ and
+$upright("DeclLeq") thick h thick h'$, then every judgment
+$Theta\;Delta\;G\;Gamma tack.r e : tau$ holds in $Delta\[h'\]$.
 
 The proof is one line: typing reads $Delta$ through the type view, and
 the type view is invariant under $upright("DeclLeq")$. That the proof is
@@ -667,10 +685,10 @@ monotone; evidence that consults their #emph[absence] is not.
 `local_refinement_preserves_global_wf`,
 `local_lifecycle_preserves_global_wf`).] If $italic(e v)$ is monotone,
 $upright("GlobalWF") thick italic(e v) thick Theta thick Delta$,
-$Delta thick B . italic(i d) = upright("some") thick B$ and
-$B arrow.r.squiggly B'$ with side conditions checked in $Delta$, then
-$upright("GlobalWF") thick italic(e v) thick Theta thick\(Delta\[B'\]\)$.
-The same holds for a whole lifecycle $B arrow.r.squiggly^(*) B'$ checked
+$Delta thick B = upright("some") thick h$ and $h arrow.r.squiggly h'$
+with side conditions checked in $Delta$, then
+$upright("GlobalWF") thick italic(e v) thick Theta thick\(Delta\[h'\]\)$.
+The same holds for a whole lifecycle $h arrow.r.squiggly^(*) h'$ checked
 against the original $Delta$.
 
 #strong[Theorem 5 (Monotonicity is necessary; `badEv_not_mono`).] There
@@ -788,7 +806,7 @@ were represented only by their representation types, so that `Tilt` and
 `MotorAngle` are both $upright("q") thick upright("Angle")$. Then the
 wire `motorTarget := tiltSensor` is well typed and the design is
 globally well formed, because nothing in the model records the
-distinction the designer drew. Nominal types $upright("sem") thick s$
+distinction the designer drew. Nominal types $upright("sem") thick C$
 over an internal identity record it: two distinct identities are
 distinct types regardless of representation, so the invalid wire is
 rejected by T-App with no additional judgment. An explicit relationship
@@ -799,14 +817,14 @@ conversion.
 
 #emph[Why not let any realization construct any concept of matching
 representation?] Nominal identity alone leaves concept values opaque:
-under T-Ref and T-App only, a value of $upright("sem") thick s$ can
+under T-Ref and T-App only, a value of $upright("sem") thick C$ can
 originate only in a declaration of concept type
 (`no_semantic_value_without_declaration`). That is the right state
 #emph[before] a realization exists. To let a formula realize a
 relationship, representation must be observable and constructible, and
 the obvious way to add it destroys what identity just bought. With
-global $upright("rep")_s : upright("sem") thick s arrow.r R$ and
-$upright("mk")_s : R arrow.r upright("sem") thick s$ available
+global $upright("rep")_C : upright("sem") thick C arrow.r R$ and
+$upright("mk")_C : R arrow.r upright("sem") thick C$ available
 everywhere,
 $lambda x . thick upright("mk")_(upright(M o t o r))\(upright("rep")_(upright(T i l t)) thick x\)$
 is a well-typed `Tilt -> MotorAngle` in the empty environment with no
@@ -819,22 +837,22 @@ cannot realize a mapping.
 The grant separates the two, and its design reading is #emph[realization
 authority]: the signature the designer wrote before any computation
 existed is what authorizes the computation's result. $upright("rep")$ is
-typed everywhere (T-Rep); $upright("mk") thick s$ is typed only where
-$G thick s$ (T-Mk); client code is typed under $upright("Grant.none")$
+typed everywhere (T-Rep); $upright("mk") thick C$ is typed only where
+$G thick C$ (T-Mk); client code is typed under $upright("Grant.none")$
 and a realization under $upright("Grant.of")$ of its own signature (the
 definition of $upright("Satisfies")$). A realization of
 `Tilt -> Brightness` may construct a `Brightness` and nothing else ---
 not a `MotorAngle`, not an `Opacity`, whatever their representations.
-Let $e . upright("constructs") thick s$ hold when
-$upright("mk") thick s$ occurs in $e$.
+Let $e . upright("constructs") thick C$ hold when
+$upright("mk") thick C$ occurs in $e$.
 
 #strong[Theorem 7 (Realization authority;
 `HasType.constructs_granted`).] If
 $Theta\;Delta\;G\;Gamma tack.r e : tau$ and
-$e . upright("constructs") thick s$, then $G thick s$. Under
-$upright("Grant.of") thick tau$: a value of $upright("sem") thick s$ is
+$e . upright("constructs") thick C$, then $G thick C$. Under
+$upright("Grant.of") thick tau$: a value of $upright("sem") thick C$ is
 built only inside a realization whose signature announces
-$upright("sem") thick s$.
+$upright("sem") thick C$.
 
 The hidden crossing above is rejected under the grant of an unrelated
 declaration and becomes legal, and visible, once `tiltToMotor` is
@@ -862,17 +880,17 @@ executable.
 
 == Representation is not meaning: erasure
 <representation-is-not-meaning-erasure>
-Let $rho : upright("ConceptId") arrow.r upright("Ty")$ map each concept
+Let $eta : upright("ConceptId") arrow.r upright("Ty")$ map each concept
 to a data type, agreeing with $Theta$ on bound concepts. Erasure
-$tau^rho$ replaces $upright("sem") thick s$ by $rho thick s$ throughout
+$tau^eta$ replaces $upright("sem") thick C$ by $eta thick C$ throughout
 a type; on terms, $upright("rep") thick e$ and
-$upright("mk") thick s thick e$ erase to $e^rho$, and the type indices
+$upright("mk") thick C thick e$ erase to $e^eta$, and the type indices
 of operators are erased.
 
 #strong[Proposition 8 (Erasure is sound; `HasType.erase`).] If
-$Theta . upright("WF")$, $rho$ agrees with $Theta$, and
+$Theta . upright("WF")$, $eta$ agrees with $Theta$, and
 $Theta\;Delta\;G\;Gamma tack.r e : tau$, then
-$Theta\;Delta^rho\;G'\;Gamma^rho tack.r e^rho : tau^rho$ for every grant
+$Theta\;Delta^eta\;G'\;Gamma^eta tack.r e^eta : tau^eta$ for every grant
 $G'$.
 
 Erasure is not injective --- `Tilt` and `MotorAngle` erase to the same
@@ -960,7 +978,7 @@ domains is the one that keeps the designer's temporal structure intact.
 <declarations-as-streams>
 Values are booleans, naturals (which also carry every
 $upright("q") thick d$\; the executable kernel's magnitudes are
-naturals), tagged concept values $upright("sem") thick s thick v$,
+naturals), tagged concept values $upright("sem") thick C thick v$,
 $upright("none")$, $upright("some") thick v$, lists, pairs, closures
 $upright("clo") thick rho thick e$ over a value environment, and
 partially applied operators $upright("prim") thick p thick arrow(v)$. An
@@ -979,7 +997,7 @@ $ frac(rho scripts(tack.r)_t f arrow.b.double upright("clo") thick rho' thick b 
 
 $ frac(Delta^(upright(r e a l))\(delta\)= upright("some") thick b quad\[thin\]scripts(tack.r)_t b arrow.b.double v, rho scripts(tack.r)_t upright("declRef") thick delta arrow.b.double v) med upright("(E-Real)") #h(2em) frac(Delta^(upright(r e a l))\(delta\)= upright("none"), rho scripts(tack.r)_t upright("declRef") thick delta arrow.b.double I thick delta thick t) med upright("(E-Input)") $
 
-$ frac(rho scripts(tack.r)_t e arrow.b.double upright("sem") thick s thick w, rho scripts(tack.r)_t upright("rep") thick e arrow.b.double w) #h(2em) frac(rho scripts(tack.r)_t e arrow.b.double w, rho scripts(tack.r)_t upright("mk") thick s thick e arrow.b.double upright("sem") thick s thick w) $
+$ frac(rho scripts(tack.r)_t e arrow.b.double upright("sem") thick C thick w, rho scripts(tack.r)_t upright("rep") thick e arrow.b.double w) #h(2em) frac(rho scripts(tack.r)_t e arrow.b.double w, rho scripts(tack.r)_t upright("mk") thick C thick e arrow.b.double upright("sem") thick C thick w) $
 
 $ frac(rho scripts(tack.r)_0 i arrow.b.double v, rho scripts(tack.r)_0 upright("delay") thick i thick e arrow.b.double v) med upright("(E-Delay0)") #h(2em) frac(rho scripts(tack.r)_t e arrow.b.double v, rho scripts(tack.r)_(t + 1) upright("delay") thick i thick e arrow.b.double v) med upright("(E-DelayS)") $
 
@@ -1076,7 +1094,7 @@ cal(R)_Theta^A\[upright("opt") thick tau\]thick v arrow.l.r.double & v = upright
 cal(R)_Theta^A\[upright("list") thick tau\]thick v arrow.l.r.double & exists arrow(w) . thick v = upright("list") thick arrow(w) and forall w in arrow(w) . thick cal(R)_Theta^A\[tau\]thick w\
 cal(R)_Theta^A\[tau times sigma\]thick v arrow.l.r.double & exists x thin y . thick v = upright("pair") thick x thick y and cal(R)_Theta^A\[tau\]thick x and cal(R)_Theta^A\[sigma\]thick y\
 cal(R)_Theta^A\[tau arrow.r sigma\]thick v arrow.l.r.double & forall w . thick cal(R)_Theta^A\[tau\]thick w arrow.r exists v' . thick A thick v thick w thick v' and cal(R)_Theta^A\[sigma\]thick v'\
-cal(R)_Theta^A\[upright("sem") thick s\]thick v arrow.l.r.double & exists w . thick v = upright("sem") thick s thick w and forall R . thick Theta thick s = upright("some") thick R arrow.r cal(R)^A\[R\]thick w $
+cal(R)_Theta^A\[upright("sem") thick C\]thick v arrow.l.r.double & exists w . thick v = upright("sem") thick C thick w and forall R . thick Theta thick C = upright("some") thick R arrow.r cal(R)^A\[R\]thick w $
 
 The concept clause says that a concept value is a tagged representation
 value. Its inner use of the relation at the representation $R$ is the
@@ -1152,13 +1170,13 @@ why: the first tick is either undefined
 == Provenance through time
 <provenance-through-time>
 State carries semantic tags; it never creates them. Let
-$v . upright("Taints") thick s$ hold when the tag $s$ occurs anywhere
+$v . upright("Taints") thick C$ hold when the tag $C$ occurs anywhere
 inside $v$ --- including inside closures' environments and bodies.
 
 #strong[Theorem 12 (Semantic integrity over time; `Ev.tag_provenance`,
 `temporal_state_preserves_semantic_identity`).] If no realization in
-$Delta$ constructs $s$, no input value is tainted by $s$, $e$ does not
-construct $s$ and $rho$ is clean, then every value
+$Delta$ constructs $C$, no input value is tainted by $C$, $e$ does not
+construct $C$ and $rho$ is clean, then every value
 $rho scripts(tack.r)_t e arrow.b.double v$ is clean. In particular a delayed
 value carries exactly the tag of the value delayed.
 
@@ -1363,14 +1381,14 @@ one result type serves only one projection
 only; they are never a component interface or an output bundle (§9 shows
 what a tuple-returning declaration does to the dependency graph).
 
-$upright("eq")_tau^h$ is structural equality at every data type ---
-booleans, numbers, $upright("none")$/$upright("some")$, pairs and lists
-componentwise, concept values by tag and representation --- with the
-proof $h : tau . upright("Data")$ carried #emph[in the syntax]. This is
-the kernel's only capability evidence: an equality on a function type is
-unwritable rather than ill typed, which keeps T-Prim unconditional. On
-first-order values structural equality is equality (`Value.beq_iff`, by
-a mutual induction over the nested value type).
+$upright("eq")_tau^(italic(p f))$ is structural equality at every data
+type --- booleans, numbers, $upright("none")$/$upright("some")$, pairs
+and lists componentwise, concept values by tag and representation ---
+with the proof $h : tau . upright("Data")$ carried #emph[in the syntax].
+This is the kernel's only capability evidence: an equality on a function
+type is unwritable rather than ill typed, which keeps T-Prim
+unconditional. On first-order values structural equality is equality
+(`Value.beq_iff`, by a mutual induction over the nested value type).
 
 Order is deliberately not generalized. A first formulation gave `<` a
 structural meaning at every data type --- booleans, options, pairs and
@@ -1422,8 +1440,8 @@ mechanism with dimension pattern variables; no kind system, because the
 dimension algebra already lives in the operator table.
 
 Nominality survives all of it. #emph[Any] family typed at
-$alpha arrow.r alpha arrow.r alpha$, instantiated at concept $s$,
-rejects an argument of concept $s' eq.not s$, the representations never
+$alpha arrow.r alpha arrow.r alpha$, instantiated at concept $C$,
+rejects an argument of concept $C' eq.not C$, the representations never
 consulted (`generic_preserves_identity`); the same for
 $upright("q") thick d$ versus $upright("q") thick d'$
 (`generic_preserves_dimension`). This is Reynolds's abstraction
@@ -1694,13 +1712,13 @@ data-typed declarations bound to closed constants at instantiation) and
 clock parameters. A #strong[component] is an interface, a template
 design over local identities below a width $W$, and a partition of its
 concepts and outputs into private (freshened per instance) and shared.
-$upright("Realizes") thick italic(e v) thick C$ is a predicate over the
-existing judgments: the template is a well-formed design (`Design.WF`:
-$upright("GlobalWF")$, $Theta . upright("WF")$, well clocked, causal,
-$upright("DriveWF")$, $upright("SingleDriver")$), every required port is
-an unrealized declaration of the stated interface, every provided port
-is declared with it, parameters are unrealized, data-typed and
-clock-free.
+$upright("Realizes") thick italic(e v) thick cal(C)$ is a predicate over
+the existing judgments: the template is a well-formed design
+(`Design.WF`: $upright("GlobalWF")$, $Theta . upright("WF")$, well
+clocked, causal, $upright("DriveWF")$, $upright("SingleDriver")$), every
+required port is an unrealized declaration of the stated interface,
+every provided port is declared with it, parameters are unrealized,
+data-typed and clock-free.
 
 Instance $k$ of a component maps local identity $n$ to
 $upright("fresh") thick W thick k thick n = W dot.op\(k + 1\)+ n$, with
