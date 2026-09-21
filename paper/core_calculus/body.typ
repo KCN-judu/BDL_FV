@@ -397,22 +397,32 @@ $sans("GlobalWF")$). The ladder of §2 reads, in these letters: $R$
 is the type of a type, $C$ is a type, $delta$ is one inhabitant holding
 one $v$ per $t$.
 
-Terms are those of the λ-calculus plus five design-specific forms. A
-constant name $delta$ refers to a relationship by the identity of its
-declaration; nothing about the declaration's interface or realization is
-in the syntax, which is what lets a term refer to a relationship that
-has no realization yet. The term $sans("rep") thick e$ observes the
-representation of a concept value and $sans("mk")_C thick e$ constructs
-one --- the elimination and the introduction of the abstract type $C$\;
-the value form is $sans("mk")_C thin v$. The term
+Terms are those of the λ-calculus plus five design-specific forms and
+one recursor. A constant name $delta$ refers to a relationship by the
+identity of its declaration; nothing about the declaration's interface
+or realization is in the syntax, which is what lets a term refer to a
+relationship that has no realization yet. The term $sans("rep") thick e$
+observes the representation of a concept value and $sans("mk")_C thick e$
+constructs one --- the elimination and the introduction of the abstract
+type $C$\; the value form is $sans("mk")_C thin v$. The term
 $sans("delay") thick i thick e$ is the value of $e$ at the previous
 activation of the current domain, $i$ before any;
 $sans("sync")_kappa thick i thick e$ is the value of $e$ in domain
 $kappa$ at $kappa$'s last activation strictly before now, $i$ if none.
 The term $sans("fold") thick f thick z thick l$ is the list recursor:
 $sans("fold") thick f thick z thick\[x_1\,dots.h\,x_n\]= f thick x_1 thick\(dots.h.c\(f thick x_n thick z\)\)$.
-Registered operators $p$ are first-order constants with types; they
-never apply a closure.
+The recursor is primitive because it cannot be derived: the term
+language is the simply typed λ-calculus, which has no fixpoint
+combinator and no general recursion --- a definiens may not refer to
+itself instantaneously (§6.2, Proposition 10), and the calculus is meant
+to be total (Theorem 11) --- so abstraction and application alone define
+no closed term that iterates over a list of unknown length; an inductive
+type needs its eliminator, and $sans("fold")$ is the one eliminator,
+from which every collection operation is defined (§7.1). It is a term
+former rather than a registered operator because it applies a function
+value in the course of evaluation, which the first-order operators $p$
+never do. Registered operators $p$ are first-order constants with types;
+they never apply a closure.
 
 Two predicates on types recur. A type is #strong[data],
 $tau . sans("Data")$, when no arrow occurs in it; a type is
@@ -488,7 +498,10 @@ $Theta\(C\)= R$\; T-Mk additionally requires the grant. T-Prim assigns
 each registered operator its type; the dimension algebra is entirely in
 that table (Figure 3), so an application of $sans("mul")_(d_1 d_2)$ is
 checked by T-App like any other. T-Delay and T-Sync require the type to
-be data and the context to be empty; T-Fold types the recursor.
+be data and the context to be empty. T-Fold types the recursor, the only
+rule beyond T-App under which a function value is applied; since the
+language has no fixpoint, it is also the only source of iteration
+(§3.1).
 
 $ frac(Gamma\(x\)= tau, Theta\;Delta\;Gamma scripts(tack.r)_G x : tau) med upright("(T-Var)") #h(2em) frac(, Theta\;Delta\;Gamma scripts(tack.r)_G b : sans("Bool")) med upright("(T-Bool)") #h(2em) frac(, Theta\;Delta\;Gamma scripts(tack.r)_G n : sans("Nat")) med upright("(T-Nat)") $
 
