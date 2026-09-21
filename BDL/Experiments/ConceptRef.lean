@@ -1,8 +1,12 @@
-import BDL.Core.Producer
+import BDL.Validation.Producer
 import BDL.Core.Clock
 
 /-!
-# Concept references (Phase 20)
+# Concept references (Phase 20; an experiment since Phase 21)
+
+Phase 21 (FVD-0163) draws every edge to a Sem block — a declaration — so a
+reference is `declRef` and no concept reference is needed; this module
+remains as the elaboration a design with one Sem block per concept may use.
 
 Under `ProducerUnique` a concept has a denotation: *the* value of `C` at a
 tick is the value of its one producer.  The surface may therefore let a

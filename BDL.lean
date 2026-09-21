@@ -8,7 +8,6 @@ import BDL.Core.Dependency
 import BDL.Core.Reactive
 import BDL.Core.Clock
 import BDL.Core.Output
-import BDL.Core.Producer
 import BDL.Behavior.Rename
 import BDL.Behavior.Interface
 import BDL.Behavior.Component
@@ -30,6 +29,7 @@ import BDL.Experiments.ReactiveAlternatives
 import BDL.Experiments.ClockAlternatives
 import BDL.Experiments.OutputAlternatives
 import BDL.Validation.Hardware
+import BDL.Validation.Producer
 import BDL.Experiments.HardwareAlternatives
 import BDL.Experiments.BehaviorAlternatives
 import BDL.Experiments.GroupAlternatives
@@ -69,5 +69,7 @@ import BDL.Experiments.ProviderExamples
 import BDL.Experiments.OutputWindowExamples
 import BDL.Experiments.SourceBoundaryExamples
 import BDL.Experiments.ProducerAlternatives
-import BDL.Surface.ConceptRef
+import BDL.Experiments.ConceptRef
 import BDL.Experiments.ProducerUniqueExamples
+import BDL.Surface.Sem
+import BDL.Experiments.SemExamples

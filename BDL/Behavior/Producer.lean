@@ -1,5 +1,5 @@
 import BDL.Behavior.System
-import BDL.Core.Producer
+import BDL.Validation.Producer
 
 /-!
 # Producer uniqueness under composition (Phase 20)

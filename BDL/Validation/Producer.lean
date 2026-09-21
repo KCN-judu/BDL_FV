@@ -1,7 +1,7 @@
 import BDL.Core.Env
 
 /-!
-# Producer — one producer per concept (Phase 20)
+# Producer — one producer per concept (Phase 20; an optional judgment since Phase 21)
 
 A concept `sem C` is a nominal type (Phase 2).  Phase 20 adds the global
 invariant that in a design each concept has **at most one producer** — one
@@ -12,7 +12,11 @@ memory (`delay`) or a selection of `C` values originates nothing: it relays;
 the explicit initial value of a transport or a memory is the relay's
 default, not an origin.
 
-The invariant sits beside `SingleDriver` (Phase 6): that one constrains
+Phase 21 (FVD-0163) makes this an *optional* design judgment — "one Sem
+block per concept" — rather than a kernel invariant: a Sem block has one
+producer by write-once realization, and several Sem blocks of one concept
+are legal.  The theorems stand.  As stated in Phase 20 the invariant sits
+beside `SingleDriver` (Phase 6): that one constrains
 declarations per output, this one origins per concept; neither implies the
 other (Phase 19 `one_origin_two_outputs`).  Typing, evaluation and the
 grant are untouched.  What the invariant buys is a *denotation for a

@@ -1,5 +1,5 @@
 import BDL.Surface.SourceBoundary
-import BDL.Core.Producer
+import BDL.Validation.Producer
 import BDL.Surface.Stdlib
 import BDL.Experiments.OutputAlternatives
 import BDL.Experiments.BehaviorAlternatives
