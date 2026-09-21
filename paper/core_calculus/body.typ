@@ -40,19 +40,34 @@ semantics, clock domains, logical relations, mechanized metatheory, Lean
 = Introduction
 <introduction>
 Consider a designer working out the behavior of a tilt-dimmed lamp.
-Early in the work they know five things that are not yet code.
-Brightness depends on tilt --- a relationship whose formula is undecided
-and may stay undecided for weeks. Other parts of the design already rest
-on that relationship: the light is driven by it, a warming base reads
-it, a second lamp will reuse it. When the formula does arrive, it must
-not retroactively change what the earlier declaration meant to those
-parts. A tilt and a motor angle are both angles, and a brightness and an
-opacity are both numbers between zero and one, yet the relationship
-#emph[tilt to brightness] is not the relationship #emph[motor angle to
-brightness], and no formula should be able to turn one into the other by
-accident. And the relationship will eventually hold over time, in a
-timing domain, and move a physical light --- facts that must attach to
-it without collapsing the design into its implementation.
+Early in the work they know five things that are not yet code, and each
+is a requirement the calculus must meet; we label them so that the rest
+of the paper can name the requirement each mechanism answers.
+
+- #strong[\(D1) A relationship exists before its formula.] Brightness
+  depends on tilt --- a relationship whose formula is undecided and may
+  stay undecided for weeks.
+- #strong[\(D2) Others already depend on it, and the formula must not
+  change what they relied on.] The light is driven by the relationship,
+  a warming base reads it, a second lamp will reuse it; when the formula
+  arrives it must not retroactively change what the earlier declaration
+  meant to those parts.
+- #strong[\(D3) Meanings are distinct even when representations
+  coincide.] A tilt and a motor angle are both angles, and a brightness
+  and an opacity are both numbers between zero and one, yet the
+  relationship #emph[tilt to brightness] is not the relationship
+  #emph[motor angle to brightness], and no formula should be able to
+  turn one into the other by accident.
+- #strong[\(D4) The relationship holds over time, in an authored timing
+  domain.] The tilt moves with the interaction; the value belongs to the
+  design at the ticks of that domain and at no other.
+- #strong[\(D5) The relationship eventually moves a physical light.] A
+  computed value is not yet an effect; where the design meets the world
+  must be a fact about the relationship, not a side effect of computing
+  it.
+
+These facts must attach to the relationship without collapsing the
+design into its implementation.
 
 The first of these is the one that a programming-language presentation
 handles least naturally. In a functional language, writing
@@ -137,8 +152,8 @@ implementation performs on the designer's behalf.
 
 == Contributions
 <contributions>
-The contributions, in the order the paper develops them, each answer a
-design question with a formal mechanism and a theorem.
+The contributions, in the order we develop them, each answer a design
+question with a formal mechanism and a theorem.
 
 + #strong[Relationship-first declarations and refinement] (§2, §4). A
   design is an environment of declarations each of which may lack a
@@ -232,8 +247,8 @@ realized by the world" is not a metaphor here --- it is exactly how the
 semantics of §6 reads it.
 
 In type-theoretic terms the whole design state is a #emph[global
-environment] of named constants, and that is the vocabulary the rest of
-the paper uses. A #strong[concept] is a #emph[nominal base type]: a type
+environment] of named constants, and that is the vocabulary we use from
+here on. A #strong[concept] is a #emph[nominal base type]: a type
 constant $C$, distinct from every other by name, whose values are formed
 by the injection $sans("mk")_C$ from a representation type $R$ that the
 environment $Theta$ binds to it --- an abstract type with a private
@@ -351,6 +366,19 @@ developed in the sections that follow.
 
 == Syntax
 <syntax>
+Before the grammar, the shape of a design in words. A design is a table
+of named constants; each row carries a name, a type, a list of
+commitment labels, and either a term or nothing. A concept is a type
+name paired, once, with the representation type its values are stored
+in. Time is one global counter of ticks with a schedule saying which
+named domains activate at which ticks; each constant belongs to one
+domain or to none. An output is a name that accepts one type in one
+domain and is driven by at most one constant. The running example is
+three rows --- `dimByTilt`, `tilt`, `light` --- one concept binding for
+each of `Tilt` and `Brightness`, one domain `fast`, and one output
+`led`. The grammar and the judgments that follow make each of these
+precise, and nothing else is in the calculus.
+
 Figure 1 gives the syntax. Types are those of a simply typed calculus
 with booleans, counts and arrows, extended by nominal base types --- the
 concepts $C$, type constants distinct by name --- physical quantities
@@ -370,9 +398,9 @@ divides thick & sans("none")_tau divides sans("some")_tau divides sans("isSome")
 divides thick & sans("toList")_tau divides sans("pair")_(tau sigma) divides sans("fst")_(tau sigma) divides sans("snd")_(tau sigma) $
 
 #figcaption[Figure 1. Syntax of $lambda_(upright("BDL"))$. Variables are de
-Bruijn indices in the development; the paper writes names. The
-superscript $italic("pf")$ on $sans("eq")_tau^(italic("pf"))$ is a proof
-that $tau$ is a data type.]
+Bruijn indices in the development; we write names. The superscript
+$italic("pf")$ on $sans("eq")_tau^(italic("pf"))$ is a proof that $tau$ is
+a data type.]
 
 #emph[Notation.] The conventions are those of type theory, and each
 letter is bound once, where its object first appears, and never rebound.
@@ -551,14 +579,15 @@ only.]
 <the-type-system-as-an-assembly-each-part-its-source-its-necessity-and-its-sufficiency>
 Nothing in Figure 2 is new as a mechanism. The type system is an
 assembly of known features, each taken from a system where it is
-standard, cut down to the smallest form that meets one requirement of
-§1.1, and combined with the others; the calculus is the combination, and
-the theorems are about the combination. A reader who expects the simply
-typed λ-calculus is owed, for each part, three things: where it comes
-from, why it is #emph[necessary] --- what goes wrong without it, as a
-mechanized counterexample --- and why it is #emph[sufficient] --- the
-theorem that then holds with no further rule. The parts are listed in
-the order the paper develops them; the sections named carry the details.
+standard, cut down to the smallest form that meets one of the
+requirements D1--D5 of §1, and combined with the others; the calculus is
+the combination, and the theorems are about the combination. A reader
+who expects the simply typed λ-calculus is owed, for each part, three
+things: where it comes from, why it is #emph[necessary] --- what goes
+wrong without it, as a mechanized counterexample --- and why it is
+#emph[sufficient] --- the theorem that then holds with no further rule.
+The parts are listed in the order the paper develops them; the sections
+named carry the details.
 
 + #strong[Typed constants with an optional definiens, typed by the
   declaration alone] (T-Ref reads the type view and never a definiens).
@@ -566,15 +595,14 @@ the order the paper develops them; the sections named carry the details.
   assistants, and the signature/structure separation of ML modules
   @harper1994modules@leroy1994manifest, without the module language ---
   the environment is flat and identity is the name. #emph[Requirement]:
-  a relationship exists before its computation. #strong[Necessary]: if
-  the rule could see a definiens, a client's derivation would depend on
-  it, and supplying or changing a definiens could invalidate the client
-  --- the state the calculus exists for is the one in which the
-  definiens is absent. #strong[Sufficient]: with this rule alone every
-  client's typing survives every refinement of the declaration it reads
-  (Theorem 3, no side condition); the boundary is exact, since retyping
-  a declaration breaks clients, which is why the type is frozen in the
-  refinement order and retyping is an edit (§4.4).
+  D1. #strong[Necessary]: if the rule could see a definiens, a client's
+  derivation would depend on it, and supplying or changing a definiens
+  could invalidate the client --- the state the calculus exists for is
+  the one in which the definiens is absent. #strong[Sufficient]: with
+  this rule alone every client's typing survives every refinement of the
+  declaration it reads (Theorem 3, no side condition); the boundary is
+  exact, since retyping a declaration breaks clients, which is why the
+  type is frozen in the refinement order and retyping is an edit (§4.4).
 
 + #strong[Interfaces ordered by refinement --- type frozen, commitments
   growing --- with satisfaction by an abstract evidence relation]
@@ -583,9 +611,8 @@ the order the paper develops them; the sections named carry the details.
   manifest types @leroy1994manifest for the frozen half, without
   refinement #emph[types] --- commitments are atomic labels, and what
   discharges them is the validation layer's, not the kernel's.
-  #emph[Requirement]: progress must not invalidate earlier reasoning.
-  #strong[Necessary]: strengthening a realized interface without
-  re-verifying the definiens breaks well-formedness
+  #emph[Requirement]: D2. #strong[Necessary]: strengthening a realized
+  interface without re-verifying the definiens breaks well-formedness
   (`naive_breaks_wellformedness`), and evidence that consults the
   #emph[absence] of a definiens is destroyed by a legal step (Theorem 5)
   --- the order and the monotonicity condition are both load-bearing.
@@ -599,12 +626,11 @@ the order the paper develops them; the sections named carry the details.
   where the other is expected; §5.1). #emph[Source]: abstract types with
   a private constructor @mitchell1988abstract@reynolds1983types, the
   constructor exported not to a module but to one declaration.
-  #emph[Requirement]: a tilt is not a motor angle. #strong[Necessary]:
-  with concepts identified by representation, the wire
-  `motorTarget := tiltSensor` between two angle-valued concepts is well
-  typed and the design globally well formed
-  (`counterexampleA_baseline_accepts_invalid_wire`); the model then
-  records nothing of the distinction the designer drew.
+  #emph[Requirement]: D3. #strong[Necessary]: with concepts identified
+  by representation, the wire `motorTarget := tiltSensor` between two
+  angle-valued concepts is well typed and the design globally well
+  formed (`counterexampleA_baseline_accepts_invalid_wire`); the model
+  then records nothing of the distinction the designer drew.
   #strong[Sufficient]: T-App alone rejects the wire
   (`semantic_identity_mismatch_rejected`), and the explicit relationship
   `tiltToMotor : Tilt -> MotorAngle` is an ordinary declaration accepted
@@ -618,9 +644,8 @@ the order the paper develops them; the sections named carry the details.
   item 3, with capabilities that are a set of type names on the
   turnstile --- never values, never passed, never abstracted over ---
   computed from the declaration's own signature, so that no annotation
-  is written. #emph[Requirement]: a realization may produce only what
-  its signature promises. #strong[Necessary]: with $sans("mk")_C$
-  available everywhere,
+  is written. #emph[Requirement]: D3, for the realization.
+  #strong[Necessary]: with $sans("mk")_C$ available everywhere,
   $lambda x . thick sans("mk")_(upright("Motor"))\(sans("rep") thick x\)$
   is a well-typed `Tilt -> MotorAngle` in the empty environment, and the
   crossing can hide inside a body whose signature names no motor
@@ -638,8 +663,8 @@ the order the paper develops them; the sections named carry the details.
   T-App checks the application; §5.3). #emph[Source]: units of measure
   @kennedy1997units@kennedy2010units, without dimension polymorphism or
   inference --- the kernel has no unit variables, and units are a
-  surface elaboration. #emph[Requirement]: physical arithmetic must be
-  coherent. #strong[Necessary]: without dimensions in types, adding a
+  surface elaboration. #emph[Requirement]: D3, for the arithmetic under
+  a concept. #strong[Necessary]: without dimensions in types, adding a
   length to a time is well typed
   (`counterexampleB_baseline_accepts_length_plus_time`).
   #strong[Sufficient]: T-App rejects it (`dimension_mismatch_rejected`),
@@ -655,11 +680,11 @@ the order the paper develops them; the sections named carry the details.
   @halbwachs1991lustre@colaco2003clocks, determinism in the sense of
   Kahn @kahn1974semantics --- without a clock calculus of sampling
   operators and without rates: one global tick and a schedule.
-  #emph[Requirement]: a relationship holds over time in an authored
-  domain. #strong[Necessary]: a transport that may see a simultaneously
-  active source makes the scheduler's order observable (Theorem 15), and
-  memory without an explicit initial value leaves the first tick
-  undefined or nondeterministic (`first_tick_undefined_without_init`,
+  #emph[Requirement]: D4. #strong[Necessary]: a transport that may see a
+  simultaneously active source makes the scheduler's order observable
+  (Theorem 15), and memory without an explicit initial value leaves the
+  first tick undefined or nondeterministic
+  (`first_tick_undefined_without_init`,
   `first_tick_nondeterministic_without_init`). #strong[Sufficient]: with
   strictly-before and explicit initial values, evaluation is
   deterministic and total in every domain for every schedule (Theorem
@@ -669,7 +694,7 @@ the order the paper develops them; the sections named carry the details.
 + #strong[Memory and transport typed only at data types and only in the
   empty context] (T-Delay, T-Sync). #emph[Source]: the placement of
   `pre` in Lustre, in nodes rather than in functions
-  @halbwachs1991lustre. #emph[Requirement]: the same, with totality.
+  @halbwachs1991lustre. #emph[Requirement]: D4, with totality.
   #strong[Necessary]: a delayed value of arrow type would be a closure
   transported across ticks, and the logical relation at arrow type is
   indexed by the tick and cannot be transported (`arrow_not_delayable`);
@@ -684,12 +709,12 @@ the order the paper develops them; the sections named carry the details.
 + #strong[No fixpoint; list elimination is a primitive recursor]
   (T-Fold; no rule for recursion; §7.1). #emph[Source]: the recursor of
   Gödel's System T, and the causality analyses of synchronous languages
-  for the rank of §6.2. #emph[Requirement]: the semantics must be total
-  on legal designs. #strong[Necessary]: the simply typed fragment has no
-  self-application, and a self-referential definiens is either rejected
-  by causality or has no value (Proposition 10), so abstraction and
-  application define no closed term that iterates over a list of unknown
-  length; and a recursor cannot be a registered operator, since
+  for the rank of §6.2. #emph[Requirement]: D4 --- a stream must have a
+  value at every tick. #strong[Necessary]: the simply typed fragment has
+  no self-application, and a self-referential definiens is either
+  rejected by causality or has no value (Proposition 10), so abstraction
+  and application define no closed term that iterates over a list of
+  unknown length; and a recursor cannot be a registered operator, since
   operators are first-order and never apply a closure.
   #strong[Sufficient]: one recursor is total on related values
   (`fold_total`) and derives every collection operation with its
@@ -700,17 +725,17 @@ the order the paper develops them; the sections named carry the details.
   and a global single-driver invariant] (§8). #emph[Source]: the
   single-assignment discipline of hardware description and dataflow,
   without effect types, action values or arbitration policies.
-  #emph[Requirement]: a value is not yet an effect. #strong[Necessary]:
-  with several drivers, first-wins, last-wins and maximum give three
-  physical outputs from one design (`hidden_arbitration_observable`).
-  #strong[Sufficient]: under the invariant the physical output is a
-  function of the tick (Theorem 17), and binding an undriven output is a
-  refinement (`first_output_binding_is_monotone`).
+  #emph[Requirement]: D5. #strong[Necessary]: with several drivers,
+  first-wins, last-wins and maximum give three physical outputs from one
+  design (`hidden_arbitration_observable`). #strong[Sufficient]: under
+  the invariant the physical output is a function of the tick (Theorem
+  17), and binding an undriven output is a refinement
+  (`first_output_binding_is_monotone`).
 
 + #strong[Instantiation as renaming of every owned identity, binding as
   realization] (§9). #emph[Source]: fresh-name instantiation and the
   flattening of hierarchical dataflow, with every judgment equivariant.
-  #emph[Requirement]: behaviors are reused. #strong[Necessary]: with the
+  #emph[Requirement]: D2, for reuse. #strong[Necessary]: with the
   display name as the identity, renaming breaks clients
   (`rename_under_name_identity_breaks_client`); with anything less than
   a renaming of every owned identity, two instances collide.
@@ -1174,6 +1199,19 @@ The hidden crossing above is rejected under the grant of an unrelated
 declaration and becomes legal, and visible, once `tiltToMotor` is
 declared (`hidden_crossing_rejected_under_grant`,
 `representation_binding_does_not_enable_hidden_semantic_mapping`).
+
+#emph[The running example, steps 3 and 4 of Table 1.] The designer binds
+$Theta\(sans("Tilt")\)= sans(Q)_(sans("Angle"))$ and
+$Theta\(sans("Brightness")\)= sans(Q)_0$, and realizes $delta_1$
+with
+$lambda x : sans("Tilt") . thick sans("mk")_(sans("Brightness"))\(sans("rep") thick x dot.op g\)$
+for a gain $g : sans(Q)_(0 - sans("Angle"))$. The body is typed under
+$upright("grant")\(sans("Tilt") arrow.r sans("Brightness")\)= { sans("Brightness") }$:
+T-Rep observes the tilt at $sans(Q)_(sans("Angle"))$, the product has
+dimension $0$, and T-Mk constructs the brightness because
+$sans("Brightness")$ is in the grant. The same body with
+$sans("mk")_(sans("MotorAngle"))$ has no derivation, and by
+Theorem 3 `light`'s typing from §2.2 is untouched by the realization.
 
 Two constraints on representations in $Theta . sans("WF")$ were not
 anticipated. Representations must be concept-free: if `Tilt` may be
@@ -1645,6 +1683,16 @@ domain-agnostic relationship would then need clock polymorphism
 (`clocked_type_forces_polymorphism`), and nothing the type rejects is
 missed by the judgment.
 
+#emph[The running example, step 6 of Table 1.] The designer places
+`light` and `tilt` in the domain `fast` and leaves `dimByTilt` agnostic:
+$upright(K)\(delta_3\)= upright(K)\(delta_2\)= sans("some") thick italic("fast")$,
+$upright(K)\(delta_1\)= sans("none")$. The definiens of `light`,
+$delta_1 thick delta_2$, is clocked in $italic("fast")$: the reference
+to $delta_1$ is admitted because $delta_1$ is agnostic, and the
+reference to $delta_2$ because it is in the same domain. Had `tilt` been
+placed in another domain, the reference would need $sans("sync")$ with
+an initial brightness, and the domain judgment would say so.
+
 == Multi-domain evaluation
 <multi-domain-evaluation>
 The judgment $rho scripts(tack.r)_t^kappa e arrow.b.double v$ --- in domain
@@ -2097,6 +2145,17 @@ finite check on the design of Counterexample A: both edges pass typing,
 clocks, causality and the per-edge condition, and only the global count
 fails.]
 
+#emph[The running example, step 7 of Table 1.] The designer declares the
+output
+$Omega\(italic("led")\)= chevron.l sans("Brightness")\,italic("fast") chevron.r$
+and draws the drive edge $beta\(delta_3\)= italic("led")$. The edge is
+well formed because `light` has exactly the accepted type and lives in
+exactly the output's domain; $sans("SingleDriver")$ holds
+because no other edge targets `led`\; and by Theorem 17 the LED's value
+at each tick is `light`'s. Drawing a second edge from `dimByTilt` is
+refused by the type (an arrow is not a `Brightness`), and a second edge
+from another `Brightness`-typed constant by the invariant.
+
 #emph[Why not hide output arbitration?] The principle is #emph[many
 contributors, one explicit final driver]. Contributors are dependencies:
 `base + corr -> final -> motor` passes every check; priority is a
@@ -2180,6 +2239,14 @@ for the commitment half.]
 Evidence must be equivariant as well (`Evidence.Equivariant`), an
 abstract condition beside monotonicity. Nothing else is new in the
 composition theory; the rest is definitions over Proposition 18 and §4.
+
+#emph[The running example, step 8 of Table 1.] The three declarations
+become a component with `tilt` as its required port and `light` as its
+provided port. A second lamp is an instance: every name the template
+owns is renamed freshly, so its `dimByTilt` and `light` are new
+constants of the same interfaces, and binding its `tilt` port to a
+second sensor realizes that port with a reference --- a
+$sans("realize")$ step of §4, and nothing else.
 
 == Components, instances and flattening
 <components-instances-and-flattening>

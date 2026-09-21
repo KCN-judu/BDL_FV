@@ -18,7 +18,7 @@ post-processor, then Typst. Edit the template here, never the copies.
 
 - A result: a paragraph starting `**Theorem 3 (Name; \`lean_name\`).**`
   followed by the statement — also `Proposition`, `Lemma`, `Corollary`, and
-  `Definition (Name).` without a number.
+  `Definition (Name).`, `Remark (Name).` and `Example (Name).` without a number.
 - Its proof: the next paragraph, `*Proof.* …` ending with `$\square$`.
 - A figure caption: an italic paragraph `*Figure 1. …*` after the display.
 - Math keywords in `\mathsf{…}` (constructors, named judgments), sets and

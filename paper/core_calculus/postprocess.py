@@ -24,7 +24,7 @@ s = re.sub(r'\b(sans|upright|italic|bold)\(([A-Za-z](?: [A-Za-z])+)\)', words, s
 paras = s.split("\n\n")
 out = []
 for para in paras:
-    m = re.match(r'#strong\[(Theorem|Proposition|Lemma|Corollary|Definition)(?: (\d+))? \((.*?)\)\.\]\s*(.*)', para, flags=re.S)
+    m = re.match(r'#strong\[(Theorem|Proposition|Lemma|Corollary|Definition|Remark|Example)(?: (\d+))? \((.*?)\)\.\]\s*(.*)', para, flags=re.S)
     if m:
         kind, num, name, body = m.groups()
         out.append(f'#thm("{kind}", "{num or ""}")[{name}][{body}]')
