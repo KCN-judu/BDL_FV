@@ -161,19 +161,19 @@ production-tested through recording sinks and a cross-build; Phase 15 models
 that step up to the abstract sink operation and the line (FVD-0140) and no
 further (FVI-0023).
 
-Phase 22 (the concept ladder) asks production for the same rename —
-`bdl_model::SemanticId` → `ConceptId`, protocol and Studio vocabulary saying
-_concept_ for the type and _Sem block_ for the instance — as a factual alignment
-with FVD-0164; until then production's `SemanticId` is read as `ConceptId`.
+Phase 22 (the concept ladder) is consumed by ADR-0043 at the snapshot: the
+rename and the vocabulary, with the wire and the persisted formats unchanged
+(the row above). What remains for production is the Sem-block canvas (the brief
+of Phase 21's note §5), which ISS-0020's freeze awaits.
 
-Phase 21 (the Sem-block model) has no production consumer yet; it asks
-production for a projection change only: the canvas draws **Sem blocks** (value
-declarations of a concept — a Source when undefined) and **mapping blocks**
-(their definitions), with one edge from a mapping block into its Sem block and
-one edge from each Sem block a definition reads (`MappingAnalysis.references`,
-unchanged); the concept node disappears and the Concept sheet (ADR-0041) becomes
-the template a Sem block is created from; no diagnostic for two Sem blocks of
-one concept — design recommendation in
+Phase 21 (the Sem-block model) has no canvas consumer yet (ADR-0043 takes its
+vocabulary); it asks production for a projection change only: the canvas draws
+**Sem blocks** (value declarations of a concept — a Source when undefined) and
+**mapping blocks** (their definitions), with one edge from a mapping block into
+its Sem block and one edge from each Sem block a definition reads
+(`MappingAnalysis.references`, unchanged); the concept node disappears and the
+Concept sheet (ADR-0041) becomes the template a Sem block is created from; no
+diagnostic for two Sem blocks of one concept — design recommendation in
 [the-sem-block-model.md](../notes/the-sem-block-model.md) § 5 (FVD-0163).
 ADR-0034's three shapes map onto Sem block + mapping block (_value_), Sem block
 alone (_Source_) and template (_rule_). Phases 19 and 20 (FVD-0159 … FVD-0162,
