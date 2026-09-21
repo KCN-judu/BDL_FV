@@ -544,32 +544,102 @@ Dimension algebra lives here and nowhere else. Equality $sans("eq")$ is
 available at every data type and the order $sans("lt")$ at quantities
 only.]
 
-Three features of Figure 2 carry the rest of the paper.
+=== Where the rules depart from the simply typed λ-calculus
+<where-the-rules-depart-from-the-simply-typed-λ-calculus>
+Figure 2 departs from the simply typed λ-calculus in six places. A
+reader who expects the standard system is owed, for each, the reason the
+departure is #emph[necessary] --- what goes wrong without it, as a
+mechanized counterexample --- and the reason it is #emph[sufficient] ---
+the theorem that then holds with no further rule. The pairs are
+collected here; the sections named develop them.
 
-#emph[The typing boundary.] Typing depends on the type view of
-declarations and the representation view of concepts and on nothing else
---- not on realizations, commitments, evidence, clocks or drive edges.
-This is the formal content of #emph[relation before realization]: a
-reference is typed by the relationship's promise, and the stability of
-clients under later realization (Theorem 3) is a direct consequence.
++ #emph[A constant is typed by its declared type alone] (T-Ref reads the
+  type view and never a definiens). #strong[Necessary]: if the rule
+  could see a definiens, a client's derivation would depend on it, and
+  supplying or changing a definiens could invalidate a client; the
+  calculus exists for the state in which the definiens is absent.
+  #strong[Sufficient]: with this rule alone, every client's typing
+  survives every refinement of the declaration it reads (Theorem 3, no
+  side condition). The converse boundary is also exact: changing the
+  declared type breaks clients, which is why the type is frozen in the
+  refinement order and retyping is an edit (§4.4).
 
-#emph[The construction boundary.] Client code is typed under
-$diameter$\; a declaration's realization is typed under the grant
-$upright("grant")\(tau\)$ of its own expected type $tau$ (§4.1). A
-value of $C$ is therefore constructed only inside a declaration whose
-signature announces $C$: the signature is the realization's authority,
-and §5 shows what each weaker alternative admits.
++ #emph[Concepts are nominal base types] (two concepts of one
+  representation are distinct types, and T-App rejects a term of one
+  where the other is expected). #strong[Necessary]: with concepts
+  identified by representation, the wire `motorTarget := tiltSensor`
+  between two angle-valued concepts is well typed and the design
+  globally well formed
+  (`counterexampleA_baseline_accepts_invalid_wire`); nothing in the
+  model can then record the distinction the designer drew.
+  #strong[Sufficient]: T-App alone rejects the wire
+  (`semantic_identity_mismatch_rejected`), and the explicit relationship
+  `tiltToMotor : Tilt -> MotorAngle` is an ordinary declaration accepted
+  by the same rules (`explicit_semantic_mapping_accepted`); no
+  compatibility judgment is added (§5.1).
 
-#emph[The temporal boundary.] The forms $sans("delay")$ and
-$sans("sync")$ are typed only in the empty context and only at data
-types. Both restrictions were forced by the totality proof of §6, not
-chosen: a delayed closure would have to be transported across ticks, and
-a delay under a binder would re-evaluate its operand at the previous
-tick in an environment created at the current one. Temporal state
-therefore belongs to declarations --- memory is a property of a
-relationship, not of a function --- and relationships with inputs are
-pointwise --- the arrangement of `pre` in Lustre, where it lives in
-nodes rather than in functions @halbwachs1991lustre.
++ #emph[Construction is granted, observation is free] (T-Mk requires
+  $C in G$\; T-Rep does not; a definiens of type $tau$ is typed under
+  $upright("grant")\(tau\)$ and client code under $diameter$).
+  #strong[Necessary]: with $sans("mk")_C$ available everywhere,
+  $lambda x . thick sans("mk")_(upright("Motor"))\(sans("rep") thick x\)$
+  is a well-typed `Tilt -> MotorAngle` in the empty environment, and the
+  crossing can hide inside a body whose signature names no motor
+  (`unrestricted_representation_binding_bypasses_semantic_identity`,
+  `hidden_crossing_inside_unrelated_body`); observation alone, on the
+  other hand, is safe but can realize no relationship.
+  #strong[Sufficient]: under the grant a well-typed term constructs only
+  the concepts its grant lists (Theorem 7), so a definiens constructs
+  only the concept its own signature announces; the hidden crossing is
+  rejected and becomes legal exactly when `tiltToMotor` is declared
+  (`hidden_crossing_rejected_under_grant`). No annotation is added: the
+  grant is read off the signature the designer already wrote (§5.1).
+
++ #emph[Dimensions are carried by the types of the registered operators,
+  and there is no dimension rule] ($sans(Q)_d$ is a type;
+  $sans("mul")_(d_1 d_2) : sans(Q)_(d_1) arrow.r sans(Q)_(d_2) arrow.r sans(Q)_(d_1 + d_2)$\;
+  T-App checks the application). #strong[Necessary]: without dimensions
+  in types, adding a length to a time is well typed
+  (`counterexampleB_baseline_accepts_length_plus_time`).
+  #strong[Sufficient]: T-App rejects it (`dimension_mismatch_rejected`),
+  a velocity is typed as a quotient (`velocity_typed`), and no separate
+  judgment is needed; dimensions are moreover orthogonal to concept
+  identity --- two concepts of one dimension stay distinct
+  (`same_dimension_does_not_imply_same_semantic_identity`) --- and
+  erasing them preserves typing (`HasType.eraseDim`) (§5.3).
+
++ #emph[Memory and transport are typed only at data types and only in
+  the empty context] (T-Delay, T-Sync). #strong[Necessary]: a delayed
+  value of arrow type would be a closure transported across ticks, and
+  the logical relation at arrow type is indexed by the tick and cannot
+  be transported (`arrow_not_delayable`); a delay under a binder would
+  evaluate its operand at the previous tick in an environment created at
+  the current one, and no rule can give that a value
+  (`delay_not_under_binder`, `sync_not_under_binder`).
+  #strong[Sufficient]: with the two restrictions, evaluation is total on
+  causal designs (Theorem 11), the relation at data types is independent
+  of the tick (`Red_data`), and every delayed value carries the tag of
+  the value delayed (Theorem 12). The design reading is that memory
+  belongs to a declaration, not to a function --- the arrangement of
+  `pre` in Lustre, where it lives in nodes @halbwachs1991lustre (§6.4).
+
++ #emph[There is no fixpoint, and list elimination is a primitive
+  recursor] (T-Fold; no rule for recursion). #strong[Necessary]: the
+  simply typed fragment has no self-application, and a self-referential
+  definiens is either rejected by causality or has no value (Proposition
+  10); so abstraction and application define no closed term that
+  iterates over a list of unknown length, and an inductive type needs
+  its eliminator. A recursor cannot be a registered operator, because
+  operators are first-order and never apply a closure (§7.1).
+  #strong[Sufficient]: one recursor is total on related values
+  (`fold_total`) and derives every collection operation with its
+  specification (`fold_spec`, §7.1); recursion #emph[in time] remains
+  available, since a definiens may refer to its own declaration under
+  $sans("delay")$ (§6.2).
+
+Everything else in Figure 2 is the standard system: T-Var, T-Bool,
+T-Nat, T-Lam and T-App are unchanged, and inference is syntax-directed
+(§3.4).
 
 == Inference, uniqueness and monotonicity
 <inference-uniqueness-and-monotonicity>
