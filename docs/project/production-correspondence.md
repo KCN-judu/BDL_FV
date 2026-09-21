@@ -159,15 +159,19 @@ production-tested through recording sinks and a cross-build; Phase 15 models
 that step up to the abstract sink operation and the line (FVD-0140) and no
 further (FVI-0023).
 
-Phase 19 (may several declarations produce one concept?) has no production
-consumer and asks for no semantic change: production's definition of _produces_
-— ADR-0034 §4, the signature — is the formal `SigProduces`, a many-to-one
-relation, and the Concept/Output projection frozen during the audit may resume
-on it; what the phase adds for an authoring surface — never "the producer" of a
-concept, no value resolved by concept, the optional origin lint and the
-intermediate-concept naming — is design recommendation in
-[concepts-and-their-producers.md](../notes/concepts-and-their-producers.md) § 5
-(FVD-0159, FVD-0160).
+Phase 20 (one producer per concept) has no production consumer yet; it asks
+production for a projection change and a diagnostic, not a kernel change: the
+concept block as a value node with one producing edge in and any number of
+reading edges out, an edge from a concept elaborating to the producer's
+declaration identity (`elabS_cref`), "concept produced twice" as a diagnostic of
+the design in the class of two drivers of one output, the composition-level
+boundary rule, and the naming of alternatives as their own concepts — design
+recommendation in
+[one-producer-per-concept.md](../notes/one-producer-per-concept.md) § 5
+(FVD-0161, FVD-0162). ADR-0034 §4's definition of _produces_ (the signature) is
+the formal `SigProduces`; its reference edge relationship → formula line becomes
+concept → formula line under FVD-0162. Phase 19's audit (FVD-0159, FVD-0160,
+superseded) recorded the state before the decision.
 
 Phase 18 (the Source-side boundary) is cited by ISS-0018 as the formal statement
 of what production has not built; its guidance for the in-flight input profile —

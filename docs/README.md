@@ -43,7 +43,7 @@ One folder per kind of record; every page carries a header that
 
 | Page                                  | What it fixes                                                                                                 |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [kernel.md](kernel/kernel.md)         | the cumulative kernel after Phase 19: objects, judgments, primitives, the refinement/edit split               |
+| [kernel.md](kernel/kernel.md)         | the cumulative kernel after Phase 20: objects, judgments, primitives, the refinement/edit split               |
 | [layout.md](kernel/layout.md)         | every Lean file and the definitions and theorems it holds                                                     |
 | [minimality.md](kernel/minimality.md) | every construct ever proposed with its verdict: kernel · surface · library · validation · UI · defer · remove |
 
@@ -68,27 +68,36 @@ One folder per kind of record; every page carries a header that
   natural binders, the unit domain, Source provision, output realization, the
   adapter boundary and the device clock — is a construction over designs proved
   to preserve the kernel's judgments.
-- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15, 16, 17, 18, 19
-  complete; 160 decisions; 30 items: 8 open, 9 deferred, 13 resolved. Build
+- **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+  complete; 162 decisions; 30 items: 7 open, 9 deferred, 14 resolved. Build
   clean on Lean 4.33.1, no `sorry`, `propext`/`Quot.sound` only.
 - **Not started:** Phase 8c (surface elaboration of the remaining
   designer-facing forms, executable semantics); the final minimality audit.
-- **Recently changed:** Phase 19 — the audit of one assumption: may several
-  declarations produce values of one nominal concept? A concept stays a nominal
-  type with many producers legal (FVD-0159): no kernel judgment resolves a value
-  by concept (`second_producer_invisible`), signature-uniqueness is refuted by
-  bindings and transports, origin-uniqueness is preserved by refinement but
-  fails ordinary reuse and is at most an authoring lint (FVD-0160), explicit
-  resolution with intermediate concepts is encodable today with the same trace
-  (`sensors_rewriting_same_trace`), and the drive edge is independent of
-  producers (`one_origin_two_outputs`); the necessity witness for two origins is
-  FVI-0030; a paper-impact note, no paper revised; production's correspondence
-  moved to `4e87d4f` (ADR-0038 consumes Phases 13 and 16, ISS-0016 resolved,
-  ISS-0018 cites 17 and 18); Phase 18 — the Source-side boundary: provider state
-  as a machine below or above the reading with the same trace
-  (`provider_state_movable`), the sampled and windowed Source-side device clock
-  with an explicit initial value, commitment discharge at three evidence levels,
-  `computes` derived and decided, out-of-type readings refused; FVI-0020
+- **Recently changed:** Phase 20 — one producer per concept: `ProducerUnique` as
+  a global invariant beside `SingleDriver` (an origin is a construction outside
+  initial-value positions, or a Source; relays do not count), preserved by
+  refinement (`ProducerUnique.refine`) and by flattening under the boundary rule
+  that a shared concept is originated by at most one instance
+  (`flatten_producerUnique`, decided by one Boolean), the concept reference
+  `cref C` elaborating to the producer conservatively and stably (`elabS_cref`,
+  `elabS_refine`), a concept's value determined (`valueOf_det`); Phase 6, 8a and
+  14's designs rewritten with the same traces; FVD-0161 supersedes
+  FVD-0159/0160, FVI-0030 resolved; Phase 19 — the audit of one assumption: may
+  several declarations produce values of one nominal concept? A concept stays a
+  nominal type with many producers legal (FVD-0159): no kernel judgment resolves
+  a value by concept (`second_producer_invisible`), signature-uniqueness is
+  refuted by bindings and transports, origin-uniqueness is preserved by
+  refinement but fails ordinary reuse and is at most an authoring lint
+  (FVD-0160), explicit resolution with intermediate concepts is encodable today
+  with the same trace (`sensors_rewriting_same_trace`), and the drive edge is
+  independent of producers (`one_origin_two_outputs`); the necessity witness for
+  two origins is FVI-0030; a paper-impact note, no paper revised; production's
+  correspondence moved to `4e87d4f` (ADR-0038 consumes Phases 13 and 16,
+  ISS-0016 resolved, ISS-0018 cites 17 and 18); Phase 18 — the Source-side
+  boundary: provider state as a machine below or above the reading with the same
+  trace (`provider_state_movable`), the sampled and windowed Source-side device
+  clock with an explicit initial value, commitment discharge at three evidence
+  levels, `computes` derived and decided, out-of-type readings refused; FVI-0020
   resolved; Phase 17 — the provider's occurrence contract (one occurrence per
   fresh transport identity, arrival order, retransmissions erased, a bounded
   batch with an observable overflow flag, several raw sources as several

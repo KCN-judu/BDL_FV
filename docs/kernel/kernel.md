@@ -6,11 +6,12 @@ status: current
 
 # The kernel in one paragraph
 
-The cumulative kernel after Phase 19 (unchanged since Phase 9b), as the reports
-state it; the Lean sources under `BDL/` are the authority and this page is their
-summary. Per-phase results are in [`../reports/`](../reports/README.md); the
-construct-by-construct verdicts in [minimality.md](minimality.md); the file map
-in [layout.md](layout.md).
+The cumulative kernel after Phase 20 (the term language unchanged since Phase
+9b; Phase 20 adds one global invariant), as the reports state it; the Lean
+sources under `BDL/` are the authority and this page is their summary. Per-phase
+results are in [`../reports/`](../reports/README.md); the construct-by-construct
+verdicts in [minimality.md](minimality.md); the file map in
+[layout.md](layout.md).
 
 ```text
 DeclEnv         maps DeclId ↦ DesignDecl
@@ -39,6 +40,7 @@ OutputEnv Ω     maps OutputId ↦ (accepted Ty, ClockId): what each logical out
 DriveEnv β      maps DeclId ↦ Option OutputId: the drive edges; write-once               (Phase 6)
 DriveWF         driver type = accepted type ∧ driver clock = sink clock; no coercion, no sync in the binding
 SingleDriver β  at most one driver per logical output — global, not typing; CompleteOutputs: every required sink driven
+ProducerUnique Δ at most one producer per concept — global, not typing (Phase 20); producerOf ids Δ C its producer
 validation      (Phase 7, outside the kernel) Hardware = resources with capabilities + per-capability units + sharing policy;
                 Requirements from device bindings; ValidFor H R A decidable by an exhaustive solver (sound and complete);
                 feasibility is a relation Design × Target and is not monotone under design refinement
