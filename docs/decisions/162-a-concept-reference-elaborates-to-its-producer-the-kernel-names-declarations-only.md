@@ -1,12 +1,12 @@
 ---
 id: FVD-0162
 legacy-id:
-status: accepted
+status: superseded
 date: 2026-09-21
 phase: 20
 area: surface
 supersedes: []
-superseded-by: []
+superseded-by: [FVD-0163]
 related: [FVD-0161, FVD-0005, FVD-0011, FVD-0045]
 production: [ADR-0034/bears-on]
 ---

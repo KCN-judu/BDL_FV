@@ -1,12 +1,12 @@
 ---
 id: FVD-0161
 legacy-id:
-status: accepted
+status: superseded
 date: 2026-09-21
 phase: 20
 area: core
 supersedes: [FVD-0159, FVD-0160]
-superseded-by: []
+superseded-by: [FVD-0163]
 related: [FVD-0019, FVD-0020, FVD-0038, FVD-0052, FVD-0053, FVD-0068, FVD-0162]
 production: [ADR-0034/bears-on, ADR-0032/bears-on]
 ---
