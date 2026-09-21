@@ -6,7 +6,7 @@ status: current
 
 # The kernel in one paragraph
 
-The cumulative kernel after Phase 18 (unchanged since Phase 9b), as the reports
+The cumulative kernel after Phase 19 (unchanged since Phase 9b), as the reports
 state it; the Lean sources under `BDL/` are the authority and this page is their
 summary. Per-phase results are in [`../reports/`](../reports/README.md); the
 construct-by-construct verdicts in [minimality.md](minimality.md); the file map
@@ -51,3 +51,10 @@ arbitrary edit  (retype, drop commitment, detach/replace realization, re-identif
 "Hole" is no longer a kernel concept. An unresolved declaration is a declaration
 whose `realization` is `none`; the word survives only as a surface/HCI metaphor
 (FVD-0015).
+
+A concept `sem s` is a nominal type, not a quantity with one producer: any
+number of declarations may announce, construct (under their own grant) or be
+Sources of one concept, no judgment counts them, and no term names a concept to
+obtain a value — every reference is `declRef d`. Several candidates for one
+concept are resolved by an ordinary declaration over their references (FVD-0159;
+producer uniqueness is not a kernel invariant, FVD-0160).
