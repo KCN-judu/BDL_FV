@@ -343,8 +343,11 @@ The term language of $lambda_(upright("BDL"))$ is a simply typed
 calculus of relationships rather than of functions is not its terms but
 the environments they are typed and evaluated against, and the
 projections through which each judgment may read them. This section
-fixes the syntax, the environments and the typing judgment; the design
-content of each environment is developed in the sections that follow.
+fixes the syntax, the environments and the typing judgment; §3.3 then
+lists the known type-system features the judgment assembles, each with
+its source, the counterexample that makes it necessary and the theorem
+that makes it sufficient. The design content of each environment is
+developed in the sections that follow.
 
 == Syntax
 <syntax>
@@ -544,100 +547,187 @@ Dimension algebra lives here and nowhere else. Equality $sans("eq")$ is
 available at every data type and the order $sans("lt")$ at quantities
 only.]
 
-=== Where the rules depart from the simply typed λ-calculus
-<where-the-rules-depart-from-the-simply-typed-λ-calculus>
-Figure 2 departs from the simply typed λ-calculus in six places. A
-reader who expects the standard system is owed, for each, the reason the
-departure is #emph[necessary] --- what goes wrong without it, as a
-mechanized counterexample --- and the reason it is #emph[sufficient] ---
-the theorem that then holds with no further rule. The pairs are
-collected here; the sections named develop them.
+=== The type system as an assembly: each part, its source, its necessity and its sufficiency
+<the-type-system-as-an-assembly-each-part-its-source-its-necessity-and-its-sufficiency>
+Nothing in Figure 2 is new as a mechanism. The type system is an
+assembly of known features, each taken from a system where it is
+standard, cut down to the smallest form that meets one requirement of
+§1.1, and combined with the others; the calculus is the combination, and
+the theorems are about the combination. A reader who expects the simply
+typed λ-calculus is owed, for each part, three things: where it comes
+from, why it is #emph[necessary] --- what goes wrong without it, as a
+mechanized counterexample --- and why it is #emph[sufficient] --- the
+theorem that then holds with no further rule. The parts are listed in
+the order the paper develops them; the sections named carry the details.
 
-+ #emph[A constant is typed by its declared type alone] (T-Ref reads the
-  type view and never a definiens). #strong[Necessary]: if the rule
-  could see a definiens, a client's derivation would depend on it, and
-  supplying or changing a definiens could invalidate a client; the
-  calculus exists for the state in which the definiens is absent.
-  #strong[Sufficient]: with this rule alone, every client's typing
-  survives every refinement of the declaration it reads (Theorem 3, no
-  side condition). The converse boundary is also exact: changing the
-  declared type breaks clients, which is why the type is frozen in the
++ #strong[Typed constants with an optional definiens, typed by the
+  declaration alone] (T-Ref reads the type view and never a definiens).
+  #emph[Source]: the `Parameter`/`Definition` distinction of proof
+  assistants, and the signature/structure separation of ML modules
+  @harper1994modules@leroy1994manifest, without the module language ---
+  the environment is flat and identity is the name. #emph[Requirement]:
+  a relationship exists before its computation. #strong[Necessary]: if
+  the rule could see a definiens, a client's derivation would depend on
+  it, and supplying or changing a definiens could invalidate the client
+  --- the state the calculus exists for is the one in which the
+  definiens is absent. #strong[Sufficient]: with this rule alone every
+  client's typing survives every refinement of the declaration it reads
+  (Theorem 3, no side condition); the boundary is exact, since retyping
+  a declaration breaks clients, which is why the type is frozen in the
   refinement order and retyping is an edit (§4.4).
 
-+ #emph[Concepts are nominal base types] (two concepts of one
-  representation are distinct types, and T-App rejects a term of one
-  where the other is expected). #strong[Necessary]: with concepts
-  identified by representation, the wire `motorTarget := tiltSensor`
-  between two angle-valued concepts is well typed and the design
-  globally well formed
-  (`counterexampleA_baseline_accepts_invalid_wire`); nothing in the
-  model can then record the distinction the designer drew.
++ #strong[Interfaces ordered by refinement --- type frozen, commitments
+  growing --- with satisfaction by an abstract evidence relation]
+  ($cal(P) subset.eq.sq cal(P)'$, $sans("Satisfies")$\; §4).
+  #emph[Source]: contract and refinement systems for the growing half,
+  manifest types @leroy1994manifest for the frozen half, without
+  refinement #emph[types] --- commitments are atomic labels, and what
+  discharges them is the validation layer's, not the kernel's.
+  #emph[Requirement]: progress must not invalidate earlier reasoning.
+  #strong[Necessary]: strengthening a realized interface without
+  re-verifying the definiens breaks well-formedness
+  (`naive_breaks_wellformedness`), and evidence that consults the
+  #emph[absence] of a definiens is destroyed by a legal step (Theorem 5)
+  --- the order and the monotonicity condition are both load-bearing.
+  #strong[Sufficient]: the lifecycle closure is exactly the structural
+  order (Proposition 2), and under monotone evidence a globally
+  well-formed design stays so through every step and every lifecycle
+  (Theorem 4).
+
++ #strong[Nominal base types with a write-once representation] (two
+  concepts of one representation are distinct types; T-App rejects one
+  where the other is expected; §5.1). #emph[Source]: abstract types with
+  a private constructor @mitchell1988abstract@reynolds1983types, the
+  constructor exported not to a module but to one declaration.
+  #emph[Requirement]: a tilt is not a motor angle. #strong[Necessary]:
+  with concepts identified by representation, the wire
+  `motorTarget := tiltSensor` between two angle-valued concepts is well
+  typed and the design globally well formed
+  (`counterexampleA_baseline_accepts_invalid_wire`); the model then
+  records nothing of the distinction the designer drew.
   #strong[Sufficient]: T-App alone rejects the wire
   (`semantic_identity_mismatch_rejected`), and the explicit relationship
   `tiltToMotor : Tilt -> MotorAngle` is an ordinary declaration accepted
   by the same rules (`explicit_semantic_mapping_accepted`); no
-  compatibility judgment is added (§5.1).
+  compatibility judgment is added.
 
-+ #emph[Construction is granted, observation is free] (T-Mk requires
-  $C in G$\; T-Rep does not; a definiens of type $tau$ is typed under
-  $upright("grant")\(tau\)$ and client code under $diameter$).
-  #strong[Necessary]: with $sans("mk")_C$ available everywhere,
++ #strong[Construction granted, observation free] (T-Mk requires
+  $C in G$, T-Rep does not; a definiens of type $tau$ is typed under
+  $upright("grant")\(tau\)$, client code under $diameter$\; §5.1).
+  #emph[Source]: capability-style typing over the private constructor of
+  item 3, with capabilities that are a set of type names on the
+  turnstile --- never values, never passed, never abstracted over ---
+  computed from the declaration's own signature, so that no annotation
+  is written. #emph[Requirement]: a realization may produce only what
+  its signature promises. #strong[Necessary]: with $sans("mk")_C$
+  available everywhere,
   $lambda x . thick sans("mk")_(upright("Motor"))\(sans("rep") thick x\)$
   is a well-typed `Tilt -> MotorAngle` in the empty environment, and the
   crossing can hide inside a body whose signature names no motor
   (`unrestricted_representation_binding_bypasses_semantic_identity`,
-  `hidden_crossing_inside_unrelated_body`); observation alone, on the
-  other hand, is safe but can realize no relationship.
-  #strong[Sufficient]: under the grant a well-typed term constructs only
-  the concepts its grant lists (Theorem 7), so a definiens constructs
-  only the concept its own signature announces; the hidden crossing is
-  rejected and becomes legal exactly when `tiltToMotor` is declared
-  (`hidden_crossing_rejected_under_grant`). No annotation is added: the
-  grant is read off the signature the designer already wrote (§5.1).
+  `hidden_crossing_inside_unrelated_body`); observation alone is safe
+  but can realize no relationship. #strong[Sufficient]: a well-typed
+  term constructs only the concepts its grant lists (Theorem 7), so a
+  definiens constructs only the concept its signature announces; the
+  hidden crossing is rejected and becomes legal exactly when
+  `tiltToMotor` is declared (`hidden_crossing_rejected_under_grant`).
 
-+ #emph[Dimensions are carried by the types of the registered operators,
-  and there is no dimension rule] ($sans(Q)_d$ is a type;
++ #strong[Dimensions as type indices, the algebra in the operator types,
+  no dimension rule] ($sans(Q)_d$ over an abelian group;
   $sans("mul")_(d_1 d_2) : sans(Q)_(d_1) arrow.r sans(Q)_(d_2) arrow.r sans(Q)_(d_1 + d_2)$\;
-  T-App checks the application). #strong[Necessary]: without dimensions
-  in types, adding a length to a time is well typed
+  T-App checks the application; §5.3). #emph[Source]: units of measure
+  @kennedy1997units@kennedy2010units, without dimension polymorphism or
+  inference --- the kernel has no unit variables, and units are a
+  surface elaboration. #emph[Requirement]: physical arithmetic must be
+  coherent. #strong[Necessary]: without dimensions in types, adding a
+  length to a time is well typed
   (`counterexampleB_baseline_accepts_length_plus_time`).
   #strong[Sufficient]: T-App rejects it (`dimension_mismatch_rejected`),
-  a velocity is typed as a quotient (`velocity_typed`), and no separate
-  judgment is needed; dimensions are moreover orthogonal to concept
-  identity --- two concepts of one dimension stay distinct
-  (`same_dimension_does_not_imply_same_semantic_identity`) --- and
-  erasing them preserves typing (`HasType.eraseDim`) (§5.3).
+  a velocity is typed as a quotient (`velocity_typed`), dimensions stay
+  orthogonal to concept identity
+  (`same_dimension_does_not_imply_same_semantic_identity`), and erasing
+  them preserves typing (`HasType.eraseDim`).
 
-+ #emph[Memory and transport are typed only at data types and only in
-  the empty context] (T-Delay, T-Sync). #strong[Necessary]: a delayed
-  value of arrow type would be a closure transported across ticks, and
-  the logical relation at arrow type is indexed by the tick and cannot
-  be transported (`arrow_not_delayable`); a delay under a binder would
-  evaluate its operand at the previous tick in an environment created at
-  the current one, and no rule can give that a value
++ #strong[Declarations as clocked streams, one temporal primitive, a
+  domain judgment beside typing] ($sans("delay")$,
+  $sans("sync")_kappa$, $sans("Clocked")$\; §6). #emph[Source]:
+  synchronous dataflow --- `pre` and clocks in Lustre
+  @halbwachs1991lustre@colaco2003clocks, determinism in the sense of
+  Kahn @kahn1974semantics --- without a clock calculus of sampling
+  operators and without rates: one global tick and a schedule.
+  #emph[Requirement]: a relationship holds over time in an authored
+  domain. #strong[Necessary]: a transport that may see a simultaneously
+  active source makes the scheduler's order observable (Theorem 15), and
+  memory without an explicit initial value leaves the first tick
+  undefined or nondeterministic (`first_tick_undefined_without_init`,
+  `first_tick_nondeterministic_without_init`). #strong[Sufficient]: with
+  strictly-before and explicit initial values, evaluation is
+  deterministic and total in every domain for every schedule (Theorem
+  14), and $sans("delay")$ is $sans("sync")$ at the own domain, so
+  one primitive suffices (Proposition 13).
+
++ #strong[Memory and transport typed only at data types and only in the
+  empty context] (T-Delay, T-Sync). #emph[Source]: the placement of
+  `pre` in Lustre, in nodes rather than in functions
+  @halbwachs1991lustre. #emph[Requirement]: the same, with totality.
+  #strong[Necessary]: a delayed value of arrow type would be a closure
+  transported across ticks, and the logical relation at arrow type is
+  indexed by the tick and cannot be transported (`arrow_not_delayable`);
+  a delay under a binder would evaluate its operand at the previous tick
+  in an environment created at the current one, which no rule can value
   (`delay_not_under_binder`, `sync_not_under_binder`).
-  #strong[Sufficient]: with the two restrictions, evaluation is total on
+  #strong[Sufficient]: with the two restrictions evaluation is total on
   causal designs (Theorem 11), the relation at data types is independent
-  of the tick (`Red_data`), and every delayed value carries the tag of
-  the value delayed (Theorem 12). The design reading is that memory
-  belongs to a declaration, not to a function --- the arrangement of
-  `pre` in Lustre, where it lives in nodes @halbwachs1991lustre (§6.4).
+  of the tick (`Red_data`), and a delayed value carries the tag of the
+  value delayed (Theorem 12).
 
-+ #emph[There is no fixpoint, and list elimination is a primitive
-  recursor] (T-Fold; no rule for recursion). #strong[Necessary]: the
-  simply typed fragment has no self-application, and a self-referential
-  definiens is either rejected by causality or has no value (Proposition
-  10); so abstraction and application define no closed term that
-  iterates over a list of unknown length, and an inductive type needs
-  its eliminator. A recursor cannot be a registered operator, because
-  operators are first-order and never apply a closure (§7.1).
++ #strong[No fixpoint; list elimination is a primitive recursor]
+  (T-Fold; no rule for recursion; §7.1). #emph[Source]: the recursor of
+  Gödel's System T, and the causality analyses of synchronous languages
+  for the rank of §6.2. #emph[Requirement]: the semantics must be total
+  on legal designs. #strong[Necessary]: the simply typed fragment has no
+  self-application, and a self-referential definiens is either rejected
+  by causality or has no value (Proposition 10), so abstraction and
+  application define no closed term that iterates over a list of unknown
+  length; and a recursor cannot be a registered operator, since
+  operators are first-order and never apply a closure.
   #strong[Sufficient]: one recursor is total on related values
   (`fold_total`) and derives every collection operation with its
-  specification (`fold_spec`, §7.1); recursion #emph[in time] remains
-  available, since a definiens may refer to its own declaration under
-  $sans("delay")$ (§6.2).
+  specification (`fold_spec`), while recursion #emph[in time] remains
+  available through memory (§6.2).
 
-Everything else in Figure 2 is the standard system: T-Var, T-Bool,
++ #strong[Outputs as a separate sort with a per-declaration drive edge
+  and a global single-driver invariant] (§8). #emph[Source]: the
+  single-assignment discipline of hardware description and dataflow,
+  without effect types, action values or arbitration policies.
+  #emph[Requirement]: a value is not yet an effect. #strong[Necessary]:
+  with several drivers, first-wins, last-wins and maximum give three
+  physical outputs from one design (`hidden_arbitration_observable`).
+  #strong[Sufficient]: under the invariant the physical output is a
+  function of the tick (Theorem 17), and binding an undriven output is a
+  refinement (`first_output_binding_is_monotone`).
+
++ #strong[Instantiation as renaming of every owned identity, binding as
+  realization] (§9). #emph[Source]: fresh-name instantiation and the
+  flattening of hierarchical dataflow, with every judgment equivariant.
+  #emph[Requirement]: behaviors are reused. #strong[Necessary]: with the
+  display name as the identity, renaming breaks clients
+  (`rename_under_name_identity_breaks_client`); with anything less than
+  a renaming of every owned identity, two instances collide.
+  #strong[Sufficient]: every judgment is preserved by renaming
+  (Proposition 18), and a flattened system is an ordinary design
+  accepted by the unchanged judgments (Theorem 19).
+
+Three features a reader might expect are absent on purpose. There is no
+polymorphism in the kernel: generic definitions are families
+instantiated by #emph[matching] against the unique inferred type, which
+Proposition 1 makes possible (§7.2). There is no subtyping: the
+refinement order freezes the type, and every crossing between concepts,
+domains or outputs is a declared artifact, never a coercion. And there
+is no effect system: the only effect is the drive edge, which is not a
+term. Each absence follows the paper's method --- a feature is added
+only when a formalized alternative without it was refuted --- and
+everything else in Figure 2 is the standard system: T-Var, T-Bool,
 T-Nat, T-Lam and T-App are unchanged, and inference is syntax-directed
 (§3.4).
 
