@@ -70,7 +70,7 @@ One folder per kind of record; every page carries a header that
   to preserve the kernel's judgments.
 - **Phases:** 0–7, 8a/8b, 9a–9c, 10, 10b, 11, 12, 13, 14, 15, 16, 17, 18, 19,
   20, 21, 22 complete; 164 decisions; 30 items: 7 open, 9 deferred, 14 resolved.
-  Build clean on Lean 4.33.1, no `sorry`, `propext`/`Quot.sound` only.
+  Build clean on Lean 4.35.0, no `sorry`, `propext`/`Quot.sound` only.
 - **Not started:** Phase 8c (surface elaboration of the remaining
   designer-facing forms, executable semantics); the final minimality audit.
 - **Recently changed:** Phase 22 — the concept ladder named in the code:
